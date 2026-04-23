@@ -1,0 +1,11 @@
+# Flutter localisation configuration
+# ARB files live in lib/l10n/
+# Generated code goes to lib/l10n/generated/
+
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+nullable-getter: false
+use-escaping: true

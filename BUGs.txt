@@ -1,0 +1,46 @@
+BUGS
+
+
+Closed:
+x	selezione lingua non va -> non previsto con selezione automatica di lingua
+x	lingua default italiano -> selezione automatica in base a lingua device
+x	inserimento slot orari poco user friendly -> step 3 adesso è top
+x	step 1 ancora poco chiaro: non mi ordina le lezioni in ordine di orario, quando ne inserisco una nuova (dai la possibilità di spostarle??)
+x	se inserisco un nuovo break nello step 1, tutte le lezioni dopo mi devono scorrere in automatico
+x	clicco save template ma poi non lo ritrovo nella lista
+x	creare template personali
+x	come eliminare template nello step 1
+x	quando applico un template mi deve automaticamente cancellare le lezioni già presenti
+x	bottoni LessonSlot/Break/SavePeriodsAsTemplate spostarli in alto invece che in basso
+x	quando aggiungo un break, shifta le lezioni anche se non c'è sovrapposizione
+x	quando cancello un break le lezioni devono shiftare in alto in automatico
+x	shift in basso adesso viene applicato solo alla prima lezione successiva non a tutta la serie.
+x	faccio edit di un break creando overlap, mi dà errore e non me lo fa fare
+x	nello step 1 di default metti template più usati
+x	template deleted banner non va via -> ora quando clicco delete crasha l'applicazione -> tolto banner, aggiunta finestra di conferma eliminazione
+x	non mi fa confermare il setup
+x	tab constraints ha un errore -> aggiunto servizio su firebase
+x	quando assegno limiti orari alle materie, il colore è assegnato di default ma il tasto Save è spento, finché non cambio colore
+x	mancano funzionalità base per la definizione dei vincoli: ore min/max per day/week (job split in 4 steps)
+x	in tab "setup" step 3 aggiungere la possibilità di spegnere le ore anche all'inizio
+x	in tab "setup" step 3 aggiungere la possibilità di spegnere le ore anche in mezzo
+x	in tab "setup" step 3 posso editare solo 1 giorno per classe, tutto il resto è bloccato spento
+x	se ho una materia solo su una delle classi come la devo inserire?? Non mi fa mettere un target orario nullo.
+x	Feasibility check non refresha il calcolo, ho cambiato gli slot nello step 3, ma il calcolo non è cambiato
+x	Feasibility check, calcolo sbagliato. Needed è corretto, ma Available dà i numeri
+x	configurazione degli slot dello step 3 non viene salvata
+x	Feasibility check, available and needed sono invertiti come significato
+x	su emulatore tutto è in inglese ma alcune scritte sono in italiano: (labels step 3, "applica a tutti i giorni" step 3)
+x	l'emulatore non va più
+
+
+
+Open:
+O	prova i constraints
+O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
+O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule
+O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
+O	creazione apk locale per testing locale su device vero
+O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo
+O	chiedere prossimi passi per buildare app e per rilasciarla in development
+O	chiedere opinioni di commercializzazione e rilascio

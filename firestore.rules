@@ -1,0 +1,92 @@
+// firestore.rules
+// Firestore Security Rules — ClassScheduler v1.0
+// Per-user data isolation: each user can only read/write their own documents.
+// Version-controlled with app code per §2.4 and §5.5.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidString(field, maxLen) {
+      return field is string && field.size() > 0 && field.size() <= maxLen;
+    }
+
+    function isValidInt(field, minVal, maxVal) {
+      return field is int && field >= minVal && field <= maxVal;
+    }
+
+    // ── User root + account ───────────────────────────────────────────────
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /account/{doc} {
+        allow read: if isOwner(uid);
+        // trialUsed can only be set to true (not reset to false) after first write
+        allow create: if isOwner(uid);
+        allow update: if isOwner(uid)
+          && (
+            // Allow setting trialUsed: true (consuming trial)
+            request.resource.data.trialUsed == true ||
+            // Allow other account field updates
+            !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['trialUsed'])
+          );
+        allow delete: if isOwner(uid);
+      }
+
+      // ── Schools ─────────────────────────────────────────────────────────
+      match /schools/{schoolId} {
+        allow read, write: if isOwner(uid);
+
+        // ── Periods ────────────────────────────────────────────────────────
+        match /periods/{periodId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── Classrooms ─────────────────────────────────────────────────────
+        match /classrooms/{classroomId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── DayCapacities ──────────────────────────────────────────────────
+        match /dayCapacities/{capacityId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── Subjects ───────────────────────────────────────────────────────
+        match /subjects/{subjectId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── ClassroomSubjects ──────────────────────────────────────────────
+        match /classroomSubjects/{csId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── Constraints ────────────────────────────────────────────────────
+        match /constraints/{constraintId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // ── Schedules ──────────────────────────────────────────────────────
+        match /schedules/{scheduleId} {
+          allow read, write: if isOwner(uid);
+
+          // ── ScheduleCells ─────────────────────────────────────────────────
+          match /scheduleCells/{cellId} {
+            allow read, write: if isOwner(uid);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "periods",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "sortOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "classrooms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "sortOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "subjects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "classroomSubjects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classroomId", "order": "ASCENDING" },
+        { "fieldPath": "subjectId",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "constraints",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "kind",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "schedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId",     "order": "ASCENDING" },
+        { "fieldPath": "generatedAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scheduleCells",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "scheduleId",   "order": "ASCENDING" },
+        { "fieldPath": "classroomId",  "order": "ASCENDING" },
+        { "fieldPath": "periodId",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dayCapacities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classroomId",  "order": "ASCENDING" },
+        { "fieldPath": "dayOfWeek",    "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

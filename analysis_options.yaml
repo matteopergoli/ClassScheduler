@@ -1,0 +1,17 @@
+# analysis_options.yaml
+# Standard Flutter linting — no custom_lint dependency needed
+
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_final_fields
+    - use_key_in_widget_constructors
+    - avoid_print
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - lib/l10n/generated/**

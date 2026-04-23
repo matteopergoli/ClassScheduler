@@ -1,0 +1,592 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2026-03-01",
+  "appName": "ClassScheduler",
+  "@appName": {
+    "description": "App display name"
+  },
+  "goodMorning": "Good morning 👋",
+  "@goodMorning": {
+    "description": "Home screen greeting"
+  },
+  "yourSchools": "Your Schools",
+  "@yourSchools": {
+    "description": "Section header on schools screen"
+  },
+  "yourSchoolsCount": "Your Schools ({count})",
+  "@yourSchoolsCount": {
+    "description": "Section header with count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addSchool": "Add a school",
+  "@addSchool": {
+    "description": "FAB label / dashed add card"
+  },
+  "newSchool": "New School",
+  "@newSchool": {
+    "description": "Screen title"
+  },
+  "schoolName": "School name",
+  "schoolDescription": "Description (optional)",
+  "schoolCreated": "School created",
+  "schoolUpdated": "School updated",
+  "schoolDeleted": "School deleted",
+  "renameSchool": "Rename",
+  "duplicateSchool": "Duplicate",
+  "deleteSchool": "Delete",
+  "deleteSchoolConfirm": "Delete \"{name}\"? This will permanently remove all classrooms, subjects, constraints and schedules.",
+  "@deleteSchoolConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "classCount": "{count, plural, =1{1 class} other{{count} classes}}",
+  "@classCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherCount": "{count, plural, =1{1 teacher} other{{count} teachers}}",
+  "@teacherCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lastGenerated": "Last generated",
+  "lastGeneratedDate": "Last run: {date}",
+  "@lastGeneratedDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "neverGenerated": "Never",
+  "generate": "Generate",
+  "reGenerate": "Re-generate",
+  "generating": "Generating…",
+  "cancelGeneration": "Cancel",
+  "generationComplete": "Generation complete",
+  "generationCancelled": "Generation cancelled — best result shown",
+  "qualityScore": "Quality Score",
+  "qualityExcellent": "Excellent",
+  "qualityGood": "Good",
+  "qualityFair": "Fair",
+  "qualityPoor": "Poor",
+  "qualityTooltip": "Higher scores mean fewer teacher gaps and fewer subject changes per day.",
+  "resultPerfect": "Schedule generated. All constraints satisfied.",
+  "resultSoftViolations": "Schedule generated. {count} soft constraint(s) could not be fully satisfied.",
+  "@resultSoftViolations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resultHardViolations": "Best partial schedule shown. {count} hard constraint(s) could not be satisfied — affected cells highlighted in red.",
+  "@resultHardViolations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherFreeHours": "Teacher free hours",
+  "subjectChanges": "Subject changes",
+  "computationTime": "Computation time",
+  "iterationsCompleted": "Iterations completed",
+  "navSchools": "Schools",
+  "navSetup": "Setup",
+  "navConstraints": "Constraints",
+  "navSchedule": "Schedule",
+  "navSettings": "Settings",
+  "setupTitle": "Setup",
+  "step1Title": "School Days & Periods",
+  "step2Title": "Classrooms",
+  "step3Title": "Daily Capacity",
+  "step4Title": "Subjects",
+  "step1Description": "Select active school days and define lesson and break slots.",
+  "step2Description": "Add and name your classrooms (up to 10).",
+  "step3Description": "Set the maximum number of lessons per classroom per day.",
+  "step4Description": "Define subjects, assign them to classrooms, and set weekly targets.",
+  "activeDays": "Active school days",
+  "periods": "Periods",
+  "addPeriod": "Add period",
+  "lessonSlot": "Lesson slot",
+  "breakSlot": "Break",
+  "step3ApplyToAllDays": "Apply to all days",
+  "breakName": "Break name",
+  "startTime": "Start time",
+  "endTime": "End time",
+  "useTemplate": "Use a template",
+  "periodSaved": "Period saved",
+  "periodDeleted": "Period deleted",
+  "classrooms": "Classrooms",
+  "addClassroom": "Add classroom",
+  "classroomName": "Classroom name (e.g. 1A, Year 5 Blue)",
+  "classroomRenamed": "Classroom renamed",
+  "classroomDeleted": "Classroom deleted",
+  "classroomDeleteConstraintWarning": "This classroom is referenced in {count} constraint(s). They will also be deleted.",
+  "@classroomDeleteConstraintWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maxClassroomsReached": "Maximum of 10 classrooms reached.",
+  "dailyCapacity": "Daily capacity",
+  "maxLessonsPerDay": "Max lessons per day",
+  "subjects": "Subjects",
+  "addSubject": "Add subject",
+  "subjectName": "Subject name",
+  "teacherName": "Teacher name",
+  "colour": "Colour",
+  "weeklyTarget": "Weekly target (slots)",
+  "minDailyHours": "Min daily slots (0 = disabled)",
+  "maxDailyHours": "Max daily slots",
+  "assignToClassroom": "Assign to classroom",
+  "unassignSubject": "Unassign",
+  "subjectSaved": "Subject saved",
+  "subjectDeleted": "Subject deleted",
+  "subjectDeleteConstraintWarning": "This subject is used in {count} constraint(s). They will also be deleted.",
+  "@subjectDeleteConstraintWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "validationMinGtMax": "Minimum daily slots cannot be greater than maximum daily slots.",
+  "validationMaxDaysInsufficient": "Max daily × active days ({product}) is less than weekly target ({target}).",
+  "@validationMaxDaysInsufficient": {
+    "placeholders": {
+      "product": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "validationWeeklyExceedsSlots": "Weekly target ({target}) exceeds total available lesson slots ({available}).",
+  "@validationWeeklyExceedsSlots": {
+    "placeholders": {
+      "target": {
+        "type": "int"
+      },
+      "available": {
+        "type": "int"
+      }
+    }
+  },
+  "validationWeeklyMustBePositive": "Weekly target must be greater than 0.",
+  "feasibilityTitle": "Feasibility Check",
+  "feasibilitySlack": "Slack",
+  "feasibilityInsufficient": "Insufficient lessons available — generation is likely to produce a partial schedule.",
+  "feasibilityOk": "Enough lessons available for all classrooms.",
+  "constraints": "Constraints",
+  "hardConstraints": "Hard",
+  "softConstraints": "Soft",
+  "addConstraint": "Add constraint",
+  "noConstraints": "No constraints defined yet.",
+  "constraintDeleted": "Constraint deleted",
+  "undoDelete": "Undo",
+  "mustAssign": "MUST-ASSIGN",
+  "mustNotAssign": "MUST-NOT-ASSIGN",
+  "avoidTimeslot": "AVOID-TIMESLOT",
+  "preferBlock": "PREFER-BLOCK",
+  "mustAssignDescription": "{subject} must be assigned to {classroom} on {day} at {time}.",
+  "@mustAssignDescription": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "classroom": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "mustNotAssignDescription": "{subject} must NOT be assigned to {classroom} on {day} at {time}.",
+  "@mustNotAssignDescription": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "classroom": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "avoidTimeslotDescription": "{subject} should be avoided on {day} between {start} and {end}.",
+  "@avoidTimeslotDescription": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "preferBlockDescription": "{subject} should be scheduled in consecutive slots when possible.",
+  "@preferBlockDescription": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "weightLow": "Low",
+  "weightMedium": "Medium",
+  "weightHigh": "High",
+  "conflictDetected": "Constraint conflict detected",
+  "conflictMustAssignMustNot": "MUST-ASSIGN and MUST-NOT-ASSIGN on the same cell.",
+  "conflictMustAssignBreakSlot": "Cannot MUST-ASSIGN to a break slot.",
+  "conflictMustAssignTeacher": "Two classrooms forced to the same teacher at the same time.",
+  "conflictMustAssignMinDaily": "MUST-ASSIGN conflicts with MinDaily: only one slot available but MinDaily > 1.",
+  "conflictSuggestion": "Suggested fix: {suggestion}",
+  "@conflictSuggestion": {
+    "placeholders": {
+      "suggestion": {
+        "type": "String"
+      }
+    }
+  },
+  "schedule": "Schedule",
+  "scheduleVersions": "Schedule Versions",
+  "newVersion": "New version",
+  "versionName": "Version name",
+  "versionNameHint": "e.g. Final Sept 2026",
+  "manuallyEdited": "Manually edited",
+  "allClassrooms": "All Classrooms",
+  "singleClassroom": "Single Classroom",
+  "perTeacher": "Per Teacher",
+  "exportPdf": "Export PDF",
+  "exportExcel": "Export Excel",
+  "export": "Export",
+  "share": "Share",
+  "exportSuccess": "File shared successfully.",
+  "trialBannerRemaining": "Free trial: 1 schedule generation available. Subscribe for unlimited access.",
+  "trialBannerUsed": "Trial used. Subscribe to generate new schedules.",
+  "subscribe": "Subscribe",
+  "subscribeTitle": "Unlock ClassScheduler",
+  "subscribeDescription": "Generate unlimited timetables for all your schools.",
+  "subscribePrice": "€14.99 / year",
+  "subscribeButton": "Subscribe Now",
+  "restorePurchases": "Restore Purchases",
+  "purchaseRestored": "Purchase restored successfully.",
+  "purchaseFailed": "Purchase failed. Please try again.",
+  "alreadySubscribed": "You already have an active subscription.",
+  "settings": "Settings",
+  "language": "Language",
+  "theme": "Appearance",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "themeSystem": "System default",
+  "account": "Account",
+  "signOut": "Sign out",
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirm": "Are you sure? This will permanently delete your account and all data. This cannot be undone.",
+  "deleteAccountSuccess": "Account deleted.",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "appVersion": "Version {version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "loginTitle": "Welcome back",
+  "loginSubtitle": "Sign in to ClassScheduler",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign In",
+  "signInWithGoogle": "Continue with Google",
+  "signInWithApple": "Continue with Apple",
+  "noAccount": "Don''t have an account?",
+  "createAccount": "Create account",
+  "forgotPassword": "Forgot password?",
+  "forgotPasswordTitle": "Reset password",
+  "forgotPasswordSubtitle": "Enter your email and we''ll send a reset link.",
+  "sendResetLink": "Send reset link",
+  "resetLinkSent": "Reset link sent. Check your email.",
+  "registerTitle": "Create account",
+  "registerSubtitle": "Start scheduling in minutes.",
+  "confirmPassword": "Confirm password",
+  "passwordMismatch": "Passwords do not match.",
+  "alreadyHaveAccount": "Already have an account?",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "edit": "Edit",
+  "done": "Done",
+  "next": "Next",
+  "back": "Back",
+  "close": "Close",
+  "retry": "Retry",
+  "ok": "OK",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorNetwork": "No internet connection.",
+  "errorOfflineGeneration": "Schedule saved locally — will sync when online.",
+  "errorRequiresReauth": "Please sign in again to continue.",
+  "monday": "Monday",
+  "tuesday": "Tuesday",
+  "wednesday": "Wednesday",
+  "thursday": "Thursday",
+  "friday": "Friday",
+  "saturday": "Saturday",
+  "sunday": "Sunday",
+  "monShort": "Mon",
+  "tueShort": "Tue",
+  "wedShort": "Wed",
+  "thuShort": "Thu",
+  "friShort": "Fri",
+  "satShort": "Sat",
+  "sunShort": "Sun",
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Label for a cancelled schedule"
+  },
+  "deleteSchedule": "Delete Schedule",
+  "@deleteSchedule": {
+    "description": "Title for delete schedule dialog"
+  },
+  "deleteScheduleConfirm": "Delete \"{name}\"? This cannot be undone.",
+  "@deleteScheduleConfirm": {
+    "description": "Confirmation message for schedule deletion",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "generateToSeeSchedule": "Press Generate to create your first timetable.",
+  "@generateToSeeSchedule": {
+    "description": "Empty schedule state message"
+  },
+  "hardViolationsHeading": "{count, plural, one{1 hard constraint could not be satisfied} other{{count} hard constraints could not be satisfied}}",
+  "@hardViolationsHeading": {
+    "description": "Heading for hard violations section in result panel",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noScheduleYet": "No schedule yet",
+  "@noScheduleYet": {
+    "description": "Placeholder when no schedule version is selected"
+  },
+  "rename": "Rename",
+  "@rename": {
+    "description": "Rename action label"
+  },
+  "restartsUsed": "Restarts",
+  "@restartsUsed": {
+    "description": "Label for SA restart count in result panel"
+  },
+  "scheduleDeleted": "\"{name}\" deleted.",
+  "@scheduleDeleted": {
+    "description": "Snackbar message after schedule deletion",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleVersionName": "Schedule name",
+  "@scheduleVersionName": {
+    "description": "Label for schedule name input dialog"
+  },
+  "@scheduleVersions": {
+    "description": "Title of the version picker bottom sheet"
+  },
+  "showLess": "Show less",
+  "@showLess": {
+    "description": "Collapse violations list"
+  },
+  "showMore": "Show {count} more",
+  "@showMore": {
+    "description": "Expand violations list",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "softViolationsHeading": "{count, plural, one{1 soft constraint could not be fully satisfied} other{{count} soft constraints could not be fully satisfied}}",
+  "@softViolationsHeading": {
+    "description": "Heading for soft violations section in result panel",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "undo": "Undo",
+  "@undo": {
+    "description": "Undo snackbar action"
+  },
+  "viewAllClassrooms": "All Classrooms",
+  "@viewAllClassrooms": {
+    "description": "View mode: all classrooms side by side"
+  },
+  "viewPerTeacher": "Per Teacher",
+  "@viewPerTeacher": {
+    "description": "View mode: filter by teacher"
+  },
+  "viewSingleClassroom": "Single Classroom",
+  "@viewSingleClassroom": {
+    "description": "View mode: one classroom at a time"
+  },
+  "@export": {
+    "description": "Export button label"
+  },
+  "exportSchedule": "Export Schedule",
+  "@exportSchedule": {
+    "description": "Export sheet title"
+  },
+  "exportFormat": "Format",
+  "@exportFormat": {
+    "description": "Export format selector label"
+  },
+  "exportAsPdf": "Export as PDF",
+  "@exportAsPdf": {
+    "description": "Export button label for PDF"
+  },
+  "exportAsExcel": "Export as Excel",
+  "@exportAsExcel": {
+    "description": "Export button label for Excel"
+  },
+  "exportPdfSubtitle": "A4 pages, one per classroom",
+  "@exportPdfSubtitle": {
+    "description": "PDF format description"
+  },
+  "exportExcelSubtitle": ".xlsx with colour coding",
+  "@exportExcelSubtitle": {
+    "description": "Excel format description"
+  },
+  "exportIncludeOverview": "Include combined overview page",
+  "@exportIncludeOverview": {
+    "description": "Toggle label for overview page in PDF export"
+  },
+  "exportLoading": "Loading data…",
+  "@exportLoading": {
+    "description": "Export button state: loading data"
+  },
+  "exportGenerating": "Generating file…",
+  "@exportGenerating": {
+    "description": "Export button state: generating"
+  },
+  "exportSharing": "Opening share sheet…",
+  "@exportSharing": {
+    "description": "Export button state: sharing"
+  },
+  "@exportSuccess": {
+    "description": "Success message after export"
+  },
+  "subscription": "Subscription",
+  "@subscription": {
+    "description": "Subscription section heading"
+  },
+  "subscriptionHeadline": "Unlock Unlimited Schedules",
+  "@subscriptionHeadline": {
+    "description": "Subscription paywall headline"
+  },
+  "subscriptionSubtitle": "Generate as many timetables as you need, all year long.",
+  "@subscriptionSubtitle": {
+    "description": "Subscription paywall subtitle"
+  },
+  "subscriptionActive": "Subscription Active",
+  "@subscriptionActive": {
+    "description": "Label when subscription is active"
+  },
+  "subscriptionActiveSubtitle": "Your subscription is active. Enjoy unlimited generation.",
+  "@subscriptionActiveSubtitle": {
+    "description": "Subtitle when subscription is active"
+  },
+  "subscriptionPriceLabel": "ANNUAL PLAN",
+  "@subscriptionPriceLabel": {
+    "description": "Price card label"
+  },
+  "subscriptionPrice": "€14.99",
+  "@subscriptionPrice": {
+    "description": "Subscription price displayed on paywall"
+  },
+  "subscriptionPriceSuffix": "per year · billed annually",
+  "@subscriptionPriceSuffix": {
+    "description": "Price suffix on paywall"
+  },
+  "subscriptionOfflineGrace": "You''re offline. Your subscription is honoured for up to 30 days without a connection.",
+  "@subscriptionOfflineGrace": {
+    "description": "Offline grace period notice"
+  },
+  "subscriptionLegalNote": "Payment will be charged to your App Store / Play Store account at confirmation of purchase. Subscription renews automatically unless cancelled at least 24 hours before the end of the current period.",
+  "@subscriptionLegalNote": {
+    "description": "Legal note on subscription screen"
+  },
+  "subscribeNow": "Subscribe Now",
+  "@subscribeNow": {
+    "description": "Primary CTA button on subscription screen"
+  },
+  "subscribeForUnlimited": "Subscribe for unlimited access",
+  "@subscribeForUnlimited": {
+    "description": "Underlined link in trial banner"
+  },
+  "noPurchasesToRestore": "No purchases found to restore.",
+  "@noPurchasesToRestore": {
+    "description": "Snackbar when restore finds nothing"
+  },
+  "featureUnlimitedGeneration": "Unlimited schedule generation",
+  "@featureUnlimitedGeneration": {
+    "description": "Feature list item"
+  },
+  "featurePdfExcel": "PDF & Excel export",
+  "@featurePdfExcel": {
+    "description": "Feature list item"
+  },
+  "featureManualEditing": "Manual drag-and-drop editing",
+  "@featureManualEditing": {
+    "description": "Feature list item"
+  },
+  "featureCloudSync": "Cloud sync across all devices",
+  "@featureCloudSync": {
+    "description": "Feature list item"
+  },
+  "featureMultipleSchools": "Multiple schools per account",
+  "@featureMultipleSchools": {
+    "description": "Feature list item"
+  }
+}

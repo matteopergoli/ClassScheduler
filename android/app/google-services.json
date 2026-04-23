@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "237070186843",
+    "project_id": "classscheduler-b2918",
+    "storage_bucket": "classscheduler-b2918.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237070186843:android:f2514a2404facff715027e",
+        "android_client_info": {
+          "package_name": "com.classscheduler.classscheduler"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "237070186843-bkbaijinn4i5val6kul8k54e0dg72vag.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.classscheduler.classscheduler",
+            "certificate_hash": "901d6485fca8c96fb4f73daefbc341bd77493a4a"
+          }
+        },
+        {
+          "client_id": "237070186843-dcff0lk2mikv6o2prk6fvlvlahbohhpk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMV14-w25dx_gR3hwAzIeqGXF4CvcbkgU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "237070186843-dcff0lk2mikv6o2prk6fvlvlahbohhpk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

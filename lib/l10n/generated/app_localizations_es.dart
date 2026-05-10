@@ -707,18 +707,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get generateToSeeSchedule =>
-      'Press Generate to create your first timetable.';
+  String get generateToSeeSchedule => 'Generate a schedule to see it here';
 
   @override
   String hardViolationsHeading(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count hard constraints could not be satisfied',
-      one: '1 hard constraint could not be satisfied',
-    );
-    return '$_temp0';
+    return 'Hard Violations';
   }
 
   @override
@@ -732,7 +725,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String scheduleDeleted(String name) {
-    return '\"$name\" deleted.';
+    return 'Schedule deleted';
   }
 
   @override
@@ -743,18 +736,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String showMore(int count) {
-    return 'Show $count more';
+    return 'Show more';
   }
 
   @override
   String softViolationsHeading(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count soft constraints could not be fully satisfied',
-      one: '1 soft constraint could not be fully satisfied',
-    );
-    return '$_temp0';
+    return 'Soft Violations';
   }
 
   @override
@@ -782,78 +769,74 @@ class AppLocalizationsEs extends AppLocalizations {
   String get exportAsExcel => 'Export as Excel';
 
   @override
-  String get exportPdfSubtitle => 'A4 pages, one per classroom';
+  String get exportPdfSubtitle => 'PDF subtitle';
 
   @override
-  String get exportExcelSubtitle => '.xlsx with colour coding';
+  String get exportExcelSubtitle => 'Excel subtitle';
 
   @override
-  String get exportIncludeOverview => 'Include combined overview page';
+  String get exportIncludeOverview => 'Include overview';
 
   @override
-  String get exportLoading => 'Loading data…';
+  String get exportLoading => 'Loading';
 
   @override
-  String get exportGenerating => 'Generating file…';
+  String get exportGenerating => 'Generating';
 
   @override
-  String get exportSharing => 'Opening share sheet…';
+  String get exportSharing => 'Sharing';
 
   @override
   String get subscription => 'Subscription';
 
   @override
-  String get subscriptionHeadline => 'Unlock Unlimited Schedules';
+  String get subscriptionHeadline => 'Headline';
 
   @override
-  String get subscriptionSubtitle =>
-      'Generate as many timetables as you need, all year long.';
+  String get subscriptionSubtitle => 'Subtitle';
 
   @override
-  String get subscriptionActive => 'Subscription Active';
+  String get subscriptionActive => 'Active';
 
   @override
-  String get subscriptionActiveSubtitle =>
-      'Your subscription is active. Enjoy unlimited generation.';
+  String get subscriptionActiveSubtitle => 'Active subtitle';
 
   @override
-  String get subscriptionPriceLabel => 'ANNUAL PLAN';
+  String get subscriptionPriceLabel => 'Price label';
 
   @override
-  String get subscriptionPrice => '€14.99';
+  String get subscriptionPrice => 'Price';
 
   @override
-  String get subscriptionPriceSuffix => 'per year · billed annually';
+  String get subscriptionPriceSuffix => 'Suffix';
 
   @override
-  String get subscriptionOfflineGrace =>
-      'You\'re offline. Your subscription is honoured for up to 30 days without a connection.';
+  String get subscriptionOfflineGrace => 'Offline grace';
 
   @override
-  String get subscriptionLegalNote =>
-      'Payment will be charged to your App Store / Play Store account at confirmation of purchase. Subscription renews automatically unless cancelled at least 24 hours before the end of the current period.';
+  String get subscriptionLegalNote => 'Legal note';
 
   @override
   String get subscribeNow => 'Subscribe Now';
 
   @override
-  String get subscribeForUnlimited => 'Subscribe for unlimited access';
+  String get subscribeForUnlimited => 'Subscribe for unlimited';
 
   @override
-  String get noPurchasesToRestore => 'No purchases found to restore.';
+  String get noPurchasesToRestore => 'No purchases';
 
   @override
-  String get featureUnlimitedGeneration => 'Unlimited schedule generation';
+  String get featureUnlimitedGeneration => 'Unlimited generation';
 
   @override
-  String get featurePdfExcel => 'PDF & Excel export';
+  String get featurePdfExcel => 'PDF Excel';
 
   @override
-  String get featureManualEditing => 'Manual drag-and-drop editing';
+  String get featureManualEditing => 'Manual editing';
 
   @override
-  String get featureCloudSync => 'Cloud sync across all devices';
+  String get featureCloudSync => 'Cloud sync';
 
   @override
-  String get featureMultipleSchools => 'Multiple schools per account';
+  String get featureMultipleSchools => 'Multiple schools';
 }

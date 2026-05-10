@@ -33,12 +33,15 @@ x	Feasibility check, available and needed sono invertiti come significato
 x	su emulatore tutto è in inglese ma alcune scritte sono in italiano: (labels step 3, "applica a tutti i giorni" step 3)
 x	l'emulatore non va più
 x	[cloud_firestore/not-found] Some requested document was not found. error message
+x	cambiare visualizzazione dello schedule. mettere tutti i giorni i visualizzazione e le classi selezionabili
+x	l'output dei giorni sono tutti uguali
 
 
 
 Open:
+O	2b schedule non rispecchia gli slots in input
+O	ottengo score 100 ma i vincoli non sono rispettati
 O	prova i constraints
-O	cambiare visualizzazione dello schedule. mettere tutti i giorni i visualizzazione e le classi selezionabili
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
 		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
 O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule

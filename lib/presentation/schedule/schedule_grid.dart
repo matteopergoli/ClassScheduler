@@ -25,19 +25,17 @@ import 'schedule_screen.dart';
 
 // ── Providers ──────────────────────────────────────────────────────────────
 
-final _cellsProvider =
-    StreamProvider.family<List<ScheduleCellModel>, String>(
-  (ref, scheduleId) =>
-      ref.watch(scheduleRepositoryProvider(
-              scheduleId.split('::').first))
-          .watchCells(scheduleId.split('::').last),
+final _cellsProvider = StreamProvider.family<List<ScheduleCellModel>, String>(
+  (ref, scheduleId) => ref
+      .watch(scheduleRepositoryProvider(scheduleId.split('::').first))
+      .watchCells(scheduleId.split('::').last),
 );
 
 // ── Grid ───────────────────────────────────────────────────────────────────
 
 class ScheduleGrid extends ConsumerStatefulWidget {
-  final String           scheduleId;
-  final String           schoolId;
+  final String scheduleId;
+  final String schoolId;
   final ScheduleViewMode viewMode;
 
   const ScheduleGrid({
@@ -51,120 +49,91 @@ class ScheduleGrid extends ConsumerStatefulWidget {
   ConsumerState<ScheduleGrid> createState() => _ScheduleGridState();
 }
 
-class _ScheduleGridState extends ConsumerState<ScheduleGrid>
-    with SingleTickerProviderStateMixin {
-  late final TabController _dayTabs;
-  int _selectedDayIdx = 0;
-  String? _selectedClassroomId; // for single-classroom view
+class _ScheduleGridState extends ConsumerState<ScheduleGrid> {
+  String? _selectedClassroomId;
   String? _selectedTeacherName; // for per-teacher view
 
   // Drag state
   ScheduleCellModel? _dragging;
 
   @override
-  void initState() {
-    super.initState();
-    _dayTabs = TabController(length: 5, vsync: this);
-    _dayTabs.addListener(() {
-      if (!_dayTabs.indexIsChanging) {
-        setState(() => _selectedDayIdx = _dayTabs.index);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _dayTabs.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final l10n   = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
 
-    final periodsAsync    = ref.watch(
-        _periodsProvider(widget.schoolId));
-    final classroomsAsync = ref.watch(
-        _classroomsProvider(widget.schoolId));
-    final subjectsAsync   = ref.watch(
-        _subjectsProvider(widget.schoolId));
+    final periodsAsync = ref.watch(_periodsProvider(widget.schoolId));
+    final classroomsAsync = ref.watch(_classroomsProvider(widget.schoolId));
+    final subjectsAsync = ref.watch(_subjectsProvider(widget.schoolId));
     // Key: schoolId::scheduleId so provider family is unique per schedule
-    final cellsAsync      = ref.watch(
-        _cellsProvider('${widget.schoolId}::${widget.scheduleId}'));
+    final cellsAsync =
+        ref.watch(_cellsProvider('${widget.schoolId}::${widget.scheduleId}'));
 
     return periodsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error:   (e, _) => Center(child: Text('$e')),
+      error: (e, _) => Center(child: Text('$e')),
       data: (periods) => classroomsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text('$e')),
         data: (classrooms) => subjectsAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('$e')),
           data: (subjects) => cellsAsync.when(
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('$e')),
             data: (cells) {
               // Derive active days from periods
               final lessonPeriods = periods
                   .where((p) => p.type == 'LESSON')
                   .toList()
-                ..sort((a, b) =>
-                    a.sortOrder.compareTo(b.sortOrder));
-              final activeDays = _deriveActiveDays(periods);
+                ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
               // Update tab count if needed
-              if (_dayTabs.length != activeDays.length) {
-                // Tabs are fixed at init — active days drive content
+              if (_selectedClassroomId == null && classrooms.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() => _selectedClassroomId = classrooms.first.id);
+                  }
+                });
               }
 
+              final selectedClassroom = classrooms.firstWhere(
+                (c) => c.id == _selectedClassroomId,
+                orElse: () => classrooms.first,
+              );
+              final activeDays = _deriveActiveDays(periods);
+
               return Column(children: [
-                // ── Day tabs ──────────────────────────────────────
-                _DayTabBar(
-                  days:   activeDays,
-                  tabs:   _dayTabs,
+                // ── Classroom tabs ────────────────────────────────
+                _ClassroomSelector(
+                  classrooms: classrooms,
+                  selected: selectedClassroom.id,
                   colors: colors,
+                  onSelect: (id) => setState(() => _selectedClassroomId = id),
                 ),
-                // ── View-specific selector ────────────────────────
-                if (widget.viewMode ==
-                    ScheduleViewMode.singleClassroom)
-                  _ClassroomSelector(
-                    classrooms: classrooms,
-                    selected:   _selectedClassroomId,
-                    colors:     colors,
-                    onSelect:   (id) => setState(
-                        () => _selectedClassroomId = id),
-                  )
-                else if (widget.viewMode ==
-                    ScheduleViewMode.perTeacher)
+                if (widget.viewMode == ScheduleViewMode.perTeacher)
                   _TeacherSelector(
                     subjects: subjects,
                     selected: _selectedTeacherName,
-                    colors:   colors,
-                    onSelect: (name) => setState(
-                        () => _selectedTeacherName = name),
+                    colors: colors,
+                    onSelect: (name) =>
+                        setState(() => _selectedTeacherName = name),
                   ),
                 // ── Grid body ─────────────────────────────────────
                 Expanded(
                   child: _GridBody(
-                    day:          activeDays[_selectedDayIdx],
-                    periods:      periods,
+                    classroom: selectedClassroom,
+                    activeDays: activeDays,
+                    periods: periods,
                     lessonPeriods: lessonPeriods,
-                    classrooms:   _visibleClassrooms(classrooms),
-                    subjects:     subjects,
-                    cells:        cells,
-                    scheduleId:   widget.scheduleId,
-                    schoolId:     widget.schoolId,
-                    dragging:     _dragging,
-                    onDragStart:  (c) =>
-                        setState(() => _dragging = c),
-                    onDragEnd:    () =>
-                        setState(() => _dragging = null),
+                    subjects: subjects,
+                    cells: cells,
+                    scheduleId: widget.scheduleId,
+                    schoolId: widget.schoolId,
+                    dragging: _dragging,
+                    onDragStart: (c) => setState(() => _dragging = c),
+                    onDragEnd: () => setState(() => _dragging = null),
                     colors: colors,
-                    l10n:   l10n,
+                    l10n: l10n,
                   ),
                 ),
               ]);
@@ -175,155 +144,90 @@ class _ScheduleGridState extends ConsumerState<ScheduleGrid>
     );
   }
 
-  List<ClassroomModel> _visibleClassrooms(
-      List<ClassroomModel> all) {
-    switch (widget.viewMode) {
-      case ScheduleViewMode.singleClassroom:
-        if (_selectedClassroomId == null) return all.take(1).toList();
-        return all
-            .where((c) => c.id == _selectedClassroomId)
-            .toList();
-      case ScheduleViewMode.perTeacher:
-        return all; // filtered at cell level
-      case ScheduleViewMode.allClassrooms:
-        return all;
-    }
-  }
-
   List<String> _deriveActiveDays(List<PeriodModel> periods) {
-    const ordered = [
-      'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'
-    ];
+    const ordered = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final found = <String>{};
     for (final p in periods) {
       if (p.dayApplicability != null) {
         found.addAll(p.dayApplicability!);
       }
     }
-    final active =
-        ordered.where((d) => found.isEmpty || found.contains(d));
+    final active = ordered.where((d) => found.isEmpty || found.contains(d));
     return found.isEmpty
         ? ['MON', 'TUE', 'WED', 'THU', 'FRI']
         : active.toList();
   }
 }
 
-// ── Day tab bar ───────────────────────────────────────────────────────────
-
-class _DayTabBar extends StatelessWidget {
-  final List<String>   days;
-  final TabController  tabs;
-  final AppColors      colors;
-
-  const _DayTabBar(
-      {required this.days, required this.tabs, required this.colors});
-
-  static const _labels = {
-    'MON': 'Mon', 'TUE': 'Tue', 'WED': 'Wed',
-    'THU': 'Thu', 'FRI': 'Fri', 'SAT': 'Sat', 'SUN': 'Sun',
-  };
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-    child: Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-      ),
-      child: TabBar(
-        controller: tabs,
-        isScrollable: days.length > 5,
-        indicator: BoxDecoration(
-          gradient: LinearGradient(
-              colors: [colors.primary, colors.primaryLight]),
-          borderRadius:
-              BorderRadius.circular(AppDimensions.radiusMd - 2),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: AppTextStyles.labelMedium,
-        labelColor: Colors.white,
-        unselectedLabelColor: colors.textMuted,
-        dividerColor: Colors.transparent,
-        tabs: days
-            .map((d) => Tab(text: _labels[d] ?? d))
-            .toList(),
-      ),
-    ),
-  );
-}
-
 // ── Classroom selector (single-classroom mode) ────────────────────────────
 
 class _ClassroomSelector extends StatelessWidget {
   final List<ClassroomModel> classrooms;
-  final String?              selected;
-  final AppColors            colors;
+  final String? selected;
+  final AppColors colors;
   final ValueChanged<String> onSelect;
 
   const _ClassroomSelector({
-    required this.classrooms, required this.selected,
-    required this.colors,     required this.onSelect,
+    required this.classrooms,
+    required this.selected,
+    required this.colors,
+    required this.onSelect,
   });
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 40,
-    child: ListView.separated(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: classrooms.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 8),
-      itemBuilder: (_, i) {
-        final c       = classrooms[i];
-        final active  = c.id == selected;
-        return GestureDetector(
-          onTap: () => onSelect(c.id),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: active
-                  ? colors.primary.withOpacity(0.15)
-                  : colors.surfaceVariant,
-              border: Border.all(
+        height: 40,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: classrooms.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) {
+            final c = classrooms[i];
+            final active = c.id == selected;
+            return GestureDetector(
+              onTap: () => onSelect(c.id),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
                   color: active
-                      ? colors.primary
-                      : colors.borderDefault),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(c.name,
-                style: AppTextStyles.labelMedium.copyWith(
-                    color: active
-                        ? colors.primary
-                        : colors.textMuted)),
-          ),
-        );
-      },
-    ),
-  );
+                      ? colors.primary.withOpacity(0.15)
+                      : colors.surfaceVariant,
+                  border: Border.all(
+                      color: active ? colors.primary : colors.borderDefault),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(c.name,
+                    style: AppTextStyles.labelMedium.copyWith(
+                        color: active ? colors.primary : colors.textMuted)),
+              ),
+            );
+          },
+        ),
+      );
 }
 
 // ── Teacher selector (per-teacher mode) ──────────────────────────────────
 
 class _TeacherSelector extends StatelessWidget {
   final List<SubjectModel> subjects;
-  final String?            selected;
-  final AppColors          colors;
+  final String? selected;
+  final AppColors colors;
   final ValueChanged<String> onSelect;
 
   const _TeacherSelector({
-    required this.subjects, required this.selected,
-    required this.colors,   required this.onSelect,
+    required this.subjects,
+    required this.selected,
+    required this.colors,
+    required this.onSelect,
   });
 
   @override
   Widget build(BuildContext context) {
-    final teachers = subjects
-        .map((s) => s.teacherName)
-        .toSet()
-        .toList()..sort();
+    final teachers = subjects.map((s) => s.teacherName).toSet().toList()
+      ..sort();
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -332,29 +236,24 @@ class _TeacherSelector extends StatelessWidget {
         itemCount: teachers.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
-          final t      = teachers[i];
+          final t = teachers[i];
           final active = t == selected;
           return GestureDetector(
             onTap: () => onSelect(t),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: active
                     ? colors.primaryLight.withOpacity(0.15)
                     : colors.surfaceVariant,
                 border: Border.all(
-                    color: active
-                        ? colors.primaryLight
-                        : colors.borderDefault),
+                    color: active ? colors.primaryLight : colors.borderDefault),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(t,
                   style: AppTextStyles.labelMedium.copyWith(
-                      color: active
-                          ? colors.primaryLight
-                          : colors.textMuted)),
+                      color: active ? colors.primaryLight : colors.textMuted)),
             ),
           );
         },
@@ -366,45 +265,50 @@ class _TeacherSelector extends StatelessWidget {
 // ── Grid body ─────────────────────────────────────────────────────────────
 
 class _GridBody extends ConsumerWidget {
-  final String               day;
-  final List<PeriodModel>    periods;
-  final List<PeriodModel>    lessonPeriods;
-  final List<ClassroomModel> classrooms;
-  final List<SubjectModel>   subjects;
+  final ClassroomModel classroom;
+  final List<String> activeDays;
+  final List<PeriodModel> periods;
+  final List<PeriodModel> lessonPeriods;
+  final List<SubjectModel> subjects;
   final List<ScheduleCellModel> cells;
-  final String               scheduleId;
-  final String               schoolId;
-  final ScheduleCellModel?   dragging;
+  final String scheduleId;
+  final String schoolId;
+  final ScheduleCellModel? dragging;
   final ValueChanged<ScheduleCellModel> onDragStart;
-  final VoidCallback         onDragEnd;
-  final AppColors            colors;
-  final AppLocalizations     l10n;
+  final VoidCallback onDragEnd;
+  final AppColors colors;
+  final AppLocalizations l10n;
 
   const _GridBody({
-    required this.day,         required this.periods,
-    required this.lessonPeriods, required this.classrooms,
-    required this.subjects,    required this.cells,
-    required this.scheduleId,  required this.schoolId,
-    required this.dragging,    required this.onDragStart,
-    required this.onDragEnd,   required this.colors,
+    required this.classroom,
+    required this.activeDays,
+    required this.periods,
+    required this.lessonPeriods,
+    required this.subjects,
+    required this.cells,
+    required this.scheduleId,
+    required this.schoolId,
+    required this.dragging,
+    required this.onDragStart,
+    required this.onDragEnd,
+    required this.colors,
     required this.l10n,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final subjectById   = {for (final s in subjects)   s.id: s};
-    final classroomById = {for (final c in classrooms) c.id: c};
+    final subjectById = {for (final s in subjects) s.id: s};
 
-    // Index cells: classroomId → periodId → cell
+    // Index cells: dayCode → periodId → cell for the selected classroom
     final cellIndex = <String, Map<String, ScheduleCellModel>>{};
     for (final cell in cells) {
-      cellIndex
-          .putIfAbsent(cell.classroomId, () => {})
-          [cell.periodId] = cell;
+      if (cell.classroomId != classroom.id) continue;
+      final dayCode = _dayCodeFromCellId(cell.id);
+      cellIndex.putIfAbsent(dayCode, () => {})[cell.periodId] = cell;
     }
 
-    const rowH  = AppDimensions.gridRowHeight;
-    const colW  = AppDimensions.gridColWidth;
+    const rowH = AppDimensions.gridRowHeight;
+    const colW = AppDimensions.gridColWidth;
     const timeW = 52.0;
 
     return SingleChildScrollView(
@@ -415,18 +319,18 @@ class _GridBody extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Classroom header row ───────────────────────────
+              // ── Day header row ────────────────────────────────
               Row(children: [
                 const SizedBox(width: timeW),
-                ...classrooms.map((c) => SizedBox(
-                  width: colW,
-                  child: Center(
-                    child: Text(c.name,
-                        style: AppTextStyles.labelSmall.copyWith(
-                            color: colors.textMuted),
-                        overflow: TextOverflow.ellipsis),
-                  ),
-                )),
+                ...activeDays.map((day) => SizedBox(
+                      width: colW,
+                      child: Center(
+                        child: Text(_dayLabel(day),
+                            style: AppTextStyles.labelSmall
+                                .copyWith(color: colors.textMuted),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    )),
               ]),
               const SizedBox(height: 6),
 
@@ -436,7 +340,7 @@ class _GridBody extends ConsumerWidget {
                 if (isBreak) {
                   return _BreakRow(
                     period: period,
-                    totalWidth: timeW + colW * classrooms.length,
+                    totalWidth: timeW + colW * activeDays.length,
                     colors: colors,
                   );
                 }
@@ -455,32 +359,28 @@ class _GridBody extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  // Classroom cells
-                  ...classrooms.map((classroom) {
-                    final cell = cellIndex[classroom.id]
-                        ?[period.id];
+                  // Day cells for the selected classroom
+                  ...activeDays.map((day) {
+                    final cell = cellIndex[day]?[period.id];
                     if (cell == null) {
                       return _FreeCell(
-                          width: colW, height: rowH,
-                          colors: colors);
+                          width: colW, height: rowH, colors: colors);
                     }
                     final subject = cell.subjectId != null
                         ? subjectById[cell.subjectId!]
                         : null;
                     return _LessonCell(
-                      cell:      cell,
-                      subject:   subject,
-                      width:     colW,
-                      height:    rowH,
+                      cell: cell,
+                      subject: subject,
+                      width: colW,
+                      height: rowH,
                       isDragging: dragging?.id == cell.id,
-                      colors:    colors,
+                      colors: colors,
                       onTap: () => _showCellDetail(
-                          context, cell, subject,
-                          classroom, period),
+                          context, cell, subject, classroom, period, day),
                       onDragStart: () => onDragStart(cell),
-                      onDragEnd:   onDragEnd,
-                      onAccept: (src) => _handleDrop(
-                          context, ref, src, cell),
+                      onDragEnd: onDragEnd,
+                      onAccept: (src) => _handleDrop(context, ref, src, cell),
                       dragging: dragging,
                     );
                   }),
@@ -499,6 +399,7 @@ class _GridBody extends ConsumerWidget {
     SubjectModel? subject,
     ClassroomModel classroom,
     PeriodModel period,
+    String day,
   ) {
     if (subject == null) return;
     showDialog(
@@ -510,15 +411,15 @@ class _GridBody extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _DetailRow(label: 'Teacher', value: subject.teacherName),
-            _DetailRow(label: 'Class',   value: classroom.name),
-            _DetailRow(label: 'Time',
-                value: '${period.startTime}–${period.endTime}'),
+            _DetailRow(label: 'Class', value: classroom.name),
+            _DetailRow(label: 'Day', value: _dayLabel(day)),
+            _DetailRow(
+                label: 'Time', value: '${period.startTime}–${period.endTime}'),
             if (cell.isViolation && cell.violationDescription != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text('⚠ ${cell.violationDescription}',
-                    style: const TextStyle(
-                        color: Colors.red, fontSize: 12)),
+                    style: const TextStyle(color: Colors.red, fontSize: 12)),
               ),
           ],
         ),
@@ -531,6 +432,25 @@ class _GridBody extends ConsumerWidget {
     );
   }
 
+  String _dayCodeFromCellId(String id) {
+    final parts = id.split('_');
+    if (parts.length < 3) return 'MON';
+    return parts[parts.length - 2];
+  }
+
+  String _dayLabel(String code) {
+    const labels = {
+      'MON': 'Mon',
+      'TUE': 'Tue',
+      'WED': 'Wed',
+      'THU': 'Thu',
+      'FRI': 'Fri',
+      'SAT': 'Sat',
+      'SUN': 'Sun',
+    };
+    return labels[code] ?? code;
+  }
+
   Future<void> _handleDrop(
     BuildContext context,
     WidgetRef ref,
@@ -538,21 +458,19 @@ class _GridBody extends ConsumerWidget {
     ScheduleCellModel target,
   ) async {
     // Validate
-    final repo = ref.read(
-        scheduleRepositoryProvider(schoolId));
+    final repo = ref.read(scheduleRepositoryProvider(schoolId));
 
     // Build minimal context for validation
     // (In production, pass full classroomSubjects / dayCapacities)
     final result = DragDropValidator.validate(
-      sourceCell:         source,
-      targetCell:         target,
-      allCells:           cells,
-      subjects:           subjects,
-      classroomSubjects:  const [],
-      dailyCapacities:    const [],
-      periods:            lessonPeriods,
-      activeDayCodes:     const [
-          'MON', 'TUE', 'WED', 'THU', 'FRI'],
+      sourceCell: source,
+      targetCell: target,
+      allCells: cells,
+      subjects: subjects,
+      classroomSubjects: const [],
+      dailyCapacities: const [],
+      periods: lessonPeriods,
+      activeDayCodes: activeDays,
     );
 
     if (!result.allowed) {
@@ -570,15 +488,15 @@ class _GridBody extends ConsumerWidget {
     // Both cells occupied → swap
     if (source.subjectId != null && target.subjectId != null) {
       await repo.swapCells(
-        scheduleId:  scheduleId,
-        source:      source,
+        scheduleId: scheduleId,
+        source: source,
         destination: target,
       );
     } else {
       // Target free → move
       await repo.moveCell(
-        scheduleId:        scheduleId,
-        source:            source,
+        scheduleId: scheduleId,
+        source: source,
         destinationCellId: target.id,
       );
     }
@@ -589,8 +507,8 @@ class _GridBody extends ConsumerWidget {
 
 class _BreakRow extends StatelessWidget {
   final PeriodModel period;
-  final double      totalWidth;
-  final AppColors   colors;
+  final double totalWidth;
+  final AppColors colors;
 
   const _BreakRow({
     required this.period,
@@ -600,46 +518,50 @@ class _BreakRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: totalWidth,
-    height: AppDimensions.gridBreakRowHeight,
-    margin: const EdgeInsets.symmetric(vertical: 2),
-    decoration: BoxDecoration(
-      color: colors.surfaceVariant.withOpacity(0.5),
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Center(
-      child: Text(
-        period.name != null
-            ? '${period.name}  ${period.startTime}–${period.endTime}'
-            : '${period.startTime}–${period.endTime}',
-        style: AppTextStyles.labelSmall
-            .copyWith(color: colors.textMuted),
-      ),
-    ),
-  );
+        width: totalWidth,
+        height: AppDimensions.gridBreakRowHeight,
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Center(
+          child: Text(
+            period.name != null
+                ? '${period.name}  ${period.startTime}–${period.endTime}'
+                : '${period.startTime}–${period.endTime}',
+            style: AppTextStyles.labelSmall.copyWith(color: colors.textMuted),
+          ),
+        ),
+      );
 }
 
 // ── Lesson cell ───────────────────────────────────────────────────────────
 
 class _LessonCell extends StatelessWidget {
-  final ScheduleCellModel  cell;
-  final SubjectModel?      subject;
-  final double             width;
-  final double             height;
-  final bool               isDragging;
-  final AppColors          colors;
-  final VoidCallback       onTap;
-  final VoidCallback       onDragStart;
-  final VoidCallback       onDragEnd;
+  final ScheduleCellModel cell;
+  final SubjectModel? subject;
+  final double width;
+  final double height;
+  final bool isDragging;
+  final AppColors colors;
+  final VoidCallback onTap;
+  final VoidCallback onDragStart;
+  final VoidCallback onDragEnd;
   final Function(ScheduleCellModel) onAccept;
   final ScheduleCellModel? dragging;
 
   const _LessonCell({
-    required this.cell,       required this.subject,
-    required this.width,      required this.height,
-    required this.isDragging, required this.colors,
-    required this.onTap,      required this.onDragStart,
-    required this.onDragEnd,  required this.onAccept,
+    required this.cell,
+    required this.subject,
+    required this.width,
+    required this.height,
+    required this.isDragging,
+    required this.colors,
+    required this.onTap,
+    required this.onDragStart,
+    required this.onDragEnd,
+    required this.onAccept,
     required this.dragging,
   });
 
@@ -655,7 +577,7 @@ class _LessonCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasSubject  = subject != null;
+    final hasSubject = subject != null;
     final isViolation = cell.isViolation;
 
     Widget cellContent = GestureDetector(
@@ -684,8 +606,7 @@ class _LessonCell extends StatelessWidget {
                     child: Text(
                       subject!.name,
                       style: AppTextStyles.labelSmall.copyWith(
-                          color: _subjectColor(),
-                          fontWeight: FontWeight.w700),
+                          color: _subjectColor(), fontWeight: FontWeight.w700),
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -694,7 +615,8 @@ class _LessonCell extends StatelessWidget {
                 ),
                 if (isViolation)
                   Positioned(
-                    top: 2, right: 2,
+                    top: 2,
+                    right: 2,
                     child: Icon(Icons.warning_amber_rounded,
                         size: 12, color: colors.error),
                   ),
@@ -715,8 +637,7 @@ class _LessonCell extends StatelessWidget {
           decoration: cand.isNotEmpty
               ? BoxDecoration(
                   color: colors.primary.withOpacity(0.1),
-                  border: Border.all(
-                      color: colors.primary, width: 2),
+                  border: Border.all(color: colors.primary, width: 2),
                   borderRadius: BorderRadius.circular(8),
                 )
               : null,
@@ -729,7 +650,7 @@ class _LessonCell extends StatelessWidget {
     return Draggable<ScheduleCellModel>(
       data: cell,
       onDragStarted: onDragStart,
-      onDragEnd:     (_) => onDragEnd(),
+      onDragEnd: (_) => onDragEnd(),
       feedback: Material(
         color: Colors.transparent,
         child: Opacity(
@@ -751,8 +672,7 @@ class _LessonCell extends StatelessWidget {
             child: Center(
               child: Text(subject!.name,
                   style: AppTextStyles.labelSmall.copyWith(
-                      color: _subjectColor(),
-                      fontWeight: FontWeight.w700)),
+                      color: _subjectColor(), fontWeight: FontWeight.w700)),
             ),
           ),
         ),
@@ -766,8 +686,7 @@ class _LessonCell extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           decoration: cand.isNotEmpty
               ? BoxDecoration(
-                  border: Border.all(
-                      color: colors.primary, width: 2),
+                  border: Border.all(color: colors.primary, width: 2),
                   borderRadius: BorderRadius.circular(10),
                 )
               : null,
@@ -781,51 +700,51 @@ class _LessonCell extends StatelessWidget {
 // ── Free cell ─────────────────────────────────────────────────────────────
 
 class _FreeCell extends StatelessWidget {
-  final double    width;
-  final double    height;
+  final double width;
+  final double height;
   final AppColors colors;
   const _FreeCell(
       {required this.width, required this.height, required this.colors});
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: width,
-    height: height,
-    child: Container(
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: colors.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colors.borderSubtle),
-      ),
-    ),
-  );
+        width: width,
+        height: height,
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: colors.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colors.borderSubtle),
+          ),
+        ),
+      );
 }
 
 // ── Detail row ────────────────────────────────────────────────────────────
 
 class _DetailRow extends StatelessWidget {
-  final String label; final String value;
+  final String label;
+  final String value;
   const _DetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    child: Row(children: [
-      SizedBox(
-        width: 60,
-        child: Text('$label:',
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey)),
-      ),
-      Flexible(
-        child: Text(value,
-            style: const TextStyle(fontSize: 12)),
-      ),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(children: [
+          SizedBox(
+            width: 60,
+            child: Text('$label:',
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey)),
+          ),
+          Flexible(
+            child: Text(value, style: const TextStyle(fontSize: 12)),
+          ),
+        ]),
+      );
 }
 
 // ── Hex colour helper ─────────────────────────────────────────────────────
@@ -837,20 +756,15 @@ Color _hexColor(String hex) {
 
 // ── Providers ─────────────────────────────────────────────────────────────
 
-final _periodsProvider =
-    StreamProvider.family<List<PeriodModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(periodRepositoryProvider(schoolId)).watchAll(),
+final _periodsProvider = StreamProvider.family<List<PeriodModel>, String>(
+  (ref, schoolId) => ref.watch(periodRepositoryProvider(schoolId)).watchAll(),
 );
 
-final _classroomsProvider =
-    StreamProvider.family<List<ClassroomModel>, String>(
+final _classroomsProvider = StreamProvider.family<List<ClassroomModel>, String>(
   (ref, schoolId) =>
       ref.watch(classroomRepositoryProvider(schoolId)).watchAll(),
 );
 
-final _subjectsProvider =
-    StreamProvider.family<List<SubjectModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(subjectRepositoryProvider(schoolId)).watchAll(),
+final _subjectsProvider = StreamProvider.family<List<SubjectModel>, String>(
+  (ref, schoolId) => ref.watch(subjectRepositoryProvider(schoolId)).watchAll(),
 );

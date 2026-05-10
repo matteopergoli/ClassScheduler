@@ -273,10 +273,21 @@ class _VersionSheetState extends ConsumerState<VersionSheet> {
         ],
       ),
     );
-    if (name != null && name.isNotEmpty) {
+    if (name != null && name.isNotEmpty && name != schedule.name) {
       await ref
           .read(scheduleRepositoryProvider(widget.schoolId))
           .rename(schedule.id, name);
+      
+      // BUG FIX: Update local list immediately for responsive UI feedback
+      // This ensures the version list is refreshed without closing the sheet
+      if (mounted) {
+        setState(() {
+          final index = _schedules.indexWhere((s) => s.id == schedule.id);
+          if (index >= 0) {
+            _schedules[index] = _schedules[index].copyWith(name: name);
+          }
+        });
+      }
     }
   }
 }

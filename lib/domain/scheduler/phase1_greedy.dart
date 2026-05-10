@@ -141,6 +141,28 @@ class Phase1Greedy {
       }
 
       state.assign(c, s, best.$1, best.$2);
+
+      // HC-5 post-assignment check: if this day now has 1..(minDaily-1)
+      // lessons and there are no more free slots on this day to reach minDaily,
+      // the placement is irrecoverable — undo it and record a violation.
+      final minD = _input.minDaily[c][s];
+      if (minD > 0 && !state.satisfiesMinDaily(c, s, best.$1)) {
+        final freeLeft = _countFreeSlots(state, c, best.$1);
+        final countNow = state.dailySubjectCount(c, s, best.$1);
+        final needed   = minD - countNow;
+        if (needed > freeLeft) {
+          // Can't reach minDaily on this day — undo
+          state.remove(c, best.$1, best.$2);
+          violations.add(PartialViolation(
+            classroomIdx: c,
+            subjectIdx:   s,
+            shortfall:    state.remaining(c, s),
+          ));
+          i++;
+          continue;
+        }
+      }
+
       history.add((c, best.$1, best.$2));
 
       // Check if this pair is now complete
@@ -149,14 +171,43 @@ class Phase1Greedy {
   }
 
   // ── Slot scoring (§8.2.1 Step 4) ─────────────────────────────────────────
+  //
+  // HC-5 (MinDaily) is enforced here by a tentative assign+check+undo.
+  // canPlace() cannot check HC-5 on its own because HC-5 depends on the
+  // count *after* placement — we must actually assign to know if the day
+  // will have 0 or >= minDaily lessons for this subject.
 
   (int, int)? _pickBestSlot(ScheduleState state, int c, int s) {
     (int, int)? bestSlot;
     var bestScore = double.negativeInfinity;
+    final minD = _input.minDaily[c][s];
 
     for (var d = 0; d < _input.numDays; d++) {
       for (var l = 0; l < _input.numSlots; l++) {
         if (!state.canPlace(c, s, d, l)) continue;
+
+        // HC-5 tentative check: assign, verify, undo.
+        // We need to know the count after this placement to enforce MinDaily.
+        if (minD > 0) {
+          state.assign(c, s, d, l);
+          final ok = state.satisfiesMinDaily(c, s, d);
+          state.remove(c, d, l);
+          // Only allow if the day will have 0 or >= minDaily lessons.
+          // A count of exactly 1..minDaily-1 is forbidden.
+          if (!ok) {
+            // Check if we can reach minDaily on this day later:
+            // count the remaining free slots on this day for (c,s).
+            // If enough slots exist to potentially reach minDaily, allow it.
+            // Otherwise skip entirely to avoid creating an unfixable violation.
+            final currentCount = state.dailySubjectCount(c, s, d);
+            final freeOnDay = _countFreeSlots(state, c, d);
+            // After placing this one, we'd have currentCount+1 lessons.
+            // We need at least minD total, so we need minD-(currentCount+1) more.
+            final needed = minD - (currentCount + 1);
+            if (needed > freeOnDay) continue; // can't reach minDaily → skip
+            // Otherwise allow it (more assignments will follow to reach minDaily)
+          }
+        }
 
         var score = 0.0;
 
@@ -180,6 +231,16 @@ class Phase1Greedy {
       }
     }
     return bestSlot;
+  }
+
+  int _countFreeSlots(ScheduleState state, int c, int d) {
+    var count = 0;
+    for (var l = 0; l < _input.numSlots; l++) {
+      if (state.schedule[c][d][l] == kFree && !state.isBlocked(c, d, l)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   bool _hasAdjacentSame(ScheduleState state, int c, int s, int d, int l) {

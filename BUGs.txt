@@ -36,8 +36,11 @@ x	l'emulatore non va più
 
 
 Open:
+O	cloud_firestone error message
 O	prova i constraints
+O	cambiare visualizzazione dello schedule. mettere tutti i giorni i visualizzazione e le classi selezionabili
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
+		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
 O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule
 O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
 O	creazione apk locale per testing locale su device vero

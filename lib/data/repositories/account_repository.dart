@@ -47,10 +47,10 @@ class AccountRepository extends BaseRepository {
   /// Marks the trial as consumed (FR-TRIAL-02).
   /// Stored in Firestore — cannot be reset by reinstalling the app.
   Future<void> consumeTrial() async {
-    await _ref.update({
+    await _ref.set({
       'trialUsed': true,
       'trialUsedAt': Timestamp.fromDate(DateTime.now()),
-    });
+    }, SetOptions(merge: true));
   }
 }
 
@@ -61,5 +61,8 @@ final accountStreamProvider = StreamProvider<AccountModel?>((ref) {
 
 final trialUsedProvider = Provider<bool>((ref) {
   final account = ref.watch(accountStreamProvider);
-  return account.when(data: (a) => a?.trialUsed ?? false, loading: () => false, error: (_, __) => false);
+  return account.when(
+      data: (a) => a?.trialUsed ?? false,
+      loading: () => false,
+      error: (_, __) => false);
 });

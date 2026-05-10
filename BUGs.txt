@@ -32,11 +32,11 @@ x	configurazione degli slot dello step 3 non viene salvata
 x	Feasibility check, available and needed sono invertiti come significato
 x	su emulatore tutto è in inglese ma alcune scritte sono in italiano: (labels step 3, "applica a tutti i giorni" step 3)
 x	l'emulatore non va più
+x	[cloud_firestore/not-found] Some requested document was not found. error message
 
 
 
 Open:
-O	cloud_firestone error message
 O	prova i constraints
 O	cambiare visualizzazione dello schedule. mettere tutti i giorni i visualizzazione e le classi selezionabili
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo

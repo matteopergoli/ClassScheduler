@@ -14,6 +14,7 @@
 // All Firestore I/O happens on the UI isolate before/after the engine runs.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -112,7 +113,11 @@ class GenerationService extends StateNotifier<GenerationState> {
       final subStateValue = _ref.read(subscriptionServiceProvider);
       final hasSubscription = subStateValue.value?.isActive ?? false;
 
-      if (trialAlreadyUsed && !hasSubscription) {
+      // Debug logging
+      print('DEBUG: trialAlreadyUsed=$trialAlreadyUsed, hasSubscription=$hasSubscription, kDebugMode=$kDebugMode');
+
+      // Skip trial gate in debug mode (developer testing)
+      if (trialAlreadyUsed && !hasSubscription && !kDebugMode) {
         state = state.copyWith(
           phase: GenerationPhase.error,
           errorMessage: 'Subscription required. Your free trial has been used. '
@@ -224,7 +229,8 @@ class GenerationService extends StateNotifier<GenerationState> {
       final accountData =
           await _ref.read(accountRepositoryProvider).fetchAccount();
       final trialUsed = accountData?.trialUsed ?? false;
-      if (!trialUsed) {
+      // Skip trial consumption in debug mode (developer testing)
+      if (!trialUsed && !kDebugMode) {
         await _ref.read(accountRepositoryProvider).consumeTrial();
       }
 

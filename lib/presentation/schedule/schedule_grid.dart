@@ -459,16 +459,19 @@ class _GridBody extends ConsumerWidget {
   ) async {
     // Validate
     final repo = ref.read(scheduleRepositoryProvider(schoolId));
+    final classroomSubjects =
+        ref.watch(_classroomSubjectsProvider(schoolId)).value ??
+            const <ClassroomSubjectModel>[];
+    final dayCapacities = ref.watch(_dayCapacitiesProvider(schoolId)).value ??
+        const <DayCapacityModel>[];
 
-    // Build minimal context for validation
-    // (In production, pass full classroomSubjects / dayCapacities)
     final result = DragDropValidator.validate(
       sourceCell: source,
       targetCell: target,
       allCells: cells,
       subjects: subjects,
-      classroomSubjects: const [],
-      dailyCapacities: const [],
+      classroomSubjects: classroomSubjects,
+      dailyCapacities: dayCapacities,
       periods: lessonPeriods,
       activeDayCodes: activeDays,
     );
@@ -767,4 +770,16 @@ final _classroomsProvider = StreamProvider.family<List<ClassroomModel>, String>(
 
 final _subjectsProvider = StreamProvider.family<List<SubjectModel>, String>(
   (ref, schoolId) => ref.watch(subjectRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _classroomSubjectsProvider =
+    StreamProvider.family<List<ClassroomSubjectModel>, String>(
+  (ref, schoolId) =>
+      ref.watch(classroomSubjectRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _dayCapacitiesProvider =
+    StreamProvider.family<List<DayCapacityModel>, String>(
+  (ref, schoolId) =>
+      ref.watch(dayCapacityRepositoryProvider(schoolId)).watchAll(),
 );

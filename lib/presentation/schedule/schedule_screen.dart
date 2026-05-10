@@ -64,6 +64,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     });
   }
 
+  void _showScheduleDeletedSnackBar(String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 3),
+      content: Text(message),
+    ));
+  }
+
   Future<void> _showVersionSheet(List<ScheduleModel> schedules) async {
     final selected =
         schedules.where((s) => s.id == _selectedScheduleId).firstOrNull;
@@ -83,6 +92,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     // 'generate' = user tapped Generate inside the version sheet
     if (result == 'generate' && mounted) {
       _startGeneration(schedules);
+      return;
+    }
+
+    if (result != null && mounted) {
+      _showScheduleDeletedSnackBar(result);
     }
   }
 

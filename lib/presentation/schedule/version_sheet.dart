@@ -18,7 +18,7 @@ import '../../data/models/app_models.dart';
 import '../../data/repositories/schedule_repository.dart';
 import '../../l10n/generated/app_localizations.dart';
 
-class VersionSheet extends ConsumerWidget {
+class VersionSheet extends ConsumerStatefulWidget {
   final List<ScheduleModel> schedules;
   final String              schoolId;
   final ScheduleModel?      selected;
@@ -33,7 +33,20 @@ class VersionSheet extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VersionSheet> createState() => _VersionSheetState();
+}
+
+class _VersionSheetState extends ConsumerState<VersionSheet> {
+  late List<ScheduleModel> _schedules;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedules = List.from(widget.schedules);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n   = AppLocalizations.of(context);
     final colors = AppColors.of(context);
 
@@ -81,12 +94,12 @@ class VersionSheet extends ConsumerWidget {
           Expanded(
             child: ListView.separated(
               controller:  scrollCtrl,
-              itemCount:   schedules.length,
+              itemCount:   _schedules.length,
               separatorBuilder: (_, __) =>
                   Divider(height: 1, color: colors.borderSubtle),
               itemBuilder: (_, i) {
-                final s      = schedules[i];
-                final active = s.id == selected?.id;
+                final s      = _schedules[i];
+                final active = s.id == widget.selected?.id;
                 return Dismissible(
                   key: ValueKey(s.id),
                   direction: DismissDirection.endToStart,
@@ -100,21 +113,7 @@ class VersionSheet extends ConsumerWidget {
                   confirmDismiss: (_) =>
                       _confirmDelete(context, l10n, s.name),
                   onDismissed: (_) async {
-                    await ref
-                        .read(scheduleRepositoryProvider(schoolId))
-                        .delete(s.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              l10n.scheduleDeleted(s.name)),
-                          action: SnackBarAction(
-                            label: l10n.undo,
-                            onPressed: () {}, // no-op (Firestore delete)
-                          ),
-                        ),
-                      );
-                    }
+                    await _deleteSchedule(context, ref, l10n, s);
                   },
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
@@ -170,10 +169,26 @@ class VersionSheet extends ConsumerWidget {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
+                        const SizedBox(width: 8),
+                        // Delete
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded,
+                              size: 18, color: colors.error),
+                          onPressed: () async {
+                            final confirmed = await _confirmDelete(
+                                context, l10n, s.name);
+                            if (confirmed == true) {
+                              await _deleteSchedule(context, ref, l10n, s);
+                            }
+                          },
+                          tooltip: l10n.deleteSchedule,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
                       ],
                     ),
                     onTap: () {
-                      onSelect(s.id);
+                      widget.onSelect(s.id);
                       Navigator.pop(context);
                     },
                   ),
@@ -221,6 +236,20 @@ class VersionSheet extends ConsumerWidget {
         ),
       );
 
+  Future<void> _deleteSchedule(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ScheduleModel schedule,
+  ) async {
+    await ref
+        .read(scheduleRepositoryProvider(widget.schoolId))
+        .delete(schedule.id);
+    if (context.mounted) {
+      Navigator.pop(context, l10n.scheduleDeleted(schedule.name));
+    }
+  }
+
   Future<void> _rename(
     BuildContext context,
     WidgetRef ref,
@@ -246,7 +275,7 @@ class VersionSheet extends ConsumerWidget {
     );
     if (name != null && name.isNotEmpty) {
       await ref
-          .read(scheduleRepositoryProvider(schoolId))
+          .read(scheduleRepositoryProvider(widget.schoolId))
           .rename(schedule.id, name);
     }
   }

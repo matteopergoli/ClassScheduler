@@ -13,21 +13,31 @@ part 'app_models.freezed.dart';
 part 'app_models.g.dart';
 
 // ─── Timestamp converter ───────────────────────────────────────────────────
-class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
+class TimestampConverter implements JsonConverter<DateTime, Object?> {
   const TimestampConverter();
   @override
-  DateTime fromJson(Timestamp ts) => ts.toDate();
+  DateTime fromJson(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
+
   @override
-  Timestamp toJson(DateTime dt) => Timestamp.fromDate(dt);
+  Object? toJson(DateTime dt) => Timestamp.fromDate(dt);
 }
 
 class NullableTimestampConverter
-    implements JsonConverter<DateTime?, Timestamp?> {
+    implements JsonConverter<DateTime?, Object?> {
   const NullableTimestampConverter();
   @override
-  DateTime? fromJson(Timestamp? ts) => ts?.toDate();
+  DateTime? fromJson(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
   @override
-  Timestamp? toJson(DateTime? dt) =>
+  Object? toJson(DateTime? dt) =>
       dt == null ? null : Timestamp.fromDate(dt);
 }
 

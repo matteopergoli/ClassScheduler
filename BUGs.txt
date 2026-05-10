@@ -35,12 +35,19 @@ x	l'emulatore non va più
 x	[cloud_firestore/not-found] Some requested document was not found. error message
 x	cambiare visualizzazione dello schedule. mettere tutti i giorni i visualizzazione e le classi selezionabili
 x	l'output dei giorni sono tutti uguali
+x	debug mode -> "flutter run -d emulator-5554"
+x	non posso cancellare schedules vecchi creati
+x	quando cancello uno schedule, il banner non va via
 
 
 
 Open:
+O	schedule list is not immediately refreshed after renaming
+O	When I generate a new schedule, it is not opened the last one
 O	2b schedule non rispecchia gli slots in input
-O	ottengo score 100 ma i vincoli non sono rispettati
+O	visualizzazione AllClassrooms and SingleClassroom sono identiche
+O	visualizzazione per teacher utile ma non funziona
+O	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
 O	prova i constraints
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
 		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo

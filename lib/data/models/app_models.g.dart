@@ -9,10 +9,9 @@ part of 'app_models.dart';
 _$AccountModelImpl _$$AccountModelImplFromJson(Map<String, dynamic> json) =>
     _$AccountModelImpl(
       trialUsed: json['trialUsed'] as bool,
-      trialUsedAt: const NullableTimestampConverter()
-          .fromJson(json['trialUsedAt'] as Timestamp?),
-      createdAt:
-          const TimestampConverter().fromJson(json['createdAt'] as Timestamp),
+      trialUsedAt:
+          const NullableTimestampConverter().fromJson(json['trialUsedAt']),
+      createdAt: const TimestampConverter().fromJson(json['createdAt']),
     );
 
 Map<String, dynamic> _$$AccountModelImplToJson(_$AccountModelImpl instance) =>
@@ -28,10 +27,8 @@ _$SchoolModelImpl _$$SchoolModelImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
-      createdAt:
-          const TimestampConverter().fromJson(json['createdAt'] as Timestamp),
-      updatedAt:
-          const TimestampConverter().fromJson(json['updatedAt'] as Timestamp),
+      createdAt: const TimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$$SchoolModelImplToJson(_$SchoolModelImpl instance) =>
@@ -183,8 +180,7 @@ _$ScheduleModelImpl _$$ScheduleModelImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       schoolId: json['schoolId'] as String,
       name: json['name'] as String,
-      generatedAt:
-          const TimestampConverter().fromJson(json['generatedAt'] as Timestamp),
+      generatedAt: const TimestampConverter().fromJson(json['generatedAt']),
       isCancelled: json['isCancelled'] as bool? ?? false,
       isManuallyEdited: json['isManuallyEdited'] as bool? ?? false,
       resultStatus: json['resultStatus'] as String,

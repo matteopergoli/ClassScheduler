@@ -127,11 +127,35 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    setState(() => _showResultPanel = false);
-
     final name = nameCtrl.text.trim().isEmpty
         ? 'Schedule ${existingSchedules.length + 1}'
         : nameCtrl.text.trim();
+
+    // ── Check for Duplicate Name ──────────────────────────────────────────
+    final nameExists = existingSchedules.any(
+      (s) => s.name.toLowerCase() == name.toLowerCase(),
+    );
+
+    if (nameExists) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.newVersion),
+          content: Text('A schedule with the name "$name" already exists. Please choose a unique name.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
+    setState(() => _showResultPanel = false);
 
     await ref
         .read(generationServiceProvider(widget.schoolId).notifier)
@@ -163,12 +187,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final genState = ref.watch(generationServiceProvider(widget.schoolId));
     final schedulesAsync = ref.watch(_schedulesProvider(widget.schoolId));
 
-    // FIX: Listen for completion and force selection of the newest item
+    // Listen for completion and force selection of the newest item
     ref.listen(generationServiceProvider(widget.schoolId), (prev, next) {
       if (next.phase == GenerationPhase.done) {
         setState(() => _showResultPanel = true);
 
-        // Access the current schedule list to find the one just created
+        // Auto-select the newly generated schedule
         schedulesAsync.whenData((schedules) {
           if (schedules.isNotEmpty) {
             setState(() {
@@ -255,7 +279,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('$e')),
       data: (schedules) {
-        // Auto-select logic for initial load or if selection becomes invalid
         if (schedules.isNotEmpty &&
             ((_selectedScheduleId == null) ||
                 !schedules.any((s) => s.id == _selectedScheduleId))) {

@@ -41,12 +41,12 @@ x	quando cancello uno schedule, il banner non va via
 x	schedule list is not immediately refreshed after renaming
 x	When I generate a new schedule, it is not opened the last one
 x	error in case you use the same name for schedule
+x	visualizzazione AllClassrooms and SingleClassroom sono identiche
+x	visualizzazione per teacher utile ma non funziona
 
 
 
 Open:
-O	visualizzazione AllClassrooms and SingleClassroom sono identiche
-O	visualizzazione per teacher utile ma non funziona
 O	2b schedule non rispecchia gli slots in input
 O	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
 O	prova i constraints

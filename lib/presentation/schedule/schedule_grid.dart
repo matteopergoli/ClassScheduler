@@ -96,21 +96,29 @@ class _ScheduleGridState extends ConsumerState<ScheduleGrid> {
                 });
               }
 
-              final selectedClassroom = classrooms.firstWhere(
-                (c) => c.id == _selectedClassroomId,
-                orElse: () => classrooms.first,
-              );
               final activeDays = _deriveActiveDays(periods);
+              final classroomById = {for (final c in classrooms) c.id: c};
+
+              // Determine what to pass to grid
+              final isTeacherMode = widget.viewMode == ScheduleViewMode.perTeacher;
+              final selectedClassroom = !isTeacherMode
+                  ? classrooms.firstWhere(
+                      (c) => c.id == _selectedClassroomId,
+                      orElse: () => classrooms.first,
+                    )
+                  : null;
 
               return Column(children: [
-                // ── Classroom tabs ────────────────────────────────
-                _ClassroomSelector(
-                  classrooms: classrooms,
-                  selected: selectedClassroom.id,
-                  colors: colors,
-                  onSelect: (id) => setState(() => _selectedClassroomId = id),
-                ),
-                if (widget.viewMode == ScheduleViewMode.perTeacher)
+                // ── Classroom tabs (only in classroom view) ─────────────────
+                if (!isTeacherMode)
+                  _ClassroomSelector(
+                    classrooms: classrooms,
+                    selected: selectedClassroom!.id,
+                    colors: colors,
+                    onSelect: (id) => setState(() => _selectedClassroomId = id),
+                  ),
+                // ── Teacher selector (only in teacher view) ───────────────────
+                if (isTeacherMode)
                   _TeacherSelector(
                     subjects: subjects,
                     selected: _selectedTeacherName,
@@ -121,7 +129,10 @@ class _ScheduleGridState extends ConsumerState<ScheduleGrid> {
                 // ── Grid body ─────────────────────────────────────
                 Expanded(
                   child: _GridBody(
-                    classroom: selectedClassroom,
+                    classroom: !isTeacherMode ? selectedClassroom : null,
+                    selectedTeacherName: isTeacherMode ? _selectedTeacherName : null,
+                    viewMode: widget.viewMode,
+                    classroomById: classroomById,
                     activeDays: activeDays,
                     periods: periods,
                     lessonPeriods: lessonPeriods,
@@ -265,7 +276,10 @@ class _TeacherSelector extends StatelessWidget {
 // ── Grid body ─────────────────────────────────────────────────────────────
 
 class _GridBody extends ConsumerWidget {
-  final ClassroomModel classroom;
+  final ClassroomModel? classroom; // null in teacher mode
+  final String? selectedTeacherName; // only in teacher mode
+  final ScheduleViewMode viewMode;
+  final Map<String, ClassroomModel> classroomById;
   final List<String> activeDays;
   final List<PeriodModel> periods;
   final List<PeriodModel> lessonPeriods;
@@ -281,6 +295,9 @@ class _GridBody extends ConsumerWidget {
 
   const _GridBody({
     required this.classroom,
+    required this.selectedTeacherName,
+    required this.viewMode,
+    required this.classroomById,
     required this.activeDays,
     required this.periods,
     required this.lessonPeriods,
@@ -298,13 +315,26 @@ class _GridBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subjectById = {for (final s in subjects) s.id: s};
+    final isTeacherMode = viewMode == ScheduleViewMode.perTeacher;
 
-    // Index cells: dayCode → periodId → cell for the selected classroom
+    // Index cells based on mode
     final cellIndex = <String, Map<String, ScheduleCellModel>>{};
-    for (final cell in cells) {
-      if (cell.classroomId != classroom.id) continue;
-      final dayCode = _dayCodeFromCellId(cell.id);
-      cellIndex.putIfAbsent(dayCode, () => {})[cell.periodId] = cell;
+    
+    if (isTeacherMode && selectedTeacherName != null) {
+      // Teacher mode: filter by teacher, organized by day & period
+      for (final cell in cells) {
+        final subject = subjectById[cell.subjectId];
+        if (subject?.teacherName != selectedTeacherName) continue;
+        final dayCode = _dayCodeFromCellId(cell.id);
+        cellIndex.putIfAbsent(dayCode, () => {})[cell.periodId] = cell;
+      }
+    } else if (!isTeacherMode && classroom != null) {
+      // Classroom mode: filter by classroom
+      for (final cell in cells) {
+        if (cell.classroomId != classroom!.id) continue;
+        final dayCode = _dayCodeFromCellId(cell.id);
+        cellIndex.putIfAbsent(dayCode, () => {})[cell.periodId] = cell;
+      }
     }
 
     const rowH = AppDimensions.gridRowHeight;
@@ -369,15 +399,18 @@ class _GridBody extends ConsumerWidget {
                     final subject = cell.subjectId != null
                         ? subjectById[cell.subjectId!]
                         : null;
+                    final cellClassroom = classroomById[cell.classroomId];
                     return _LessonCell(
                       cell: cell,
                       subject: subject,
+                      classroom: cellClassroom,
                       width: colW,
                       height: rowH,
                       isDragging: dragging?.id == cell.id,
                       colors: colors,
+                      isTeacherMode: isTeacherMode,
                       onTap: () => _showCellDetail(
-                          context, cell, subject, classroom, period, day),
+                          context, cell, subject, cellClassroom, period, day),
                       onDragStart: () => onDragStart(cell),
                       onDragEnd: onDragEnd,
                       onAccept: (src) => _handleDrop(context, ref, src, cell),
@@ -397,7 +430,7 @@ class _GridBody extends ConsumerWidget {
     BuildContext context,
     ScheduleCellModel cell,
     SubjectModel? subject,
-    ClassroomModel classroom,
+    ClassroomModel? classroom,
     PeriodModel period,
     String day,
   ) {
@@ -411,7 +444,8 @@ class _GridBody extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _DetailRow(label: 'Teacher', value: subject.teacherName),
-            _DetailRow(label: 'Class', value: classroom.name),
+            if (classroom != null)
+              _DetailRow(label: 'Class', value: classroom.name),
             _DetailRow(label: 'Day', value: _dayLabel(day)),
             _DetailRow(
                 label: 'Time', value: '${period.startTime}–${period.endTime}'),
@@ -544,10 +578,12 @@ class _BreakRow extends StatelessWidget {
 class _LessonCell extends StatelessWidget {
   final ScheduleCellModel cell;
   final SubjectModel? subject;
+  final ClassroomModel? classroom;
   final double width;
   final double height;
   final bool isDragging;
   final AppColors colors;
+  final bool isTeacherMode;
   final VoidCallback onTap;
   final VoidCallback onDragStart;
   final VoidCallback onDragEnd;
@@ -557,10 +593,12 @@ class _LessonCell extends StatelessWidget {
   const _LessonCell({
     required this.cell,
     required this.subject,
+    required this.classroom,
     required this.width,
     required this.height,
     required this.isDragging,
     required this.colors,
+    required this.isTeacherMode,
     required this.onTap,
     required this.onDragStart,
     required this.onDragEnd,
@@ -569,13 +607,25 @@ class _LessonCell extends StatelessWidget {
   });
 
   Color _subjectColor() {
+    if (isTeacherMode && classroom != null) {
+      return _classroomColor(classroom!).withOpacity(0.85);
+    }
     if (subject == null) return colors.surfaceVariant;
     return _hexColor(subject!.colourHex).withOpacity(0.85);
   }
 
   Color _subjectBg() {
+    if (isTeacherMode && classroom != null) {
+      return _classroomColor(classroom!).withOpacity(0.18);
+    }
     if (subject == null) return colors.surfaceVariant;
     return _hexColor(subject!.colourHex).withOpacity(0.18);
+  }
+
+  Color _classroomColor(ClassroomModel classroom) {
+    final palette = colors.subjectPalette;
+    final index = classroom.id.hashCode.abs() % palette.length;
+    return palette[index];
   }
 
   @override
@@ -606,13 +656,36 @@ class _LessonCell extends StatelessWidget {
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.all(4),
-                    child: Text(
-                      subject!.name,
-                      style: AppTextStyles.labelSmall.copyWith(
-                          color: _subjectColor(), fontWeight: FontWeight.w700),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          isTeacherMode && classroom != null
+                              ? classroom!.name
+                              : subject!.name,
+                          style: AppTextStyles.labelSmall.copyWith(
+                              color: _subjectColor(),
+                              fontWeight: FontWeight.w700),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (isTeacherMode && classroom != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              subject!.name,
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: _subjectColor().withOpacity(0.7),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

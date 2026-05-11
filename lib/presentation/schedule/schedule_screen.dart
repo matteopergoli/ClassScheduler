@@ -19,7 +19,8 @@ import 'version_sheet.dart';
 
 // ── View mode enum ───────────────────────────────────────────────────────
 
-enum ScheduleViewMode { allClassrooms, singleClassroom, perTeacher }
+// UPDATED: Removed singleClassroom, renamed allClassrooms to perClassroom
+enum ScheduleViewMode { perClassroom, perTeacher }
 
 // ── Schedules stream provider ────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   String? _selectedScheduleId;
   String? _currentScheduleName;
-  ScheduleViewMode _viewMode = ScheduleViewMode.allClassrooms;
+  ScheduleViewMode _viewMode = ScheduleViewMode.perClassroom; // Updated default
   bool _showResultPanel = false;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -131,7 +132,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ? 'Schedule ${existingSchedules.length + 1}'
         : nameCtrl.text.trim();
 
-    // ── Check for Duplicate Name ──────────────────────────────────────────
+    // Check for Duplicate Name
     final nameExists = existingSchedules.any(
       (s) => s.name.toLowerCase() == name.toLowerCase(),
     );
@@ -153,7 +154,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       );
       return;
     }
-    // ──────────────────────────────────────────────────────────────────────
 
     setState(() => _showResultPanel = false);
 
@@ -187,12 +187,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final genState = ref.watch(generationServiceProvider(widget.schoolId));
     final schedulesAsync = ref.watch(_schedulesProvider(widget.schoolId));
 
-    // Listen for completion and force selection of the newest item
     ref.listen(generationServiceProvider(widget.schoolId), (prev, next) {
       if (next.phase == GenerationPhase.done) {
         setState(() => _showResultPanel = true);
 
-        // Auto-select the newly generated schedule
         schedulesAsync.whenData((schedules) {
           if (schedules.isNotEmpty) {
             setState(() {
@@ -530,11 +528,10 @@ class _ViewModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // UPDATED: Only two options now
     final modes = [
-      (ScheduleViewMode.allClassrooms, l10n.viewAllClassrooms,
+      (ScheduleViewMode.perClassroom, 'Per Classroom',
           Icons.grid_view_rounded),
-      (ScheduleViewMode.singleClassroom, l10n.viewSingleClassroom,
-          Icons.crop_square_rounded),
       (ScheduleViewMode.perTeacher, l10n.viewPerTeacher,
           Icons.person_outline_rounded),
     ];
@@ -580,7 +577,71 @@ class _ViewModeToggle extends StatelessWidget {
   }
 }
 
-// ── Generating progress view ──────────────────────────────────────────────
+// ── Error Banner ─────────────────────────────────────────────────────────
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  final List<dynamic> conflicts;
+  final AppColors colors;
+  final VoidCallback onDismiss;
+
+  const _ErrorBanner({
+    required this.message,
+    required this.conflicts,
+    required this.colors,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.error.withOpacity(0.1),
+        border: Border.all(color: colors.error),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: colors.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+                if (conflicts.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      '${conflicts.length} conflict${conflicts.length != 1 ? 's' : ''}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: colors.textMuted,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: colors.textMuted),
+            onPressed: onDismiss,
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(8),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Generating View ───────────────────────────────────────────────────────
 
 class _GeneratingView extends StatelessWidget {
   final GenerationState genState;
@@ -595,188 +656,42 @@ class _GeneratingView extends StatelessWidget {
     required this.onCancel,
   });
 
-  String get _phaseLabel {
-    switch (genState.phase) {
-      case GenerationPhase.loadingData:
-        return 'Loading school data…';
-      case GenerationPhase.validating:
-        return 'Checking for constraint conflicts…';
-      case GenerationPhase.generating:
-        return 'Running MCF Greedy + Simulated Annealing…';
-      case GenerationPhase.saving:
-        return 'Saving schedule to cloud…';
-      default:
-        return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final progress = genState.phase == GenerationPhase.generating
-        ? genState.progress
-        : genState.phase == GenerationPhase.saving
-            ? 1.0
-            : 0.05;
-
-    return Padding(
-      padding: const EdgeInsets.all(40),
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 100,
-            height: 100,
-            child: Stack(alignment: Alignment.center, children: [
-              CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 7,
-                backgroundColor: colors.borderDefault,
-                valueColor: AlwaysStoppedAnimation(colors.primary),
-                strokeCap: StrokeCap.round,
-              ),
-              Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(
-                  '${(progress * 100).round()}%',
-                  style: AppTextStyles.titleSmall
-                      .copyWith(color: colors.textPrimary),
-                ),
-              ]),
-            ]),
-          ),
-          const SizedBox(height: 28),
-          Text(l10n.generating,
-              style: AppTextStyles.titleMedium
-                  .copyWith(color: colors.textPrimary)),
-          const SizedBox(height: 8),
+          CircularProgressIndicator(color: colors.primary),
+          const SizedBox(height: 24),
           Text(
-            _phaseLabel,
-            style: AppTextStyles.bodySmall
-                .copyWith(color: colors.textMuted),
-            textAlign: TextAlign.center,
+            l10n.generating,
+            style: AppTextStyles.titleMedium.copyWith(
+              color: colors.textPrimary,
+            ),
           ),
-          if (genState.phase == GenerationPhase.generating &&
-              genState.iterationsCompleted > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              '${_formatIterations(genState.iterationsCompleted)} iterations',
-              style: AppTextStyles.labelSmall
-                  .copyWith(color: colors.textMuted),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '${(genState.progress * 100).toStringAsFixed(0)}%',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colors.textMuted,
+              ),
             ),
-          ],
-          const SizedBox(height: 32),
-          OutlinedButton.icon(
+          ),
+          const SizedBox(height: 24),
+          FilledButton.tonalIcon(
             onPressed: onCancel,
-            icon: const Icon(Icons.cancel_outlined, size: 16),
+            icon: const Icon(Icons.stop_circle_outlined),
             label: Text(l10n.cancelGeneration),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colors.error,
-              side: BorderSide(color: colors.error.withOpacity(0.4)),
-            ),
           ),
         ],
       ),
     );
   }
-
-  String _formatIterations(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}k';
-    return '$n';
-  }
 }
 
-// ── Error / conflict banner ───────────────────────────────────────────────
-
-class _ErrorBanner extends StatefulWidget {
-  final String message;
-  final List<ConflictResult> conflicts;
-  final AppColors colors;
-  final VoidCallback onDismiss;
-
-  const _ErrorBanner({
-    required this.message,
-    required this.conflicts,
-    required this.colors,
-    required this.onDismiss,
-  });
-
-  @override
-  State<_ErrorBanner> createState() => _ErrorBannerState();
-}
-
-class _ErrorBannerState extends State<_ErrorBanner> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = widget.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.errorBg,
-          border: Border.all(color: colors.error.withOpacity(0.35)),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          InkWell(
-            onTap: widget.conflicts.isNotEmpty
-                ? () => setState(() => _expanded = !_expanded)
-                : null,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              child: Row(children: [
-                Icon(Icons.error_outline_rounded,
-                    color: colors.error, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(widget.message,
-                      style: AppTextStyles.labelMedium
-                          .copyWith(color: colors.error)),
-                ),
-                if (widget.conflicts.isNotEmpty)
-                  Icon(
-                    _expanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                    color: colors.error,
-                    size: 18,
-                  )
-                else
-                  GestureDetector(
-                    onTap: widget.onDismiss,
-                    child: Icon(Icons.close_rounded,
-                        color: colors.textMuted, size: 16),
-                  ),
-              ]),
-            ),
-          ),
-          if (_expanded)
-            ...widget.conflicts.map((c) => Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(c.description,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: colors.textSecondary)),
-                      const SizedBox(height: 3),
-                      Text('💡 ${c.suggestion}',
-                          style: AppTextStyles.labelSmall
-                              .copyWith(color: colors.textMuted)),
-                      Divider(
-                          color: colors.borderSubtle, height: 14),
-                    ],
-                  ),
-                )),
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Empty state ───────────────────────────────────────────────────────────
+// ── Empty State ───────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   final AppColors colors;
@@ -792,78 +707,37 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.calendar_month_outlined,
-                size: 64, color: colors.textMuted),
-            const SizedBox(height: 20),
-            Text(l10n.noScheduleYet,
-                style: AppTextStyles.titleMedium
-                    .copyWith(color: colors.textPrimary)),
-            const SizedBox(height: 8),
-            Text(
-              l10n.generateToSeeSchedule,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium
-                  .copyWith(color: colors.textMuted),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 64,
+            color: colors.textMuted,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.noScheduleYet,
+            style: AppTextStyles.titleMedium.copyWith(
+              color: colors.textPrimary,
             ),
-            const SizedBox(height: 28),
-            Container(
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [colors.primary, colors.primaryLight],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight),
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusMd),
-                boxShadow: [
-                  BoxShadow(
-                    color: colors.primary.withOpacity(0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onGenerate,
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusMd),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.bolt_rounded,
-                            size: 18, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(l10n.generate,
-                            style: AppTextStyles.button
-                                .copyWith(color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.generateToSeeSchedule,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colors.textMuted,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onGenerate,
+            icon: const Icon(Icons.bolt_rounded),
+            label: Text(l10n.generate),
+          ),
+        ],
       ),
     );
-  }
-}
-
-// ── Extension ─────────────────────────────────────────────────────────────
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull {
-    final it = iterator;
-    return it.moveNext() ? it.current : null;
   }
 }

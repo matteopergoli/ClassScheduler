@@ -39,12 +39,12 @@ x	debug mode -> "flutter run -d emulator-5554"
 x	non posso cancellare schedules vecchi creati
 x	quando cancello uno schedule, il banner non va via
 x	schedule list is not immediately refreshed after renaming
+x	When I generate a new schedule, it is not opened the last one
 
 
 
 Open:
 O	error in case you use the same name for schedule
-O	When I generate a new schedule, it is not opened the last one
 O	2b schedule non rispecchia gli slots in input
 O	visualizzazione AllClassrooms and SingleClassroom sono identiche
 O	visualizzazione per teacher utile ma non funziona

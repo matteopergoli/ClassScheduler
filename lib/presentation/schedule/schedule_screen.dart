@@ -1,14 +1,4 @@
 // lib/presentation/schedule/schedule_screen.dart
-//
-// FR-GEN-01..07, FR-VIEW-01..05, FR-TRIAL-IND-01/02
-//
-// Wires together:
-//   - TrialBanner (shown above grid when in trial mode)
-//   - VersionSheet (bottom sheet for saved schedule versions)
-//   - GenerationService (runs Phase 1 + Phase 2 on-device)
-//   - ScheduleGrid (timetable grid with drag-and-drop)
-//   - ResultPanel (shown after generation completes)
-//   - ExportSheet (PDF / Excel export)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,11 +17,11 @@ import 'result_panel.dart';
 import 'schedule_grid.dart';
 import 'version_sheet.dart';
 
-// ── View mode enum (also imported by schedule_grid.dart) ──────────────────
+// ── View mode enum ───────────────────────────────────────────────────────
 
 enum ScheduleViewMode { allClassrooms, singleClassroom, perTeacher }
 
-// ── Schedules stream provider (scoped to this screen) ────────────────────
+// ── Schedules stream provider ────────────────────────────────────────────
 
 final _schedulesProvider =
     StreamProvider.autoDispose.family<List<ScheduleModel>, String>(
@@ -89,7 +79,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       ),
     );
 
-    // 'generate' = user tapped Generate inside the version sheet
     if (result == 'generate' && mounted) {
       _startGeneration(schedules);
       return;
@@ -174,12 +163,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final genState = ref.watch(generationServiceProvider(widget.schoolId));
     final schedulesAsync = ref.watch(_schedulesProvider(widget.schoolId));
 
-    // Auto-select newest schedule when generation finishes
+    // FIX: Listen for completion and force selection of the newest item
     ref.listen(generationServiceProvider(widget.schoolId), (prev, next) {
       if (next.phase == GenerationPhase.done) {
         setState(() => _showResultPanel = true);
-        // The newest schedule is at the top of the stream; let the data
-        // callback below pick it up automatically.
+
+        // Access the current schedule list to find the one just created
+        schedulesAsync.whenData((schedules) {
+          if (schedules.isNotEmpty) {
+            setState(() {
+              _selectedScheduleId = schedules.first.id;
+              _currentScheduleName = schedules.first.name;
+            });
+          }
+        });
       }
     });
 
@@ -188,7 +185,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────────────
             _ScheduleHeader(
               schedulesAsync: schedulesAsync,
               selectedScheduleId: _selectedScheduleId,
@@ -202,11 +198,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   setState(() => _viewMode = mode),
               onExport: _selectedScheduleId != null ? _showExport : null,
             ),
-
-            // ── Trial banner (FR-TRIAL-IND-01/02) ────────────────────────
             const TrialBanner(),
-
-            // ── Result panel (shown after generation) ────────────────────
             if (_showResultPanel && genState.result != null)
               ResultPanel(
                 result: genState.result!,
@@ -215,8 +207,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 onDismiss: () =>
                     setState(() => _showResultPanel = false),
               ),
-
-            // ── Error / conflict banner ──────────────────────────────────
             if (genState.phase == GenerationPhase.error &&
                 genState.errorMessage != null)
               _ErrorBanner(
@@ -228,8 +218,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         .notifier)
                     .cancel(),
               ),
-
-            // ── Body ─────────────────────────────────────────────────────
             Expanded(
               child: _buildBody(
                   context, l10n, colors, genState, schedulesAsync),
@@ -247,7 +235,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     GenerationState genState,
     AsyncValue<List<ScheduleModel>> schedulesAsync,
   ) {
-    // Generating / saving progress
     final busy = genState.phase == GenerationPhase.loadingData ||
         genState.phase == GenerationPhase.validating ||
         genState.phase == GenerationPhase.generating ||
@@ -268,7 +255,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('$e')),
       data: (schedules) {
-        // Auto-select the most recent schedule when list loads or changes
+        // Auto-select logic for initial load or if selection becomes invalid
         if (schedules.isNotEmpty &&
             ((_selectedScheduleId == null) ||
                 !schedules.any((s) => s.id == _selectedScheduleId))) {
@@ -390,7 +377,6 @@ class _ScheduleHeader extends StatelessWidget {
                 ],
               ),
             ),
-            // Generate button
             _GenerateButton(
               isBusy: _isBusy,
               hasSchedules: schedules.isNotEmpty,
@@ -410,7 +396,6 @@ class _ScheduleHeader extends StatelessWidget {
               ),
             ],
           ]),
-          // View mode toggle — only when a schedule is loaded
           if (selectedScheduleId != null && !_isBusy)
             Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -615,7 +600,6 @@ class _GeneratingView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Progress ring
           SizedBox(
             width: 100,
             height: 100,

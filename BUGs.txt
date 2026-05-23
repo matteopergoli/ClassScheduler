@@ -43,13 +43,15 @@ x	When I generate a new schedule, it is not opened the last one
 x	error in case you use the same name for schedule
 x	visualizzazione AllClassrooms and SingleClassroom sono identiche
 x	visualizzazione per teacher utile ma non funziona
+x	rimuovere ore minime dal setup 3 metterlo come constraints??
 
 
 
 Open:
 O	2b schedule non rispecchia gli slots in input
 O	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
-O	prova i constraints
+O	quando cancello uno schedule dalla lista, la lista si chiude in automatico invece di rimaenre aperta
+O	prova hard/soft constraints, incluso min/max giornalieri
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
 		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
 O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule

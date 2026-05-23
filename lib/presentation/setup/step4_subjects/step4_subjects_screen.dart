@@ -68,18 +68,18 @@ class Step4SubjectsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n       = AppLocalizations.of(context);
-    final colors     = AppColors.of(context);
-    final school     = ref.watch(activeSchoolProvider);
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final school = ref.watch(activeSchoolProvider);
     final activeDays = ref.watch(activeDaysProvider);
 
     if (school == null) return const SizedBox.shrink();
 
-    final subjectsAsync   = ref.watch(_subjectsStreamProvider(school.id));
+    final subjectsAsync = ref.watch(_subjectsStreamProvider(school.id));
     final classroomsAsync = ref.watch(classroomsStreamProvider(school.id));
-    final periodsAsync    = ref.watch(_periodsStreamProvider(school.id));
+    final periodsAsync = ref.watch(_periodsStreamProvider(school.id));
     final capacitiesAsync = ref.watch(_dayCapacitiesStreamProvider(school.id));
-    final csAsync         = ref.watch(_classroomSubjectsStreamProvider(school.id));
+    final csAsync = ref.watch(_classroomSubjectsStreamProvider(school.id));
 
     // All five streams are unwrapped with nested .when() so that every stream
     // update — including Step 3 capacity changes — triggers a full rebuild and
@@ -98,8 +98,7 @@ class Step4SubjectsScreen extends ConsumerWidget {
             // Build dayCapacityMap synchronously from the latest stream value.
             final dayCapacityMap = <String, Map<String, int>>{};
             for (final c in caps) {
-              dayCapacityMap
-                  .putIfAbsent(c.classroomId, () => {})[c.dayOfWeek] =
+              dayCapacityMap.putIfAbsent(c.classroomId, () => {})[c.dayOfWeek] =
                   c.activeSlots.length;
             }
 
@@ -124,13 +123,15 @@ class Step4SubjectsScreen extends ConsumerWidget {
                   for (final cls in classrooms) {
                     // Build a map of dayCode → slot count from Firestore records.
                     final recordsByDay = <String, int>{
-                      for (final c in caps.where((c) => c.classroomId == cls.id))
+                      for (final c
+                          in caps.where((c) => c.classroomId == cls.id))
                         c.dayOfWeek: c.activeSlots.length,
                     };
                     // Sum over activeDays: use record if present, else full capacity.
                     final total = activeDays.fold<int>(
                       0,
-                      (sum, day) => sum + (recordsByDay[day] ?? lessonPeriodCount),
+                      (sum, day) =>
+                          sum + (recordsByDay[day] ?? lessonPeriodCount),
                     );
                     totalSlotsByClassroom[cls.id] = total;
                   }
@@ -140,16 +141,16 @@ class Step4SubjectsScreen extends ConsumerWidget {
                         const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(child: Text(e.toString())),
                     data: (allCs) => _Body(
-                      school:                school,
-                      subjects:              subjects,
-                      classrooms:            classrooms,
-                      allCs:                 allCs,
-                      activeDays:            activeDays,
+                      school: school,
+                      subjects: subjects,
+                      classrooms: classrooms,
+                      allCs: allCs,
+                      activeDays: activeDays,
                       totalSlotsByClassroom: totalSlotsByClassroom,
-                      lessonPeriodCount:     lessonPeriodCount,
-                      dayCapacityMap:        dayCapacityMap,
-                      colors:                colors,
-                      l10n:                  l10n,
+                      lessonPeriodCount: lessonPeriodCount,
+                      dayCapacityMap: dayCapacityMap,
+                      colors: colors,
+                      l10n: l10n,
                     ),
                   );
                 },
@@ -178,24 +179,24 @@ class _Body extends ConsumerWidget {
     required this.l10n,
   });
 
-  final SchoolModel                        school;
-  final List<SubjectModel>                 subjects;
-  final List<ClassroomModel>               classrooms;
-  final List<ClassroomSubjectModel>        allCs;
-  final List<String>                       activeDays;
-  final Map<String, int>                   totalSlotsByClassroom;
-  final int                                lessonPeriodCount;
-  final Map<String, Map<String, int>>      dayCapacityMap;
-  final AppColors                          colors;
-  final AppLocalizations                   l10n;
+  final SchoolModel school;
+  final List<SubjectModel> subjects;
+  final List<ClassroomModel> classrooms;
+  final List<ClassroomSubjectModel> allCs;
+  final List<String> activeDays;
+  final Map<String, int> totalSlotsByClassroom;
+  final int lessonPeriodCount;
+  final Map<String, Map<String, int>> dayCapacityMap;
+  final AppColors colors;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Build feasibility data — per-classroom weekly check.
     final feasRows = FeasibilityEstimator.estimateByClassroom(
-      classroomNames:        {for (final c in classrooms) c.id: c.name},
+      classroomNames: {for (final c in classrooms) c.id: c.name},
       totalSlotsByClassroom: totalSlotsByClassroom,
-      classroomSubjects:     allCs,
+      classroomSubjects: allCs,
     );
     final hasCritical = feasRows.any((r) => r.isCritical);
 
@@ -224,15 +225,14 @@ class _Body extends ConsumerWidget {
           ),
 
         ...subjects.map((subject) => _SubjectCard(
-              subject:               subject,
-              school:                school,
-              classrooms:            classrooms,
-              allCs:                 allCs.where((cs) =>
-                  cs.subjectId == subject.id).toList(),
-              activeDays:            activeDays,
+              subject: subject,
+              school: school,
+              classrooms: classrooms,
+              allCs: allCs.where((cs) => cs.subjectId == subject.id).toList(),
+              activeDays: activeDays,
               totalSlotsByClassroom: totalSlotsByClassroom,
-              colors:                colors,
-              l10n:                  l10n,
+              colors: colors,
+              l10n: l10n,
             )),
 
         const SizedBox(height: 8),
@@ -248,10 +248,10 @@ class _Body extends ConsumerWidget {
 
         // ── Feasibility estimator panel (FR-SUB-04) ──────────────────────
         _FeasibilityPanel(
-          feasRows:    feasRows,
+          feasRows: feasRows,
           hasCritical: hasCritical,
-          colors:      colors,
-          l10n:        l10n,
+          colors: colors,
+          l10n: l10n,
         ),
 
         const SizedBox(height: 24),
@@ -259,15 +259,13 @@ class _Body extends ConsumerWidget {
     );
   }
 
-  void _showSubjectForm(
-      BuildContext context, WidgetRef ref, String schoolId,
+  void _showSubjectForm(BuildContext context, WidgetRef ref, String schoolId,
       [SubjectModel? existing]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _SubjectFormSheet(
-          schoolId: schoolId, existing: existing),
+      builder: (_) => _SubjectFormSheet(schoolId: schoolId, existing: existing),
     );
   }
 }
@@ -286,14 +284,14 @@ class _SubjectCard extends ConsumerWidget {
     required this.l10n,
   });
 
-  final SubjectModel                   subject;
-  final SchoolModel                    school;
-  final List<ClassroomModel>           classrooms;
-  final List<ClassroomSubjectModel>    allCs; // only for this subject
-  final List<String>                   activeDays;
-  final Map<String, int>               totalSlotsByClassroom;
-  final AppColors                      colors;
-  final AppLocalizations               l10n;
+  final SubjectModel subject;
+  final SchoolModel school;
+  final List<ClassroomModel> classrooms;
+  final List<ClassroomSubjectModel> allCs; // only for this subject
+  final List<String> activeDays;
+  final Map<String, int> totalSlotsByClassroom;
+  final AppColors colors;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -311,8 +309,8 @@ class _SubjectCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: AppDimensions.cardGap),
       decoration: BoxDecoration(
-        color:        colors.cardBg,
-        border:       Border.all(color: colors.borderDefault),
+        color: colors.cardBg,
+        border: Border.all(color: colors.borderDefault),
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       ),
       child: Column(
@@ -328,11 +326,11 @@ class _SubjectCard extends ConsumerWidget {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color:        subjectColor,
-                    shape:        BoxShape.circle,
+                    color: subjectColor,
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color:      subjectColor.withOpacity(0.45),
+                        color: subjectColor.withOpacity(0.45),
                         blurRadius: 6,
                       ),
                     ],
@@ -354,7 +352,7 @@ class _SubjectCard extends ConsumerWidget {
                 ),
                 // Edit subject button
                 IconButton(
-                  icon:  Icon(Icons.edit_outlined,
+                  icon: Icon(Icons.edit_outlined,
                       size: 18, color: colors.textDisabled),
                   tooltip: l10n.edit,
                   onPressed: () => showModalBottomSheet(
@@ -367,11 +365,10 @@ class _SubjectCard extends ConsumerWidget {
                 ),
                 // Delete subject button
                 IconButton(
-                  icon:  Icon(Icons.delete_outline,
-                      size: 18, color: colors.error),
+                  icon:
+                      Icon(Icons.delete_outline, size: 18, color: colors.error),
                   tooltip: l10n.delete,
-                  onPressed: () =>
-                      _confirmDelete(context, ref),
+                  onPressed: () => _confirmDelete(context, ref),
                 ),
               ],
             ),
@@ -390,22 +387,22 @@ class _SubjectCard extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Text(
               l10n.classrooms,
-              style: AppTextStyles.overline
-                  .copyWith(color: colors.textDisabled),
+              style:
+                  AppTextStyles.overline.copyWith(color: colors.textDisabled),
             ),
           ),
 
           ...classrooms.map((cls) {
             final cs = csMap[cls.id];
             return _ClassroomAssignmentRow(
-              classroom:   cls,
-              cs:          cs,
-              subject:     subject,
-              school:      school,
-              activeDays:  activeDays,
-              totalSlots:  totalSlotsByClassroom[cls.id] ?? 0,
-              colors:      colors,
-              l10n:        l10n,
+              classroom: cls,
+              cs: cs,
+              subject: subject,
+              school: school,
+              activeDays: activeDays,
+              totalSlots: totalSlotsByClassroom[cls.id] ?? 0,
+              colors: colors,
+              l10n: l10n,
             );
           }),
 
@@ -421,12 +418,11 @@ class _SubjectCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.cardBg,
         title: Text(l10n.delete,
-            style: AppTextStyles.titleSmall
-                .copyWith(color: colors.textPrimary)),
+            style:
+                AppTextStyles.titleSmall.copyWith(color: colors.textPrimary)),
         content: Text(
           l10n.subjectDeleteConstraintWarning(allCs.length),
-          style: AppTextStyles.bodyMedium
-              .copyWith(color: colors.textMuted),
+          style: AppTextStyles.bodyMedium.copyWith(color: colors.textMuted),
         ),
         actions: [
           TextButton(
@@ -435,16 +431,14 @@ class _SubjectCard extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.delete,
-                style: TextStyle(color: colors.error)),
+            child: Text(l10n.delete, style: TextStyle(color: colors.error)),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
     final uid = ref.read(currentUserProvider)!.uid;
-    await SubjectRepository(uid: uid, schoolId: school.id)
-        .delete(subject.id);
+    await SubjectRepository(uid: uid, schoolId: school.id).delete(subject.id);
     await ClassroomSubjectRepository(uid: uid, schoolId: school.id)
         .deleteForSubject(subject.id);
     if (context.mounted) {
@@ -469,14 +463,14 @@ class _ClassroomAssignmentRow extends StatelessWidget {
     required this.l10n,
   });
 
-  final ClassroomModel          classroom;
-  final ClassroomSubjectModel?  cs;       // null = not assigned
-  final SubjectModel            subject;
-  final SchoolModel             school;
-  final List<String>            activeDays;
-  final int                     totalSlots;
-  final AppColors               colors;
-  final AppLocalizations        l10n;
+  final ClassroomModel classroom;
+  final ClassroomSubjectModel? cs; // null = not assigned
+  final SubjectModel subject;
+  final SchoolModel school;
+  final List<String> activeDays;
+  final int totalSlots;
+  final AppColors colors;
+  final AppLocalizations l10n;
 
   bool get _isAssigned => cs != null;
 
@@ -488,17 +482,16 @@ class _ClassroomAssignmentRow extends StatelessWidget {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => _AssignmentFormSheet(
-          classroom:  classroom,
-          subject:    subject,
-          school:     school,
-          existing:   cs,
+          classroom: classroom,
+          subject: subject,
+          school: school,
+          existing: cs,
           activeDays: activeDays,
           totalSlots: totalSlots,
         ),
       ),
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         child: Row(
           children: [
             // Classroom name
@@ -516,32 +509,13 @@ class _ClassroomAssignmentRow extends StatelessWidget {
             if (_isAssigned) ...[
               // Weekly target chip
               _StatChip(
-                icon:   Icons.calendar_today_outlined,
-                label:  '${cs!.weeklyTargetHours}h/wk',
-                color:  colors.primary,
-                colors: colors,
-              ),
-              const SizedBox(width: 6),
-              // MinDaily chip (only if > 0)
-              if (cs!.minDailyHours > 0) ...[
-                _StatChip(
-                  icon:   Icons.arrow_downward,
-                  label:  'min ${cs!.minDailyHours}/d',
-                  color:  colors.success,
-                  colors: colors,
-                ),
-                const SizedBox(width: 6),
-              ],
-              // MaxDaily chip
-              _StatChip(
-                icon:   Icons.arrow_upward,
-                label:  'max ${cs!.maxDailyHours}/d',
-                color:  colors.warning,
+                icon: Icons.calendar_today_outlined,
+                label: '${cs!.weeklyTargetHours}h/wk',
+                color: colors.primary,
                 colors: colors,
               ),
               const Spacer(),
-              Icon(Icons.edit_outlined,
-                  size: 14, color: colors.textDisabled),
+              Icon(Icons.edit_outlined, size: 14, color: colors.textDisabled),
             ] else ...[
               Text(
                 '— ${l10n.assignToClassroom}',
@@ -565,9 +539,9 @@ class _StatChip extends StatelessWidget {
     required this.color,
     required this.colors,
   });
-  final IconData  icon;
-  final String    label;
-  final Color     color;
+  final IconData icon;
+  final String label;
+  final Color color;
   final AppColors colors;
 
   @override
@@ -575,18 +549,16 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color:        color.withOpacity(0.10),
+        color: color.withOpacity(0.10),
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        border:       Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withOpacity(0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 9, color: color),
           const SizedBox(width: 3),
-          Text(label,
-              style: AppTextStyles.labelSmall
-                  .copyWith(color: color)),
+          Text(label, style: AppTextStyles.labelSmall.copyWith(color: color)),
         ],
       ),
     );
@@ -597,12 +569,11 @@ class _StatChip extends StatelessWidget {
 
 class _SubjectFormSheet extends ConsumerStatefulWidget {
   const _SubjectFormSheet({required this.schoolId, this.existing});
-  final String        schoolId;
+  final String schoolId;
   final SubjectModel? existing;
 
   @override
-  ConsumerState<_SubjectFormSheet> createState() =>
-      _SubjectFormSheetState();
+  ConsumerState<_SubjectFormSheet> createState() => _SubjectFormSheetState();
 }
 
 class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
@@ -631,7 +602,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl    = TextEditingController(text: widget.existing?.name ?? '');
+    _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
     _teacherCtrl =
         TextEditingController(text: widget.existing?.teacherName ?? '');
     // Rebuild on every keystroke so the Save button enable-state stays in sync.
@@ -639,8 +610,8 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
     _teacherCtrl.addListener(_onTextChanged);
     try {
       _selectedColor = widget.existing != null
-          ? Color(int.parse(
-              widget.existing!.colourHex.replaceFirst('#', '0xFF')))
+          ? Color(
+              int.parse(widget.existing!.colourHex.replaceFirst('#', '0xFF')))
           : _palette.first;
     } catch (_) {
       _selectedColor = _palette.first;
@@ -664,7 +635,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final l10n   = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return _BottomSheet(
       title: widget.existing == null ? l10n.addSubject : l10n.edit,
@@ -673,20 +644,20 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
         children: [
           CsTextField(
             controller: _nameCtrl,
-            label:      l10n.subjectName,
-            autofocus:  widget.existing == null,
+            label: l10n.subjectName,
+            autofocus: widget.existing == null,
           ),
           const SizedBox(height: 14),
           CsTextField(
             controller: _teacherCtrl,
-            label:      l10n.teacherName,
+            label: l10n.teacherName,
           ),
           const SizedBox(height: 18),
 
           // Colour picker
           Text(l10n.colour,
-              style: AppTextStyles.labelMedium
-                  .copyWith(color: colors.textMuted)),
+              style:
+                  AppTextStyles.labelMedium.copyWith(color: colors.textMuted)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 10,
@@ -697,26 +668,24 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
                 onTap: () => setState(() => _selectedColor = color),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  width:  32,
+                  width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color:  color,
-                    shape:  BoxShape.circle,
+                    color: color,
+                    shape: BoxShape.circle,
                     border: Border.all(
-                      color: selected
-                          ? colors.textPrimary
-                          : Colors.transparent,
+                      color: selected ? colors.textPrimary : Colors.transparent,
                       width: 2.5,
                     ),
                     boxShadow: selected
-                        ? [BoxShadow(
-                            color:      color.withOpacity(0.55),
-                            blurRadius: 8)]
+                        ? [
+                            BoxShadow(
+                                color: color.withOpacity(0.55), blurRadius: 8)
+                          ]
                         : null,
                   ),
                   child: selected
-                      ? const Icon(Icons.check,
-                          size: 16, color: Colors.white)
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
                       : null,
                 ),
               );
@@ -725,8 +694,8 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
 
           const SizedBox(height: 24),
           CsButton(
-            label:     l10n.save,
-            loading:   _saving,
+            label: l10n.save,
+            loading: _saving,
             onPressed: _nameCtrl.text.trim().isEmpty ||
                     _teacherCtrl.text.trim().isEmpty
                 ? null
@@ -740,30 +709,27 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
-    final uid     = ref.read(currentUserProvider)!.uid;
+    final uid = ref.read(currentUserProvider)!.uid;
     final subject = SubjectModel(
-      id:          widget.existing?.id ?? const Uuid().v4(),
-      schoolId:    widget.schoolId,
-      name:        _nameCtrl.text.trim(),
+      id: widget.existing?.id ?? const Uuid().v4(),
+      schoolId: widget.schoolId,
+      name: _nameCtrl.text.trim(),
       teacherName: _teacherCtrl.text.trim(),
-      colourHex:   _colorHex,
+      colourHex: _colorHex,
     );
-    await SubjectRepository(uid: uid, schoolId: widget.schoolId)
-        .save(subject);
+    await SubjectRepository(uid: uid, schoolId: widget.schoolId).save(subject);
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text(AppLocalizations.of(context).subjectSaved)),
+        SnackBar(content: Text(AppLocalizations.of(context).subjectSaved)),
       );
     }
   }
 }
 
 // ── Assignment form sheet ─────────────────────────────────────────────────────
-// Lets the user set weeklyTarget, minDaily, maxDaily for one
-// classroom–subject pair. Runs FR-SUB-06 validation before saving.
+// Lets the user set weeklyTarget only for one classroom–subject assignment.
+// Daily min/max limits are managed in the Constraints workflow instead.
 
 class _AssignmentFormSheet extends ConsumerStatefulWidget {
   const _AssignmentFormSheet({
@@ -775,23 +741,20 @@ class _AssignmentFormSheet extends ConsumerStatefulWidget {
     this.existing,
   });
 
-  final ClassroomModel          classroom;
-  final SubjectModel            subject;
-  final SchoolModel             school;
-  final List<String>            activeDays;
-  final int                     totalSlots;
-  final ClassroomSubjectModel?  existing;
+  final ClassroomModel classroom;
+  final SubjectModel subject;
+  final SchoolModel school;
+  final List<String> activeDays;
+  final int totalSlots;
+  final ClassroomSubjectModel? existing;
 
   @override
   ConsumerState<_AssignmentFormSheet> createState() =>
       _AssignmentFormSheetState();
 }
 
-class _AssignmentFormSheetState
-    extends ConsumerState<_AssignmentFormSheet> {
+class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
   late TextEditingController _weeklyCtrl;
-  late TextEditingController _minCtrl;
-  late TextEditingController _maxCtrl;
 
   List<String> _errors = [];
   bool _saving = false;
@@ -799,33 +762,25 @@ class _AssignmentFormSheetState
   @override
   void initState() {
     super.initState();
-    _weeklyCtrl =
-        TextEditingController(text: '${widget.existing?.weeklyTargetHours ?? 1}');
-    _minCtrl =
-        TextEditingController(text: '${widget.existing?.minDailyHours ?? 0}');
-    _maxCtrl =
-        TextEditingController(text: '${widget.existing?.maxDailyHours ?? 2}');
+    _weeklyCtrl = TextEditingController(
+        text: '${widget.existing?.weeklyTargetHours ?? 1}');
   }
 
   @override
   void dispose() {
     _weeklyCtrl.dispose();
-    _minCtrl.dispose();
-    _maxCtrl.dispose();
     super.dispose();
   }
 
-  int get _weekly  => int.tryParse(_weeklyCtrl.text) ?? 0;
-  int get _minD    => int.tryParse(_minCtrl.text) ?? 0;
-  int get _maxD    => int.tryParse(_maxCtrl.text) ?? 1;
+  int get _weekly => int.tryParse(_weeklyCtrl.text) ?? 0;
 
   void _validate() {
-    final l10n    = AppLocalizations.of(context);
-    final result  = SubjectValidator.validate(
-      weeklyTarget:     _weekly,
-      minDaily:         _minD,
-      maxDaily:         _maxD,
-      activeDayCount:   widget.activeDays.length,
+    final l10n = AppLocalizations.of(context);
+    final result = SubjectValidator.validate(
+      weeklyTarget: _weekly,
+      minDaily: 0,
+      maxDaily: _weekly > 0 ? _weekly : 1,
+      activeDayCount: widget.activeDays.length,
       totalLessonSlots: widget.totalSlots,
     );
 
@@ -838,7 +793,7 @@ class _AssignmentFormSheetState
             return l10n.validationMinGtMax;
           case SubjectValidationError.maxDaysInsufficient:
             return l10n.validationMaxDaysInsufficient(
-                _maxD * widget.activeDays.length, _weekly);
+                _weekly * widget.activeDays.length, _weekly);
           case SubjectValidationError.weeklyExceedsSlots:
             return l10n.validationWeeklyExceedsSlots(
                 _weekly, widget.totalSlots);
@@ -850,7 +805,7 @@ class _AssignmentFormSheetState
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final l10n   = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
     final isEdit = widget.existing != null;
 
     return _BottomSheet(
@@ -860,7 +815,8 @@ class _AssignmentFormSheetState
         children: [
           // Subject + classroom labels
           _AssignmentHeader(
-              subject: widget.subject, classroom: widget.classroom,
+              subject: widget.subject,
+              classroom: widget.classroom,
               colors: colors),
           const SizedBox(height: 12),
 
@@ -871,9 +827,9 @@ class _AssignmentFormSheetState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color:        colors.primary.withOpacity(0.07),
+              color: colors.primary.withOpacity(0.07),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border:       Border.all(color: colors.primary.withOpacity(0.16)),
+              border: Border.all(color: colors.primary.withOpacity(0.16)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -884,14 +840,14 @@ class _AssignmentFormSheetState
                   child: Text(
                     isEdit
                         ? 'Set the weekly lesson count for this classroom. '
-                          'To remove the subject from this classroom, '
-                          'tap "Unassign" below.'
+                            'To remove the subject from this classroom, '
+                            'tap "Unassign" below.'
                         : 'Only assign if this subject is actually taught in '
-                          '${widget.classroom.name}. '
-                          'If it is not taught here, just close this sheet — '
-                          'leaving it unassigned is correct.',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: colors.primary),
+                            '${widget.classroom.name}. '
+                            'If it is not taught here, just close this sheet — '
+                            'leaving it unassigned is correct.',
+                    style:
+                        AppTextStyles.bodySmall.copyWith(color: colors.primary),
                   ),
                 ),
               ],
@@ -902,52 +858,18 @@ class _AssignmentFormSheetState
           // Weekly target
           _NumericField(
             controller: _weeklyCtrl,
-            label:      l10n.weeklyTarget,
-            hint:       'e.g. 4',
-            onChanged:  (_) => _validate(),
-            colors:     colors,
+            label: l10n.weeklyTarget,
+            hint: 'e.g. 4',
+            onChanged: (_) => _validate(),
+            colors: colors,
           ),
           const SizedBox(height: 4),
           Text(
             'Number of lesson slots per week. Must be ≥ 1.',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: colors.textDisabled),
+            style: AppTextStyles.bodySmall.copyWith(color: colors.textDisabled),
           ),
           const SizedBox(height: 14),
 
-          // Min daily / Max daily side by side
-          Row(
-            children: [
-              Expanded(
-                child: _NumericField(
-                  controller: _minCtrl,
-                  label:      l10n.minDailyHours,
-                  hint:       '0',
-                  onChanged:  (_) => _validate(),
-                  colors:     colors,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _NumericField(
-                  controller: _maxCtrl,
-                  label:      l10n.maxDailyHours,
-                  hint:       '2',
-                  onChanged:  (_) => _validate(),
-                  colors:     colors,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // Helper: active days × max = cap
-          Text(
-            '${widget.activeDays.length} active days  ·  '
-            'max capacity: ${_maxD * widget.activeDays.length} slots',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: colors.textDisabled),
-          ),
           const SizedBox(height: 12),
 
           // Validation errors
@@ -957,8 +879,7 @@ class _AssignmentFormSheetState
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.error_outline,
-                          size: 14, color: colors.error),
+                      Icon(Icons.error_outline, size: 14, color: colors.error),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(e,
@@ -973,8 +894,8 @@ class _AssignmentFormSheetState
 
           // Save button
           CsButton(
-            label:     l10n.save,
-            loading:   _saving,
+            label: l10n.save,
+            loading: _saving,
             onPressed: _errors.isEmpty ? _save : null,
           ),
 
@@ -982,14 +903,14 @@ class _AssignmentFormSheetState
           const SizedBox(height: 10),
           if (isEdit)
             CsButton(
-              label:     l10n.unassignSubject,
-              outline:   true,
+              label: l10n.unassignSubject,
+              outline: true,
               onPressed: _saving ? null : _unassign,
             )
           else
             CsButton(
-              label:     'Not taught in ${widget.classroom.name} — close',
-              outline:   true,
+              label: 'Not taught in ${widget.classroom.name} — close',
+              outline: true,
               onPressed: _saving ? null : () => Navigator.pop(context),
             ),
         ],
@@ -1001,16 +922,16 @@ class _AssignmentFormSheetState
     _validate();
     if (_errors.isNotEmpty) return;
     setState(() => _saving = true);
-    final uid  = ref.read(currentUserProvider)!.uid;
-    final repo = ClassroomSubjectRepository(
-        uid: uid, schoolId: widget.school.id);
+    final uid = ref.read(currentUserProvider)!.uid;
+    final repo =
+        ClassroomSubjectRepository(uid: uid, schoolId: widget.school.id);
     final cs = ClassroomSubjectModel(
-      id:               widget.existing?.id ?? const Uuid().v4(),
-      classroomId:      widget.classroom.id,
-      subjectId:        widget.subject.id,
+      id: widget.existing?.id ?? const Uuid().v4(),
+      classroomId: widget.classroom.id,
+      subjectId: widget.subject.id,
       weeklyTargetHours: _weekly,
-      minDailyHours:    _minD,
-      maxDailyHours:    _maxD,
+      minDailyHours: widget.existing?.minDailyHours ?? 0,
+      maxDailyHours: widget.existing?.maxDailyHours ?? 2,
     );
     await repo.save(cs);
     if (mounted) {
@@ -1044,9 +965,9 @@ class _AssignmentHeader extends StatelessWidget {
     required this.classroom,
     required this.colors,
   });
-  final SubjectModel   subject;
+  final SubjectModel subject;
   final ClassroomModel classroom;
-  final AppColors      colors;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -1061,28 +982,26 @@ class _AssignmentHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 10, height: 10,
-          decoration: BoxDecoration(
-            color: subjectColor, shape: BoxShape.circle),
+          width: 10,
+          height: 10,
+          decoration:
+              BoxDecoration(color: subjectColor, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Text(subject.name,
-            style: AppTextStyles.titleSmall
-                .copyWith(color: colors.textPrimary)),
+            style:
+                AppTextStyles.titleSmall.copyWith(color: colors.textPrimary)),
         const SizedBox(width: 6),
         Text('→',
-            style: AppTextStyles.bodyMedium
-                .copyWith(color: colors.textDisabled)),
+            style:
+                AppTextStyles.bodyMedium.copyWith(color: colors.textDisabled)),
         const SizedBox(width: 6),
         Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color:        colors.primary.withOpacity(0.12),
-            borderRadius:
-                BorderRadius.circular(AppDimensions.radiusFull),
-            border:
-                Border.all(color: colors.primary.withOpacity(0.25)),
+            color: colors.primary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            border: Border.all(color: colors.primary.withOpacity(0.25)),
           ),
           child: Text(classroom.name,
               style: AppTextStyles.labelMedium
@@ -1105,21 +1024,21 @@ class _NumericField extends StatelessWidget {
   });
 
   final TextEditingController controller;
-  final String                label;
-  final String                hint;
-  final ValueChanged<String>  onChanged;
-  final AppColors             colors;
+  final String label;
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
     return CsTextField(
-      controller:      controller,
-      label:           label,
-      hint:            hint,
-      keyboardType:    TextInputType.number,
+      controller: controller,
+      label: label,
+      hint: hint,
+      keyboardType: TextInputType.number,
       textInputAction: TextInputAction.next,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      onChanged:       onChanged,
+      onChanged: onChanged,
     );
   }
 }
@@ -1139,9 +1058,9 @@ class _FeasibilityPanel extends StatelessWidget {
   });
 
   final List<FeasibilityClassroom> feasRows;
-  final bool                       hasCritical;
-  final AppColors                  colors;
-  final AppLocalizations           l10n;
+  final bool hasCritical;
+  final AppColors colors;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -1156,8 +1075,8 @@ class _FeasibilityPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:        bgColor,
-        border:       Border.all(color: borderColor),
+        color: bgColor,
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       ),
       child: Column(
@@ -1170,24 +1089,20 @@ class _FeasibilityPanel extends StatelessWidget {
                 hasCritical
                     ? Icons.warning_amber_outlined
                     : Icons.check_circle_outline,
-                size:  16,
+                size: 16,
                 color: accentColor,
               ),
               const SizedBox(width: 7),
               Text(
                 l10n.feasibilityTitle,
-                style: AppTextStyles.labelLarge
-                    .copyWith(color: accentColor),
+                style: AppTextStyles.labelLarge.copyWith(color: accentColor),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            hasCritical
-                ? l10n.feasibilityInsufficient
-                : l10n.feasibilityOk,
-            style: AppTextStyles.bodySmall
-                .copyWith(color: colors.textMuted),
+            hasCritical ? l10n.feasibilityInsufficient : l10n.feasibilityOk,
+            style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
           ),
 
           if (feasRows.isNotEmpty) ...[
@@ -1198,8 +1113,8 @@ class _FeasibilityPanel extends StatelessWidget {
               'Needed = timetable slots to fill (Step 3)\n'
               'Available = total lessons to be assigned (Step 4)\n'
               'Available must be more or equal than Needed',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: colors.textDisabled),
+              style:
+                  AppTextStyles.bodySmall.copyWith(color: colors.textDisabled),
             ),
             const SizedBox(height: 10),
 
@@ -1255,21 +1170,27 @@ class _FeasibilityPanel extends StatelessWidget {
                     // Needed bar (Step 3 slots — fixed reference)
                     Expanded(
                       child: _FeasBar(
-                        value:  fr.needed,
-                        max:    fr.needed > fr.available ? fr.needed : fr.available > 0 ? fr.available : 1,
-                        color:  colors.textDisabled,
+                        value: fr.needed,
+                        max: fr.needed > fr.available
+                            ? fr.needed
+                            : fr.available > 0
+                                ? fr.available
+                                : 1,
+                        color: colors.textDisabled,
                         colors: colors,
                       ),
                     ),
                     // Available bar (Step 4 lessons — must reach or exceed needed)
                     Expanded(
                       child: _FeasBar(
-                        value:    fr.available,
-                        max:      fr.needed > fr.available ? fr.needed : fr.available > 0 ? fr.available : 1,
-                        color:    fr.isCritical
-                            ? colors.error
-                            : colors.success,
-                        colors:   colors,
+                        value: fr.available,
+                        max: fr.needed > fr.available
+                            ? fr.needed
+                            : fr.available > 0
+                                ? fr.available
+                                : 1,
+                        color: fr.isCritical ? colors.error : colors.success,
+                        colors: colors,
                         showFill: fr.available > 0,
                       ),
                     ),
@@ -1293,7 +1214,6 @@ class _FeasibilityPanel extends StatelessWidget {
   }
 }
 
-
 class _FeasBar extends StatelessWidget {
   const _FeasBar({
     required this.value,
@@ -1302,11 +1222,11 @@ class _FeasBar extends StatelessWidget {
     required this.colors,
     this.showFill = true,
   });
-  final int       value;
-  final int       max;
-  final Color     color;
+  final int value;
+  final int max;
+  final Color color;
   final AppColors colors;
-  final bool      showFill;
+  final bool showFill;
 
   @override
   Widget build(BuildContext context) {
@@ -1319,7 +1239,7 @@ class _FeasBar extends StatelessWidget {
               Container(
                 height: 6,
                 decoration: BoxDecoration(
-                  color:        colors.borderSubtle,
+                  color: colors.borderSubtle,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -1329,7 +1249,7 @@ class _FeasBar extends StatelessWidget {
                   child: Container(
                     height: 6,
                     decoration: BoxDecoration(
-                      color:        color.withOpacity(0.7),
+                      color: color.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -1342,8 +1262,7 @@ class _FeasBar extends StatelessWidget {
           width: 22,
           child: Text(
             '$value',
-            style: AppTextStyles.labelSmall
-                .copyWith(color: colors.textMuted),
+            style: AppTextStyles.labelSmall.copyWith(color: colors.textMuted),
           ),
         ),
       ],
@@ -1364,15 +1283,15 @@ class _BottomSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color:        colors.cardBg,
+        color: colors.cardBg,
         borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppDimensions.radiusXxl)),
         border: Border.all(color: colors.borderDefault),
       ),
       padding: EdgeInsets.only(
-        left:   24,
-        right:  24,
-        top:    20,
+        left: 24,
+        right: 24,
+        top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 28,
       ),
       child: SingleChildScrollView(
@@ -1383,9 +1302,10 @@ class _BottomSheet extends StatelessWidget {
             // Drag handle
             Center(
               child: Container(
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                  color:        colors.borderDefault,
+                  color: colors.borderDefault,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

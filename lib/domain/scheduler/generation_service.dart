@@ -10,8 +10,6 @@
 //      ScheduleCell documents to Firestore in a single batch (ALGO-R04)
 //   6. On offline: saves to Firestore offline cache (FR-GEN-07)
 //   7. Updates trialUsed flag if this was the user's free trial
-//
-// All Firestore I/O happens on the UI isolate before/after the engine runs.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -27,7 +25,6 @@ import '../../data/repositories/subject_repositories.dart';
 import '../../data/services/subscription_service.dart';
 import '../../providers/auth_providers.dart';
 import '../constraints/constraint_conflict_detector.dart';
-// MODIFICA 1: Aggiunto alias 'sched' per risolvere ambiguità con app_models.dart
 import 'scheduler_input.dart' as sched;
 import 'scheduler_input_builder.dart';
 import 'scheduler_isolate.dart';
@@ -48,10 +45,9 @@ class GenerationState {
   final GenerationPhase phase;
   final double progress; // 0.0–1.0
   final int iterationsCompleted;
-  // MODIFICA 2: Riferimento con alias
   final sched.ScheduleResult? result;
   final String? errorMessage;
-  final List<ConflictResult> conflicts; // pre-generation conflicts
+  final List<ConflictResult> conflicts;
 
   const GenerationState({
     this.phase = GenerationPhase.idle,
@@ -66,7 +62,6 @@ class GenerationState {
     GenerationPhase? phase,
     double? progress,
     int? iterationsCompleted,
-    // MODIFICA 3: Riferimento con alias
     sched.ScheduleResult? result,
     String? errorMessage,
     List<ConflictResult>? conflicts,
@@ -113,10 +108,6 @@ class GenerationService extends StateNotifier<GenerationState> {
       final subStateValue = _ref.read(subscriptionServiceProvider);
       final hasSubscription = subStateValue.value?.isActive ?? false;
 
-      // Debug logging
-      print('DEBUG: trialAlreadyUsed=$trialAlreadyUsed, hasSubscription=$hasSubscription, kDebugMode=$kDebugMode');
-
-      // Skip trial gate in debug mode (developer testing)
       if (trialAlreadyUsed && !hasSubscription && !kDebugMode) {
         state = state.copyWith(
           phase: GenerationPhase.error,
@@ -143,18 +134,57 @@ class GenerationService extends StateNotifier<GenerationState> {
       final constraints =
           await _ref.read(constraintRepositoryProvider(_schoolId)).fetchAll();
 
-      // ── 2. Pre-generation conflict detection (FR-HC-03) ─────────────────
+      // ── 2. Derive active days ─────────────────────────────────────────────
+      // FIX: Derive active days from dayCapacity records first, then fall back
+      // to the default weekdays. This ensures the scheduler knows exactly which
+      // days have been configured in Step 3.
+      final activeDays = _deriveActiveDays(classrooms, dayCapacities, periods);
+
+      if (activeDays.isEmpty) {
+        state = state.copyWith(
+          phase: GenerationPhase.error,
+          errorMessage: 'No active school days found. '
+              'Please configure periods in Setup → Step 1.',
+        );
+        return;
+      }
+
+      // ── 3. Pre-generation conflict detection (FR-HC-03) ─────────────────
       state = state.copyWith(phase: GenerationPhase.validating);
 
       final lessonPeriods = periods.where((p) => p.type == 'LESSON').toList()
         ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
+      if (lessonPeriods.isEmpty) {
+        state = state.copyWith(
+          phase: GenerationPhase.error,
+          errorMessage: 'No lesson slots defined. '
+              'Please add lesson slots in Setup → Step 1.',
+        );
+        return;
+      }
+
+      if (classrooms.isEmpty) {
+        state = state.copyWith(
+          phase: GenerationPhase.error,
+          errorMessage: 'No classrooms defined. '
+              'Please add classrooms in Setup → Step 2.',
+        );
+        return;
+      }
+
+      if (classroomSubjects.isEmpty) {
+        state = state.copyWith(
+          phase: GenerationPhase.error,
+          errorMessage: 'No subjects assigned to classrooms. '
+              'Please assign subjects in Setup → Step 4.',
+        );
+        return;
+      }
+
       final Map<String, List<PeriodModel>> lessonsByDay = {};
-      for (final p in lessonPeriods) {
-        final days = p.dayApplicability ?? AppConstants.defaultActiveDays;
-        for (final d in days) {
-          lessonsByDay.putIfAbsent(d, () => []).add(p);
-        }
+      for (final d in activeDays) {
+        lessonsByDay[d] = lessonPeriods;
       }
 
       final conflicts = ConstraintConflictDetector.detect(
@@ -176,9 +206,7 @@ class GenerationService extends StateNotifier<GenerationState> {
         return;
       }
 
-      // ── 3. Build scheduler input ────────────────────────────────────────
-      final activeDays = _deriveActiveDays(classrooms, dayCapacities);
-
+      // ── 4. Build scheduler input ────────────────────────────────────────
       final input = SchedulerInputBuilder.build(
         activeDayCodes: activeDays,
         lessonPeriods: lessonPeriods,
@@ -189,7 +217,7 @@ class GenerationService extends StateNotifier<GenerationState> {
         constraints: constraints,
       );
 
-      // ── 4. Run scheduler isolate ────────────────────────────────────────
+      // ── 5. Run scheduler isolate ────────────────────────────────────────
       state = state.copyWith(phase: GenerationPhase.generating, progress: 0.0);
 
       _runner = SchedulerIsolateRunner();
@@ -202,7 +230,7 @@ class GenerationService extends StateNotifier<GenerationState> {
 
       final result = await _runner!.run(input);
 
-      // ── 5. Save to Firestore (ALGO-R04: only if integrity passed) ───────
+      // ── 6. Save to Firestore (ALGO-R04) ─────────────────────────────────
       if (result.hardViolations.any((v) =>
           v.constraintId == 'INTERNAL' ||
           v.description.startsWith('[INTEGRITY'))) {
@@ -226,10 +254,10 @@ class GenerationService extends StateNotifier<GenerationState> {
         activeDays: activeDays,
       );
 
+      // ── 7. Consume trial if applicable ───────────────────────────────────
       final accountData =
           await _ref.read(accountRepositoryProvider).fetchAccount();
       final trialUsed = accountData?.trialUsed ?? false;
-      // Skip trial consumption in debug mode (developer testing)
       if (!trialUsed && !kDebugMode) {
         await _ref.read(accountRepositoryProvider).consumeTrial();
       }
@@ -261,8 +289,6 @@ class GenerationService extends StateNotifier<GenerationState> {
   }) async {
     final db = FirebaseFirestore.instance;
 
-    // Build refs using the same path pattern as BaseRepository / ScheduleRepository
-    // so reads and writes always use the identical Firestore path.
     final scheduleColRef = db
         .collection(AppConstants.fsUsers)
         .doc(uid)
@@ -289,8 +315,6 @@ class GenerationService extends StateNotifier<GenerationState> {
       'subjectChanges': result.subjectChanges,
     };
 
-    // Step 1: write the schedule document first so the parent always exists
-    // before any cell subcollection documents are created.
     await scheduleRef.set(scheduleDoc);
 
     final periodIdBySlot = {
@@ -300,7 +324,6 @@ class GenerationService extends StateNotifier<GenerationState> {
       for (var i = 0; i < activeDays.length; i++) i: activeDays[i]
     };
 
-    // Step 2: collect all cell documents
     final cellDocs = <Map<String, dynamic>>[];
     final cellIds = <String>[];
 
@@ -321,12 +344,13 @@ class GenerationService extends StateNotifier<GenerationState> {
             'scheduleId': scheduleId,
             'classroomId': input.classroomIds[c],
             'periodId': periodId,
-            'subjectId': sIdx == sched.kFree ? null : input.subjectIds[sIdx],
+            'subjectId':
+                sIdx == sched.kFree ? null : input.subjectIds[sIdx],
             'isViolation': isViolation,
             'violationDescription': isViolation
                 ? result.hardViolations
-                    .where(
-                        (v) => v.description.contains(input.classroomNames[c]))
+                    .where((v) =>
+                        v.description.contains(input.classroomNames[c]))
                     .map((v) => v.description)
                     .join('; ')
                 : null,
@@ -335,7 +359,6 @@ class GenerationService extends StateNotifier<GenerationState> {
       }
     }
 
-    // Step 3: write cells in batches of 499 (Firestore limit is 500 per batch)
     const batchSize = 499;
     for (var start = 0; start < cellDocs.length; start += batchSize) {
       final end = (start + batchSize).clamp(0, cellDocs.length);
@@ -347,19 +370,48 @@ class GenerationService extends StateNotifier<GenerationState> {
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
+  // ── _deriveActiveDays (FIXED) ─────────────────────────────────────────────
+  //
+  // Priority order:
+  //   1. Days that appear in DayCapacity records (user explicitly configured)
+  //   2. If NO capacity records exist at all (user skipped Step 3 entirely),
+  //      fall back to the standard Mon–Fri default so generation can still run.
+  //
+  // This fixes the bug where classrooms whose Step-3 records only covered some
+  // days caused the scheduler to silently drop lessons on unconfigured days,
+  // producing HC-3 shortfalls that looked like algorithm bugs.
   List<String> _deriveActiveDays(
     List<ClassroomModel> classrooms,
     List<DayCapacityModel> capacities,
+    List<PeriodModel> periods,
   ) {
-    final found = capacities.map((dc) => dc.dayOfWeek).toSet();
     const ordered = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    final active = ordered.where(found.contains).toList();
-    return active.isEmpty ? ['MON', 'TUE', 'WED', 'THU', 'FRI'] : active;
+
+    // Collect all day codes that appear in any DayCapacity record
+    final daysWithRecords = capacities.map((dc) => dc.dayOfWeek).toSet();
+
+    if (daysWithRecords.isNotEmpty) {
+      // Return only the days that have records, in calendar order
+      return ordered.where(daysWithRecords.contains).toList();
+    }
+
+    // No capacity records at all — Step 3 was never visited.
+    // Try to infer from period dayApplicability if set.
+    final daysFromPeriods = <String>{};
+    for (final p in periods) {
+      if (p.dayApplicability != null && p.dayApplicability!.isNotEmpty) {
+        daysFromPeriods.addAll(p.dayApplicability!);
+      }
+    }
+
+    if (daysFromPeriods.isNotEmpty) {
+      return ordered.where(daysFromPeriods.contains).toList();
+    }
+
+    // Ultimate fallback: standard school week
+    return AppConstants.defaultActiveDays;
   }
 
-  // MODIFICA 7: Utilizzo del prefisso sched per ResultStatus per evitare ambiguità
   String _statusString(sched.ResultStatus s) {
     if (s == sched.ResultStatus.perfect) return 'PERFECT';
     if (s == sched.ResultStatus.softViolationsOnly) return 'SOFT_VIOLATIONS';

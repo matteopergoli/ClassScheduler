@@ -147,7 +147,7 @@ class Phase1Greedy {
       // the placement is irrecoverable — undo it and record a violation.
       final minD = _input.minDaily[c][s];
       if (minD > 0 && !state.satisfiesMinDaily(c, s, best.$1)) {
-        final freeLeft = _countFreeSlots(state, c, best.$1);
+        final freeLeft = _countAvailableSubjectSlots(state, c, s, best.$1);
         final countNow = state.dailySubjectCount(c, s, best.$1);
         final needed   = minD - countNow;
         if (needed > freeLeft) {
@@ -191,21 +191,18 @@ class Phase1Greedy {
         if (minD > 0) {
           state.assign(c, s, d, l);
           final ok = state.satisfiesMinDaily(c, s, d);
-          state.remove(c, d, l);
-          // Only allow if the day will have 0 or >= minDaily lessons.
-          // A count of exactly 1..minDaily-1 is forbidden.
           if (!ok) {
-            // Check if we can reach minDaily on this day later:
-            // count the remaining free slots on this day for (c,s).
-            // If enough slots exist to potentially reach minDaily, allow it.
-            // Otherwise skip entirely to avoid creating an unfixable violation.
+            // Check if we can reach minDaily on this day later.
+            // Count only the slots that are actually placeable for (c,s),
+            // not just the raw free classroom slots.
             final currentCount = state.dailySubjectCount(c, s, d);
-            final freeOnDay = _countFreeSlots(state, c, d);
-            // After placing this one, we'd have currentCount+1 lessons.
-            // We need at least minD total, so we need minD-(currentCount+1) more.
-            final needed = minD - (currentCount + 1);
+            final freeOnDay = _countAvailableSubjectSlots(state, c, s, d);
+            state.remove(c, d, l);
+            final needed = minD - currentCount;
             if (needed > freeOnDay) continue; // can't reach minDaily → skip
-            // Otherwise allow it (more assignments will follow to reach minDaily)
+            // Otherwise allow it (more assignments may still fill the day)
+          } else {
+            state.remove(c, d, l);
           }
         }
 
@@ -215,6 +212,17 @@ class Phase1Greedy {
         if (_hasAdjacentSame(state, c, s, d, l)) score += 10;
 
         // +5 if teacher already has a lesson on that day (reduces F1 gaps)
+        if (_subjectHasPartialMinDailyDay(state, c, s)) {
+          final count = state.dailySubjectCount(c, s, d);
+          if (count > 0 && count < minD) {
+            // If this subject already has a partial day, prioritise completing it.
+            score += 1000;
+          } else {
+            // Avoid placing elsewhere until the partial day is resolved.
+            score -= 1000;
+          }
+        }
+
         if (_teacherBusyOnDay(state, s, d)) score += 5;
 
         // Subtract soft constraint penalty for AVOID_TIMESLOT violations
@@ -233,14 +241,22 @@ class Phase1Greedy {
     return bestSlot;
   }
 
-  int _countFreeSlots(ScheduleState state, int c, int d) {
+  int _countAvailableSubjectSlots(ScheduleState state, int c, int s, int d) {
     var count = 0;
     for (var l = 0; l < _input.numSlots; l++) {
-      if (state.schedule[c][d][l] == kFree && !state.isBlocked(c, d, l)) {
-        count++;
-      }
+      if (state.canPlace(c, s, d, l)) count++;
     }
     return count;
+  }
+
+  bool _subjectHasPartialMinDailyDay(ScheduleState state, int c, int s) {
+    final minD = _input.minDaily[c][s];
+    if (minD <= 1) return false;
+    for (var d = 0; d < _input.numDays; d++) {
+      final count = state.dailySubjectCount(c, s, d);
+      if (count > 0 && count < minD) return true;
+    }
+    return false;
   }
 
   bool _hasAdjacentSame(ScheduleState state, int c, int s, int d, int l) {

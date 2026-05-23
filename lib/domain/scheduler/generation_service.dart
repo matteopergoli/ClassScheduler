@@ -344,13 +344,12 @@ class GenerationService extends StateNotifier<GenerationState> {
             'scheduleId': scheduleId,
             'classroomId': input.classroomIds[c],
             'periodId': periodId,
-            'subjectId':
-                sIdx == sched.kFree ? null : input.subjectIds[sIdx],
+            'subjectId': sIdx == sched.kFree ? null : input.subjectIds[sIdx],
             'isViolation': isViolation,
             'violationDescription': isViolation
                 ? result.hardViolations
-                    .where((v) =>
-                        v.description.contains(input.classroomNames[c]))
+                    .where(
+                        (v) => v.description.contains(input.classroomNames[c]))
                     .map((v) => v.description)
                     .join('; ')
                 : null,
@@ -387,16 +386,10 @@ class GenerationService extends StateNotifier<GenerationState> {
   ) {
     const ordered = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
-    // Collect all day codes that appear in any DayCapacity record
+    // Collect all day codes that appear in any DayCapacity record.
     final daysWithRecords = capacities.map((dc) => dc.dayOfWeek).toSet();
 
-    if (daysWithRecords.isNotEmpty) {
-      // Return only the days that have records, in calendar order
-      return ordered.where(daysWithRecords.contains).toList();
-    }
-
-    // No capacity records at all — Step 3 was never visited.
-    // Try to infer from period dayApplicability if set.
+    // Derive active days from the period definitions if possible.
     final daysFromPeriods = <String>{};
     for (final p in periods) {
       if (p.dayApplicability != null && p.dayApplicability!.isNotEmpty) {
@@ -404,8 +397,15 @@ class GenerationService extends StateNotifier<GenerationState> {
       }
     }
 
-    if (daysFromPeriods.isNotEmpty) {
-      return ordered.where(daysFromPeriods.contains).toList();
+    final baseDays = daysFromPeriods.isNotEmpty
+        ? daysFromPeriods
+        : AppConstants.defaultActiveDays.toSet();
+
+    // Always keep the Step 1/period-defined active days, and also include
+    // any days referenced by DayCapacity records.
+    final activeDays = {...baseDays, ...daysWithRecords};
+    if (activeDays.isNotEmpty) {
+      return ordered.where(activeDays.contains).toList();
     }
 
     // Ultimate fallback: standard school week

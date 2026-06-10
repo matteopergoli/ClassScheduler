@@ -21,6 +21,7 @@ import '../widgets/quality_ring.dart';
 import '../widgets/trial_banner.dart';
 import 'school_form_sheet.dart';
 import '../../providers/selected_school_provider.dart';
+import '../../data/repositories/schedule_repository.dart';
 
 class SchoolsScreen extends ConsumerWidget {
   const SchoolsScreen({super.key});
@@ -374,7 +375,7 @@ class _SchoolCardState extends State<SchoolCard> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        QualityRing(score: null, size: 52, palette: palette),
+                        _ScheduleCountBadge(schoolId: widget.school.id, colors: colors),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -422,6 +423,53 @@ class _SchoolCardState extends State<SchoolCard> {
 }
 
 // ── Sub-widgets ──────────────────────────────────────────────────────────────
+
+class _ScheduleCountBadge extends ConsumerWidget {
+  final String schoolId;
+  final AppColors colors;
+  const _ScheduleCountBadge({required this.schoolId, required this.colors});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final schedulesAsync = ref.watch(_schedulesCountProvider(schoolId));
+    final count = schedulesAsync.valueOrNull ?? 0;
+
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: count > 0
+            ? colors.primary.withOpacity(0.12)
+            : colors.borderSubtle,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: count > 0
+              ? colors.primary.withOpacity(0.30)
+              : colors.borderDefault,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$count',
+            style: AppTextStyles.numericDisplay.copyWith(
+              fontSize: 20,
+              color: count > 0 ? colors.primaryLight : colors.textDisabled,
+            ),
+          ),
+          Text(
+            count == 1 ? 'schedule' : 'schedules',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: count > 0 ? colors.textMuted : colors.textDisabled,
+              fontSize: 8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _StatusBadge extends StatelessWidget {
   final SchoolModel school;
@@ -629,6 +677,12 @@ class _EmptyState extends StatelessWidget {
         ),
       );
 }
+
+final _schedulesCountProvider =
+    StreamProvider.family.autoDispose<int, String>((ref, schoolId) {
+  final repo = ref.watch(scheduleRepositoryProvider(schoolId));
+  return repo.watchAll().map((list) => list.length);
+});
 
 class _OptionTile extends StatelessWidget {
   final IconData icon;

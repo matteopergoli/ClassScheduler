@@ -223,8 +223,10 @@ class SchoolsScreen extends ConsumerWidget {
       builder: (_) => SchoolFormSheet(
         initialName: school.name,
         initialDescription: school.description,
-        onSave: (name, _) async {
-          await ref.read(schoolRepositoryProvider).rename(school.id, name);
+        onSave: (name, description) async {
+          await ref
+              .read(schoolRepositoryProvider)
+              .updateNameAndDescription(school.id, name, description);
           if (context.mounted) Navigator.of(context).pop();
         },
       ),
@@ -357,6 +359,17 @@ class _SchoolCardState extends State<SchoolCard> {
                                       color: colors.textPrimary),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis),
+                              if (widget.school.description != null &&
+                                  widget.school.description!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.school.description!,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                      color: colors.textMuted),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ],
                           ),
                         ),

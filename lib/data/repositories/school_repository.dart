@@ -86,6 +86,14 @@ class SchoolRepository extends BaseRepository {
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }
+
+  Future<void> updateNameAndDescription(String schoolId, String newName, String? newDescription) async {
+    await _col.doc(schoolId).update({
+      'name': newName.trim(),
+      'description': newDescription?.trim(),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
 }
 
 // ── Convenience stream providers used by UI screens ──────────────────────────

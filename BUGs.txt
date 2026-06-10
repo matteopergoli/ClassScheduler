@@ -45,6 +45,7 @@ x	visualizzazione AllClassrooms and SingleClassroom sono identiche
 x	visualizzazione per teacher utile ma non funziona
 x	rimuovere ore minime dal setup 3 metterlo come constraints??
 x	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
+x	tab Schools la description non compare da nessuna parte
 
 
 

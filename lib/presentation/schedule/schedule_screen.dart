@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/schedule_repository.dart';
+import '../../data/repositories/school_repository.dart';
 import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/scheduler/generation_service.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -29,6 +30,15 @@ final _schedulesProvider =
   (ref, schoolId) =>
       ref.watch(scheduleRepositoryProvider(schoolId)).watchAll(),
 );
+
+// ── Resolves the human-readable school name from its Firestore ID ────────
+
+final _schoolNameProvider =
+    FutureProvider.autoDispose.family<String, String>((ref, schoolId) async {
+  final school =
+      await ref.watch(schoolRepositoryProvider).fetch(schoolId);
+  return school?.name ?? schoolId;
+});
 
 // ── Screen ────────────────────────────────────────────────────────────────
 
@@ -164,6 +174,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   void _showExport() {
     if (_selectedScheduleId == null) return;
+    final schoolNameAsync = ref.read(_schoolNameProvider(widget.schoolId));
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -172,7 +183,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         schoolId: widget.schoolId,
         scheduleId: _selectedScheduleId!,
         scheduleName: _currentScheduleName ?? 'Schedule',
-        schoolName: widget.schoolId,
+        schoolName: schoolNameAsync.valueOrNull ?? widget.schoolId,
       ),
     );
   }
@@ -186,6 +197,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     final genState = ref.watch(generationServiceProvider(widget.schoolId));
     final schedulesAsync = ref.watch(_schedulesProvider(widget.schoolId));
+
+    // Ensure the school name is loaded/cached before Export is tapped.
+    ref.watch(_schoolNameProvider(widget.schoolId));
 
     ref.listen(generationServiceProvider(widget.schoolId), (prev, next) {
       if (next.phase == GenerationPhase.done) {

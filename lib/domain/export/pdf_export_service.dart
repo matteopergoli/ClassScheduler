@@ -25,6 +25,7 @@ class PdfExportService {
     required List<ClassroomModel> classrooms,
     required List<SubjectModel>   subjects,
     required List<ScheduleCellModel> cells,
+    ScheduleModel?                scheduleStats, // optional: quality/F1/F2
     bool includeOverview = true,
   }) async {
     final subjectById   = {for (final s in subjects)   s.id: s};
@@ -268,6 +269,21 @@ class PdfExportService {
 
     // ── Optional overview page ───────────────────────────────────────────
     if (includeOverview) {
+      // Per-teacher weekly hour totals, derived from assigned cells.
+      final teacherHours = <String, int>{};
+      for (final cell in cells) {
+        if (cell.subjectId == null) continue;
+        final subject = subjectById[cell.subjectId];
+        if (subject == null) continue;
+        teacherHours[subject.teacherName] =
+            (teacherHours[subject.teacherName] ?? 0) + 1;
+      }
+      final sortedTeachers = teacherHours.keys.toList()
+        ..sort((a, b) => teacherHours[b]!.compareTo(teacherHours[a]!));
+
+      final totalViolations =
+          cells.where((c) => c.isViolation).length;
+
       doc.addPage(pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(20),
@@ -280,6 +296,65 @@ class PdfExportService {
                 font: ttf, fontSize: 8,
                 color: const PdfColor.fromInt(0xFF888888)),
           ),
+          pw.SizedBox(height: 12),
+
+          // ── Quality stats row ───────────────────────────────────────
+          if (scheduleStats != null)
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              margin: const pw.EdgeInsets.only(bottom: 14),
+              decoration: pw.BoxDecoration(
+                color: _statusBg(scheduleStats.resultStatus),
+                border: pw.Border.all(
+                    color: _statusColor(scheduleStats.resultStatus),
+                    width: 0.75),
+                borderRadius: const pw.BorderRadius.all(
+                    pw.Radius.circular(5)),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  _StatBlock(
+                    label: 'QUALITY SCORE',
+                    value: '${scheduleStats.qualityScore}/100',
+                    ttf: ttf, ttfBold: ttfBold,
+                    color: _statusColor(scheduleStats.resultStatus),
+                  ),
+                  _StatBlock(
+                    label: 'STATUS',
+                    value: _statusLabel(scheduleStats.resultStatus),
+                    ttf: ttf, ttfBold: ttfBold,
+                    color: _statusColor(scheduleStats.resultStatus),
+                  ),
+                  _StatBlock(
+                    label: 'TEACHER FREE HOURS',
+                    value: '${scheduleStats.teacherFreeHours}',
+                    ttf: ttf, ttfBold: ttfBold,
+                    color: const PdfColor.fromInt(0xFF1A1A2E),
+                  ),
+                  _StatBlock(
+                    label: 'SUBJECT CHANGES',
+                    value: '${scheduleStats.subjectChanges}',
+                    ttf: ttf, ttfBold: ttfBold,
+                    color: const PdfColor.fromInt(0xFF1A1A2E),
+                  ),
+                  _StatBlock(
+                    label: 'VIOLATIONS',
+                    value: '$totalViolations',
+                    ttf: ttf, ttfBold: ttfBold,
+                    color: totalViolations > 0
+                        ? PdfColors.red
+                        : const PdfColor.fromInt(0xFF1A1A2E),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── Classroom cards ──────────────────────────────────────────
+          pw.Text('Classrooms',
+              style: pw.TextStyle(
+                  font: ttfBold, fontSize: 10,
+                  color: const PdfColor.fromInt(0xFF1A1A2E))),
           pw.SizedBox(height: 6),
           pw.Wrap(
             spacing: 8,
@@ -325,6 +400,68 @@ class PdfExportService {
               );
             }).toList(),
           ),
+
+          // ── Per-teacher weekly hours ─────────────────────────────────
+          if (sortedTeachers.isNotEmpty) ...[
+            pw.SizedBox(height: 16),
+            pw.Text('Teacher weekly hours',
+                style: pw.TextStyle(
+                    font: ttfBold, fontSize: 10,
+                    color: const PdfColor.fromInt(0xFF1A1A2E))),
+            pw.SizedBox(height: 6),
+            pw.Table(
+              border: pw.TableBorder.all(
+                  color: const PdfColor.fromInt(0xFFCCCCCC), width: 0.5),
+              columnWidths: const {
+                0: pw.FlexColumnWidth(3),
+                1: pw.FlexColumnWidth(1),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(
+                      color: PdfColor.fromInt(0xFF1E2030)),
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      child: pw.Text('Teacher',
+                          style: pw.TextStyle(
+                              font: ttfBold, fontSize: 8,
+                              color: PdfColors.white)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      child: pw.Text('Hours/week',
+                          style: pw.TextStyle(
+                              font: ttfBold, fontSize: 8,
+                              color: PdfColors.white)),
+                    ),
+                  ],
+                ),
+                ...sortedTeachers.map((t) => pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      child: pw.Text(t,
+                          style: pw.TextStyle(
+                              font: ttf, fontSize: 8,
+                              color: const PdfColor.fromInt(0xFF1A1A2E))),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      child: pw.Text('${teacherHours[t]}',
+                          style: pw.TextStyle(
+                              font: ttfBold, fontSize: 8,
+                              color: const PdfColor.fromInt(0xFF1A1A2E))),
+                    ),
+                  ],
+                )),
+              ],
+            ),
+          ],
         ],
       ));
     }
@@ -367,4 +504,61 @@ class PdfExportService {
     final bb = (b + (255 - b) * (1 - opacity)).round();
     return PdfColor(rb / 255, gb / 255, bb / 255);
   }
+
+  static PdfColor _statusColor(String resultStatus) {
+    switch (resultStatus) {
+      case 'PERFECT':         return const PdfColor.fromInt(0xFF10B981);
+      case 'SOFT_VIOLATIONS': return const PdfColor.fromInt(0xFFD97706);
+      default:                return PdfColors.red;
+    }
+  }
+
+  static PdfColor _statusBg(String resultStatus) {
+    switch (resultStatus) {
+      case 'PERFECT':         return const PdfColor.fromInt(0xFFE6F9F1);
+      case 'SOFT_VIOLATIONS': return const PdfColor.fromInt(0xFFFEF3E2);
+      default:                return const PdfColor.fromInt(0xFFFDE8E8);
+    }
+  }
+
+  static String _statusLabel(String resultStatus) {
+    switch (resultStatus) {
+      case 'PERFECT':         return 'Perfect';
+      case 'SOFT_VIOLATIONS': return 'Soft violations';
+      default:                return 'Hard violations';
+    }
+  }
+}
+
+// ── Small stat block used on the overview page ──────────────────────────────
+
+class _StatBlock extends pw.StatelessWidget {
+  final String label;
+  final String value;
+  final pw.Font ttf;
+  final pw.Font ttfBold;
+  final PdfColor color;
+
+  _StatBlock({
+    required this.label,
+    required this.value,
+    required this.ttf,
+    required this.ttfBold,
+    required this.color,
+  });
+
+  @override
+  pw.Widget build(pw.Context context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label,
+              style: pw.TextStyle(
+                  font: ttf, fontSize: 6.5,
+                  color: const PdfColor.fromInt(0xFF888888))),
+          pw.SizedBox(height: 2),
+          pw.Text(value,
+              style: pw.TextStyle(
+                  font: ttfBold, fontSize: 13, color: color)),
+        ],
+      );
 }

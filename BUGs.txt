@@ -48,6 +48,7 @@ x	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
 x	tab Schools la description non compare da nessuna parte
 x	tab schools non mi fa vedere lo score delle scuole che ho, replaced with a number of schedules
 x	nel export pdf non compaiono i nomi delle materie, solo i colori
+x	combined overview page in pdf/xls export improved
 
 
 

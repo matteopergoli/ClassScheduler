@@ -56,13 +56,15 @@ class ExportService extends StateNotifier<ExportState> {
       final classrooms = await _ref.read(classroomRepositoryProvider(_schoolId)).fetchAll();
       final subjects   = await _ref.read(subjectRepositoryProvider(_schoolId)).fetchAll();
       final cells      = await _ref.read(scheduleRepositoryProvider(_schoolId)).fetchCells(scheduleId);
+      final allSchedules = await _ref.read(scheduleRepositoryProvider(_schoolId)).fetchAll();
+      final scheduleStats = allSchedules.where((s) => s.id == scheduleId).firstOrNull;
 
       final activeDayCodes = _deriveActiveDayCodes(cells);
       if (activeDayCodes.isEmpty) throw Exception('No scheduled lessons found.');
 
       final generatedAt = DateFormat('d MMM yyyy, HH:mm').format(DateTime.now());
-      final fileName    = _sanitise(
-          '${schoolName}_${scheduleName}_${DateFormat('yyyy-MM-dd').format(DateTime.now())}');
+      final dateSuffix  = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final fileName    = _sanitise('$schoolName - $scheduleName - $dateSuffix');
 
       state = const ExportState(phase: ExportPhase.exporting);
 
@@ -72,7 +74,9 @@ class ExportService extends StateNotifier<ExportState> {
           schoolName: schoolName, scheduleName: scheduleName,
           generatedAt: generatedAt, activeDayCodes: activeDayCodes,
           periods: periods, classrooms: classrooms,
-          subjects: subjects, cells: cells, includeOverview: includeOverview,
+          subjects: subjects, cells: cells,
+          scheduleStats: scheduleStats,
+          includeOverview: includeOverview,
         );
         file = await _write('$fileName.pdf', bytes);
       } else {
@@ -116,5 +120,15 @@ class ExportService extends StateNotifier<ExportState> {
     return file;
   }
 
-  static String _sanitise(String raw) => raw.replaceAll(RegExp(r'[^\w\-.]'), '_');
+  /// Removes characters illegal in filenames on Windows/macOS/Android/iOS
+  /// while preserving spaces and dashes for a readable filename.
+  static String _sanitise(String raw) =>
+      raw.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull {
+    final it = iterator;
+    return it.moveNext() ? it.current : null;
+  }
 }

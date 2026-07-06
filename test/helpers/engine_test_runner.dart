@@ -16,7 +16,7 @@ ScheduleResult runEngine(SchedulerInput input) {
   final engine = SchedulerEngine(
     input:       input,
     isCancelled: () => false,
-    onProgress:  (_) {},
+    onProgress:  (fraction, iterations) {},
   );
   return engine.run();
 }
@@ -26,7 +26,7 @@ ScheduleResult runCancelled(SchedulerInput input) {
   final engine = SchedulerEngine(
     input:       input,
     isCancelled: () => true,
-    onProgress:  (_) {},
+    onProgress:  (fraction, iterations) {},
   );
   return engine.run();
 }

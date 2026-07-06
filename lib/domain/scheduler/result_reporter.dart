@@ -45,9 +45,13 @@ class ResultReporter {
 
     // ── Quality score (§8.4.3) ─────────────────────────────────────────────
     final fWorst = _sa.worstCaseScore();
-    final quality = fWorst > 0
+    var quality = fWorst > 0
         ? (100 * (1 - f / fWorst)).round().clamp(0, 100)
         : 100;
+
+    final hardPenalty = integrityResult.violations.length * 10 +
+        partialViolations.fold(0, (sum, v) => sum + v.shortfall * 5);
+    quality = (quality - hardPenalty).toInt().clamp(0, 100);
 
     // ── Hard violations ────────────────────────────────────────────────────
     final hardViolations = <ConstraintViolation>[];

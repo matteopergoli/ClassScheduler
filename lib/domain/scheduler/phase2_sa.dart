@@ -26,6 +26,14 @@ class Phase2SA {
   final CancelCheck    _isCancelled;
   final ProgressCallback _onProgress;
   final Random         _rng;
+  static const _debugEnabled = false;
+
+  void _debug(String message) {
+    assert(() {
+      print('[Phase2] $message');
+      return true;
+    }());
+  }
 
   int _iterationsCompleted = 0;
   int _restartsUsed        = 0;
@@ -38,7 +46,7 @@ class Phase2SA {
   })  : _input       = input,
         _isCancelled = isCancelled,
         _onProgress  = onProgress,
-        _rng         = rng ?? Random();
+        _rng         = rng ?? Random(42);
 
   int get iterationsCompleted => _iterationsCompleted;
   int get restartsUsed        => _restartsUsed;
@@ -57,20 +65,36 @@ class Phase2SA {
     _iterationsCompleted = 0;
 
     final stopwatch = Stopwatch()..start();
+    print('[Phase2] Starting optimisation; initial score=$bestScore');
+    print('[Phase2] SA params: T=$T saMinTemp=${AppConstants.saMinTemp} saMaxIterations=${AppConstants.saMaxIterations} saMaxWallSecs=${AppConstants.saMaxWallSecs}');
 
+    // Emit initial progress marker for Phase 2
+    _onProgress(0.35, 0);
+
+    print('[Phase2] entering loop condition: ${T > AppConstants.saMinTemp}');
+    final progressUpdateInterval =
+        max(1, AppConstants.saMaxIterations ~/ 1000);
+    var loopCount = 0;
     while (T > AppConstants.saMinTemp &&
            _iterationsCompleted < AppConstants.saMaxIterations &&
            stopwatch.elapsed.inSeconds < AppConstants.saMaxWallSecs) {
+      loopCount++;
+      if (loopCount <= 5 || loopCount % 10000 == 0) {
+        _debug('SA loop iteration $loopCount: T=$T iterations=$_iterationsCompleted');
+      }
 
-      // Cancellation check every 1000 iterations (ALGO-R06)
-      if (_iterationsCompleted % 1000 == 0 && _isCancelled()) break;
+      // Cancellation check every configured interval (ALGO-R06)
+      if (_iterationsCompleted % AppConstants.saCancelCheckInterval == 0 &&
+          _isCancelled()) break;
 
-      // Progress report every 5000 iterations
-      if (_iterationsCompleted % 5000 == 0) {
-        final progress = initialScore > 0
-            ? (initialScore - bestScore) / (initialScore + 1e-9)
-            : 0.0;
-        _onProgress(progress.clamp(0.0, 1.0), _iterationsCompleted);
+      // Progress report every smaller interval so Phase 2 shows movement.
+      if (_iterationsCompleted < 20 ||
+          _iterationsCompleted % progressUpdateInterval == 0) {
+        final iterationCount = _iterationsCompleted + 1;
+        final earlyRamp = min(1.0, iterationCount / 1000.0);
+        final laterRamp = iterationCount / AppConstants.saMaxIterations;
+        final progress = 0.35 + 0.40 * earlyRamp + 0.20 * laterRamp;
+        _onProgress(progress.clamp(0.35, 0.95), iterationCount);
       }
 
       // Restart check
@@ -108,6 +132,12 @@ class Phase2SA {
       T *= AppConstants.saCoolingRate;
       _iterationsCompleted++;
     }
+
+    print('[Phase2] SA loop exited after $loopCount iterations: T=$T iterations=$_iterationsCompleted');
+
+    // Emit at least a 0.50 progress to show we did Phase 2, even if fast
+    _onProgress(0.50, _iterationsCompleted);
+    print('[Phase2] SA emitted final progress 0.50');
 
     return best;
   }
@@ -170,6 +200,13 @@ class Phase2SA {
       }
     }
     return total;
+  }
+
+  bool _isMustAssignSlot(int c, int d, int l) {
+    for (final ma in _input.mustAssign) {
+      if (ma.c == c && ma.d == d && ma.l == l) return true;
+    }
+    return false;
   }
 
   int _penaltyAvoidTimeslot(ScheduleState state, SoftConstraintInput sc) {
@@ -263,6 +300,10 @@ class Phase2SA {
     if (s1 == s2) return null; // no-op
 
     // Validate: placing s2 at (c,d1,l1) and s1 at (c,d2,l2)
+    if (_isMustAssignSlot(c, d1, l1) || _isMustAssignSlot(c, d2, l2)) {
+      return null;
+    }
+
     final candidate = state.clone();
     candidate.remove(c, d1, l1);
     candidate.remove(c, d2, l2);
@@ -308,6 +349,10 @@ class Phase2SA {
 
     final (dstD, dstL) = free[_rng.nextInt(free.length)];
 
+    if (_isMustAssignSlot(c, srcD, srcL) || _isMustAssignSlot(c, dstD, dstL)) {
+      return null;
+    }
+
     final candidate = state.clone();
     candidate.remove(c, srcD, srcL);
     if (!candidate.canPlace(c, s, dstD, dstL)) return null;
@@ -338,17 +383,31 @@ class Phase2SA {
 
     // Both must be assigned and different (s1 == s2 is not a valid move)
     if (s1 == kFree || s2 == kFree || s1 == s2) return null;
+    if (_isMustAssignSlot(c1, d, l) || _isMustAssignSlot(c2, d, l)) return null;
 
     final candidate = state.clone();
     candidate.remove(c1, d, l);
     candidate.remove(c2, d, l);
 
     // HC-1: teacher of s2 must be free in c1 at (d,l) and vice versa
-    if (!candidate.canPlace(c1, s2, d, l)) return null;
-    if (!candidate.canPlace(c2, s1, d, l)) return null;
+    if (!candidate.canPlace(c1, s2, d, l)) {
+      _debug('Cross-class move rejected: cannot place s2=$s2 into c1=$c1 d=$d l=$l');
+      return null;
+    }
+    if (!candidate.canPlace(c2, s1, d, l)) {
+      _debug('Cross-class move rejected: cannot place s1=$s1 into c2=$c2 d=$d l=$l');
+      return null;
+    }
 
     candidate.assign(c1, s2, d, l);
     candidate.assign(c2, s1, d, l);
+
+    // HC-3: weekly target must still hold after the swap.
+    if (candidate.remaining(c1, s2) < 0 ||
+        candidate.remaining(c2, s1) < 0) {
+      _debug('Cross-class HC-3 fail: c1=$c1 s2=$s2 rem=${candidate.remaining(c1, s2)} c2=$c2 s1=$s1 rem=${candidate.remaining(c2, s1)}');
+      return null;
+    }
 
     // HC-5 for both subjects in both classrooms on day d
     if (!candidate.satisfiesMinDaily(c1, s1, d)) return null;
@@ -377,6 +436,12 @@ class Phase2SA {
     // Check destination day has enough consecutive free slots
     final dstStart = _findFreeRun(state, c, dstD, blockLen);
     if (dstStart == null) return null;
+
+    if (_isMustAssignSlot(c, srcD, startL) ||
+        _isMustAssignSlot(c, srcD, endL) ||
+        _isMustAssignSlot(c, dstD, dstStart!)) {
+      return null;
+    }
 
     final candidate = state.clone();
 

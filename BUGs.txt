@@ -45,21 +45,27 @@ x	visualizzazione AllClassrooms and SingleClassroom sono identiche
 x	visualizzazione per teacher utile ma non funziona
 x	rimuovere ore minime dal setup 3 metterlo come constraints??
 x	ottengo score 100 ma i vincoli non sono rispettati, lista di errori
+x	rimane 1 free hour score 99, ma è tutto a posto invece: ha dei penalty su ore di buco e cambi materia
+x	quando cancello uno schedule dalla lista, la lista si chiude in automatico invece di rimanere aperta
 x	tab Schools la description non compare da nessuna parte
 x	tab schools non mi fa vedere lo score delle scuole che ho, replaced with a number of schedules
 x	nel export pdf non compaiono i nomi delle materie, solo i colori
 x	combined overview page in pdf/xls export improved
+x	generating gets stuck at 30%
 
 
 
 Open:
-O	rimane 1 free hour score 99
-O	2b schedule non rispecchia gli slots in input
-O	quando cancello uno schedule dalla lista, la lista si chiude in automatico invece di rimaenre aperta
+O	invalid result per un caso che invece soluzione ce l'ha
+O	cancel button on generating doesn't work
+O	se runno la stessa scuola con gli stessi input ottengo risultati diversi
+		ora ottengo sempre stesso risultato ma sbagliato.
+O	editing dello schedule dovrebbe essere bloccato a meno che non clicco un tasto
 O	prova hard/soft constraints, incluso min/max giornalieri
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
 		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
 O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule
+O	nel tab schedule non visualizza niente
 O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
 O	creazione apk locale per testing locale su device vero
 O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo

@@ -8,6 +8,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:classscheduler/domain/scheduler/phase1_greedy.dart';
+import 'package:classscheduler/domain/scheduler/schedule_state.dart';
+import 'package:classscheduler/domain/scheduler/scheduler_engine.dart';
 import 'package:classscheduler/domain/scheduler/scheduler_input.dart';
 
 import '../../helpers/engine_test_runner.dart';
@@ -36,9 +39,93 @@ void main() {
       // Either check the engine's internal run or verify the state directly
       expect(result.hardViolations, isEmpty);
     });
+
+    test('same input produces stable deterministic schedule across runs', () {
+      final inputs = trivialInput();
+      final result1 = runEngine(inputs);
+      final result2 = runEngine(inputs);
+      final result3 = runEngine(inputs);
+
+      expect(result2.status, equals(result1.status));
+      expect(result3.status, equals(result1.status));
+      expect(result2.qualityScore, equals(result1.qualityScore));
+      expect(result3.qualityScore, equals(result1.qualityScore));
+      expect(result2.hardViolations.length, equals(result1.hardViolations.length));
+      expect(result3.hardViolations.length, equals(result1.hardViolations.length));
+      expect(result2.schedule, equals(result1.schedule));
+      expect(result3.schedule, equals(result1.schedule));
+    });
+
+    test('phase 1 reports progress during greedy construction', () {
+      final updates = <double>[];
+      Phase1Greedy(
+        trivialInput(),
+        onProgress: (fraction) => updates.add(fraction),
+      ).build();
+
+      expect(
+        updates.any((fraction) => fraction > 0.05),
+        isTrue,
+        reason: 'Phase 1 should emit progress updates while it is constructing the schedule.',
+      );
+    });
+
+    test('emits an intermediate progress update before completion', () {
+      final updates = <double>[];
+      final engine = SchedulerEngine(
+        input: trivialInput(),
+        isCancelled: () => false,
+        onProgress: (fraction, iterations) {
+          updates.add(fraction);
+        },
+      );
+
+      engine.run();
+
+      expect(
+        updates.any((fraction) => fraction > 0.05 && fraction < 1.0),
+        isTrue,
+        reason: 'The UI should receive a progress update beyond the initial 5% marker.',
+      );
+    });
   });
 
   // ── ALG-T02: MUST-ASSIGN forces a slot ────────────────────────────────
+  group('ALG-T01b — capacity feasibility', () {
+    test('rejects placements when the remaining demand exceeds the remaining available slots', () {
+      const input = SchedulerInput(
+        numClassrooms: 1,
+        numSubjects: 2,
+        numDays: 1,
+        numSlots: 2,
+        classroomNames: ['Room A'],
+        subjectNames: ['Maths', 'English'],
+        teacherNames: ['Alice', 'Bob'],
+        dayNames: ['MON'],
+        slotLabels: ['08:00', '09:00'],
+        classroomIds: ['cr0'],
+        subjectIds: ['s0', 's1'],
+        periodIds: ['p0', 'p1'],
+        teacherOf: [0, 1],
+        weeklyTarget: [[2, 1]],
+        blockedSlots: {},
+        maxDaily: [[2, 1]],
+        minDaily: [[0, 0]],
+        mustAssign: [],
+        mustNotAssignKeys: {},
+        softConstraints: [],
+      );
+
+      final state = ScheduleState(input);
+      expect(state.canPlace(0, 1, 0, 0), isTrue,
+          reason: 'The first English lesson should be placeable.');
+      state.assign(0, 1, 0, 0);
+
+      expect(state.canPlace(0, 0, 0, 1), isFalse,
+          reason: 'Maths still needs 2 lessons but only one slot remains.');
+    });
+  });
+
   group('ALG-T02 — MUST-ASSIGN constraint', () {
     test('forced slot is honoured', () {
       final input  = mustAssignInput();
@@ -232,7 +319,7 @@ void main() {
         periodIds: ['p0','p1','p2','p3'],
         teacherOf: [0, 1],
         weeklyTarget: [[1,1],[1,1]],
-        dailyCapacity: List.generate(C, (_) => List.filled(D, L)),
+        blockedSlots: {},
         maxDaily: List.generate(C, (_) => [1, 1]), // MaxDaily = 1
         minDaily: List.generate(C, (_) => List.filled(S, 0)),
         mustAssign: [], mustNotAssignKeys: {}, softConstraints: [],

@@ -94,6 +94,13 @@ class SchedulerInputBuilder {
       if (c == null || s == null || d == null || l == null) continue;
       mustAssignList.add(MustAssign(c, s, d, l));
     }
+    mustAssignList.sort((a, b) {
+      final cmp = a.c.compareTo(b.c);
+      if (cmp != 0) return cmp;
+      if (a.s != b.s) return a.s.compareTo(b.s);
+      if (a.d != b.d) return a.d.compareTo(b.d);
+      return a.l.compareTo(b.l);
+    });
 
     // ── MUST-NOT-ASSIGN ────────────────────────────────────────────────────
     final mustNotKeys = <int>{};
@@ -121,7 +128,7 @@ class SchedulerInputBuilder {
       };
 
       if (con.type == 'AVOID_TIMESLOT') {
-        final d    = con.dayOfWeek != null ? dayIdx[con.dayOfWeek] : null;
+        final d      = con.dayOfWeek != null ? dayIdx[con.dayOfWeek] : null;
         final lStart = periodIdx[con.periodId];
         final lEnd   = periodIdx[con.endPeriodId];
         if (lStart == null || lEnd == null) continue;
@@ -141,6 +148,21 @@ class SchedulerInputBuilder {
         ));
       }
     }
+    softList.sort((a, b) {
+      final typeCmp = a.type.index.compareTo(b.type.index);
+      if (typeCmp != 0) return typeCmp;
+      if (a.subjectIdx != b.subjectIdx) return a.subjectIdx.compareTo(b.subjectIdx);
+      final dayA = a.dayIdx ?? -1;
+      final dayB = b.dayIdx ?? -1;
+      if (dayA != dayB) return dayA.compareTo(dayB);
+      final startA = a.startSlotIdx ?? -1;
+      final startB = b.startSlotIdx ?? -1;
+      if (startA != startB) return startA.compareTo(startB);
+      final endA = a.endSlotIdx ?? -1;
+      final endB = b.endSlotIdx ?? -1;
+      if (endA != endB) return endA.compareTo(endB);
+      return a.weight.compareTo(b.weight);
+    });
 
     return SchedulerInput(
       numClassrooms:    C,

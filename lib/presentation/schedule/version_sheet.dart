@@ -245,8 +245,32 @@ class _VersionSheetState extends ConsumerState<VersionSheet> {
     await ref
         .read(scheduleRepositoryProvider(widget.schoolId))
         .delete(schedule.id);
-    if (context.mounted) {
-      Navigator.pop(context, l10n.scheduleDeleted(schedule.name));
+    if (mounted) {
+      // Update local list so the sheet reflects the change
+      setState(() {
+        _schedules.removeWhere((s) => s.id == schedule.id);
+      });
+
+      // If this was the last schedule, close the sheet and return the
+      // confirmation message to the caller (keeps previous behaviour).
+      if (_schedules.isEmpty) {
+        Navigator.pop(context, l10n.scheduleDeleted(schedule.name));
+        return;
+      }
+
+      // If the deleted schedule was the currently selected one, select the
+      // first remaining schedule so the parent view updates responsively.
+      if (schedule.id == widget.selected?.id && _schedules.isNotEmpty) {
+        widget.onSelect(_schedules.first.id);
+      }
+
+      // Otherwise show a non-blocking confirmation snackbar and keep sheet open
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 3),
+        content: Text(l10n.scheduleDeleted(schedule.name)),
+      ));
     }
   }
 

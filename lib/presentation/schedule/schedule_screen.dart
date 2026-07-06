@@ -687,7 +687,10 @@ class _GeneratingView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '${(genState.progress * 100).toStringAsFixed(0)}%',
+              genState.progress <= 0
+                  ? 'Starting...'
+                  : '${(genState.progress * 100).clamp(0.0, 100.0).toStringAsFixed(
+                      genState.progress < 0.99 ? 1 : 0)}%',
               style: AppTextStyles.bodySmall.copyWith(
                 color: colors.textMuted,
               ),

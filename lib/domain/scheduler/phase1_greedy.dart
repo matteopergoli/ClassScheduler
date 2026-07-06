@@ -18,6 +18,8 @@ import 'scheduler_input.dart';
 
 // ── Result ────────────────────────────────────────────────────────────────────
 
+typedef Phase1ProgressCallback = void Function(double fraction);
+
 class Phase1Result {
   final ScheduleState state;
   final List<PartialViolation> violations;
@@ -47,10 +49,27 @@ class PartialViolation {
 class Phase1Greedy {
   final SchedulerInput _input;
   final Random _rng;
+  final Phase1ProgressCallback? _onProgress;
   int _backtrackCount = 0;
+  static const _debugEnabled = false;
 
-  Phase1Greedy(this._input, {Random? rng})
-      : _rng = rng ?? Random(42); // deterministic seed for debuggability
+  Phase1Greedy(this._input, {Random? rng, Phase1ProgressCallback? onProgress})
+      : _rng = rng ?? Random(42), // deterministic seed for debuggability
+        _onProgress = onProgress;
+
+  void _debug(String message) {
+    if (!_debugEnabled) return;
+    assert(() {
+      print('[Phase1] $message');
+      return true;
+    }());
+  }
+
+  void _emitProgress(double fraction) {
+    if (_onProgress != null) {
+      _onProgress!(fraction.clamp(0.0, 1.0));
+    }
+  }
 
   Phase1Result build() {
     final state      = ScheduleState(_input);
@@ -62,11 +81,15 @@ class Phase1Greedy {
       state.assign(ma.c, ma.s, ma.d, ma.l);
     }
 
+    _debug('Starting Phase 1: mustAssign=${_input.mustAssign.length} pairs=${_input.numClassrooms * _input.numSubjects}');
+
     // Step 2 — Build ordered work list by MCF slack ─────────────────────────
     final pairs = _buildMcfOrder(state);
+    _emitProgress(0.2); // 20% through Phase 1 (MCF ordering complete)
 
     // Step 3+4+5 — Assign remaining demand ──────────────────────────────────
     _assignAll(state, pairs, violations);
+    _emitProgress(1.0); // 100% through Phase 1 (assignment complete)
 
     return Phase1Result(
       state:         state,
@@ -109,26 +132,65 @@ class Phase1Greedy {
     List<PartialViolation> violations,
   ) {
     var i = 0;
+    var completed = 0;
+    var loopCount = 0;
+    final totalPairs = pairs.length;
+    final totalPairsDouble = totalPairs == 0 ? 1.0 : totalPairs.toDouble();
+    // Hard cap: each pair gets at most 200 attempts before we give up on it.
+    final maxLoopIterations = totalPairs * 200 + 200;
     // History for backtracking: list of (c, d, l) assignments in order
     final history = <(int, int, int)>[];
 
     while (i < pairs.length) {
+      loopCount++;
+
+      // Safety valve: if we've looped more than the cap, record remaining
+      // pairs as violations and bail out rather than spinning forever.
+      if (loopCount > maxLoopIterations) {
+        print('[Phase1] WARNING: loop cap reached ($loopCount). Recording remaining violations.');
+        for (var j = i; j < pairs.length; j++) {
+          final rem = state.remaining(pairs[j].c, pairs[j].s);
+          if (rem > 0) {
+            violations.add(PartialViolation(
+              classroomIdx: pairs[j].c,
+              subjectIdx: pairs[j].s,
+              shortfall: rem,
+            ));
+          }
+        }
+        break;
+      }
+
+      if (loopCount % 20 == 0 && totalPairs > 0) {
+        final progressFraction = (i / totalPairsDouble).clamp(0.0, 1.0);
+        _emitProgress(0.2 + 0.8 * progressFraction);
+      }
+
       final item = pairs[i];
       final c = item.c;
       final s = item.s;
 
       // How many more lessons does (c,s) still need?
       var remaining = state.remaining(c, s);
-      if (remaining <= 0) { i++; continue; }
+      if (remaining <= 0) {
+        i++;
+        if (totalPairs > 0) {
+          _emitProgress(0.2 + 0.8 * (i / totalPairsDouble).clamp(0.0, 1.0));
+        }
+        continue;
+      }
 
       // Score all available slots and pick the best
       final best = _pickBestSlot(state, c, s);
 
-      if (best == null) {
+        if (best == null) {
         // Deadlock — try backtracking once
+        _debug('Deadlock at pair c=$c s=$s remaining=$remaining i=$i history=${history.length}');
         final resolved = _backtrack(state, pairs, i, history);
         if (!resolved) {
           // Still stuck — record violation and move on
+          print('[Phase1] deadlock unresolvable at c=$c s=$s remaining=${state.remaining(c, s)}');
+          _debug('Unresolvable deadlock at c=$c s=$s remaining=${state.remaining(c, s)}');
           violations.add(PartialViolation(
             classroomIdx: c,
             subjectIdx:   s,
@@ -166,7 +228,12 @@ class Phase1Greedy {
       history.add((c, best.$1, best.$2));
 
       // Check if this pair is now complete
-      if (state.remaining(c, s) <= 0) i++;
+      if (state.remaining(c, s) <= 0) {
+        i++;
+        if (totalPairs > 0) {
+          _emitProgress(0.2 + 0.8 * (i / totalPairsDouble).clamp(0.0, 1.0));
+        }
+      }
     }
   }
 
@@ -178,6 +245,7 @@ class Phase1Greedy {
   // will have 0 or >= minDaily lessons for this subject.
 
   (int, int)? _pickBestSlot(ScheduleState state, int c, int s) {
+    final remaining = state.remaining(c, s);
     (int, int)? bestSlot;
     var bestScore = double.negativeInfinity;
     final minD = _input.minDaily[c][s];
@@ -235,8 +303,13 @@ class Phase1Greedy {
         if (score > bestScore) {
           bestScore = score;
           bestSlot  = (d, l);
+        } else if ((score - bestScore).abs() < 1e-9 && _rng.nextBool()) {
+          bestSlot = (d, l);
         }
       }
+    }
+    if (bestSlot == null) {
+      _debug('No available slot for c=$c s=$s remaining=$remaining');
     }
     return bestSlot;
   }

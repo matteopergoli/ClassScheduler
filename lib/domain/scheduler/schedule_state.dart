@@ -159,6 +159,16 @@ class ScheduleState {
   bool checkHC4(int c, int s, int d) =>
       dailySubjectCount(c, s, d) < input.maxDaily[c][s];
 
+  /// HC-6: slot (c,d,l) is either not a MUST-ASSIGN slot or is assigned
+  /// to the required subject.
+  bool checkHC6(int c, int s, int d, int l) {
+    for (final ma in input.mustAssign) {
+      if (ma.c != c || ma.d != d || ma.l != l) continue;
+      return ma.s == s;
+    }
+    return true;
+  }
+
   /// HC-5: slot (d,l) is not forbidden for (c,s) by MUST-NOT-ASSIGN.
   bool checkHC7(int c, int s, int d, int l) =>
       !input.mustNotAssignKeys
@@ -166,6 +176,28 @@ class ScheduleState {
 
   /// HC-8: slot (c,d,l) is free (only one subject per slot per classroom).
   bool checkHC8(int c, int d, int l) => schedule[c][d][l] == kFree;
+
+  /// Returns true if there is remaining weekly demand for (c,s).
+  bool hasRemaining(int c, int s) => remaining(c, s) > 0;
+
+  bool _hasEnoughCapacityForRemainingDemand(int c, int s) {
+    if (!hasRemaining(c, s)) return false;
+
+    var feasibleSlots = 0;
+    for (var d = 0; d < _D; d++) {
+      for (var l = 0; l < _L; l++) {
+        if (isBlocked(c, d, l)) continue;
+        if (!checkHC8(c, d, l)) continue;
+        if (!checkHC1(s, d, l)) continue;
+        if (!checkHC2(c, d)) continue;
+        if (!checkHC4(c, s, d)) continue;
+        if (!checkHC7(c, s, d, l)) continue;
+        feasibleSlots++;
+      }
+    }
+
+    return feasibleSlots >= remaining(c, s);
+  }
 
   /// Combined pre-assignment check for a candidate placement.
   /// Returns true if all hard constraints allow placing s at (c,d,l).
@@ -175,7 +207,10 @@ class ScheduleState {
     if (!checkHC1(s, d, l))    return false; // teacher conflict
     if (!checkHC2(c, d))       return false; // daily capacity
     if (!checkHC4(c, s, d))    return false; // max daily
+    if (!checkHC6(c, s, d, l)) return false; // must-assign
     if (!checkHC7(c, s, d, l)) return false; // must-not-assign
+    if (!hasRemaining(c, s))    return false; // weekly target already met
+    if (!_hasEnoughCapacityForRemainingDemand(c, s)) return false;
     return true;
   }
 

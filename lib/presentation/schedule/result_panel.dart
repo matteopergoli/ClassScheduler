@@ -97,9 +97,10 @@ class ResultPanel extends StatelessWidget {
               child: Row(children: [
                 // Quality gauge
                 _QualityGauge(
-                  score:  result.qualityScore,
-                  color:  bannerColor,
-                  colors: colors,
+                  score:               result.qualityScore,
+                  color:               bannerColor,
+                  colors:              colors,
+                  hasHardViolations:   isHard,
                 ),
                 const SizedBox(width: 16),
                 // F1 / F2 / time
@@ -190,14 +191,17 @@ class _QualityGauge extends StatelessWidget {
   final int       score;
   final Color     color;
   final AppColors colors;
+  final bool      hasHardViolations;
 
   const _QualityGauge({
     required this.score,
     required this.color,
     required this.colors,
+    required this.hasHardViolations,
   });
 
   String get _label {
+    if (hasHardViolations) return 'Invalid';
     if (score >= 90) return 'Excellent';
     if (score >= 75) return 'Good';
     if (score >= 50) return 'Fair';

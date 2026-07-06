@@ -34,7 +34,7 @@ SchedulerInput trivialInput() {
       [1, 1], // Room A: 1 Maths, 1 English
       [1, 1], // Room B: 1 Maths, 1 English
     ],
-    dailyCapacity: List.generate(C, (_) => List.filled(D, L)),
+    blockedSlots: {},
     maxDaily:      List.generate(C, (_) => List.filled(S, L)),
     minDaily:      List.generate(C, (_) => List.filled(S, 0)),
     mustAssign:         [],
@@ -62,7 +62,7 @@ SchedulerInput mustAssignInput() {
     periodIds:      base.periodIds,
     teacherOf:      base.teacherOf,
     weeklyTarget:   base.weeklyTarget,
-    dailyCapacity:  base.dailyCapacity,
+    blockedSlots:   base.blockedSlots,
     maxDaily:       base.maxDaily,
     minDaily:       base.minDaily,
     mustAssign: [
@@ -93,7 +93,7 @@ SchedulerInput contradictoryInput() {
     periodIds:      base.periodIds,
     teacherOf:      base.teacherOf,
     weeklyTarget:   base.weeklyTarget,
-    dailyCapacity:  base.dailyCapacity,
+    blockedSlots:   base.blockedSlots,
     maxDaily:       base.maxDaily,
     minDaily:       base.minDaily,
     mustAssign: [
@@ -123,7 +123,7 @@ SchedulerInput overConstrainedInput() {
     periodIds:      ['p0', 'p1'],
     teacherOf:      [0],
     weeklyTarget:   [[5]], // impossible: only 2 slots available
-    dailyCapacity:  [[2]],
+    blockedSlots:  {},
     maxDaily:       [[5]],
     minDaily:       [[0]],
     mustAssign:        [],
@@ -152,7 +152,7 @@ SchedulerInput minDailyInput() {
     periodIds:      ['p0', 'p1', 'p2', 'p3'],
     teacherOf:      [0],
     weeklyTarget:   [[6]],
-    dailyCapacity:  [[4], [4], [4]],
+    blockedSlots:  {},
     maxDaily:       [[3]], // HC-4
     minDaily:       [[2]], // HC-5
     mustAssign:        [],
@@ -183,7 +183,7 @@ SchedulerInput softConstraintInput() {
     periodIds: ['p0','p1','p2','p3','p4','p5','p6','p7'],
     teacherOf:     [0],
     weeklyTarget:  [[3]], // 3 lessons per week
-    dailyCapacity: List.generate(3, (_) => [8]),
+    blockedSlots: {},
     maxDaily:      [[8]],
     minDaily:      [[0]],
     mustAssign:        [],
@@ -220,8 +220,6 @@ SchedulerInput maxConfigInput() {
   // with 5 days × 8 slots = 40 capacity → exactly tight
   final weeklyTarget = List.generate(C,
       (_) => List.filled(S, 4));
-  final dailyCapacity = List.generate(C,
-      (_) => List.filled(D, L));
   final maxDaily = List.generate(C,
       (_) => List.filled(S, 2)); // max 2 per day per subject
   final minDaily = List.generate(C,
@@ -242,7 +240,7 @@ SchedulerInput maxConfigInput() {
     periodIds:      List.generate(L, (i) => 'p$i'),
     teacherOf:      teacherOf,
     weeklyTarget:   weeklyTarget,
-    dailyCapacity:  dailyCapacity,
+    blockedSlots:  {},
     maxDaily:       maxDaily,
     minDaily:       minDaily,
     mustAssign:        [],
@@ -279,7 +277,7 @@ SchedulerInput deadlockInput() {
     periodIds:      ['p0', 'p1'],
     teacherOf:      [0], // Both classrooms share teacher 0
     weeklyTarget:   [[1], [1]],
-    dailyCapacity:  [[2, 2], [2, 2]],
+    blockedSlots:  {},
     maxDaily:       [[1], [1]],
     minDaily:       [[0], [0]],
     mustAssign:        [],
@@ -307,7 +305,7 @@ SchedulerInput crossClassInput() {
     periodIds:      ['p0', 'p1', 'p2', 'p3'],
     teacherOf:      [0, 1],
     weeklyTarget:   [[2, 2], [2, 2]],
-    dailyCapacity:  List.generate(2, (_) => List.filled(3, 4)),
+    blockedSlots:  {},
     maxDaily:       List.generate(2, (_) => List.filled(2, 2)),
     minDaily:       List.generate(2, (_) => List.filled(2, 0)),
     mustAssign:        [],

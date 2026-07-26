@@ -324,6 +324,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das Wochenziel muss größer als 0 sein.';
 
   @override
+  String validationMinDailyInfeasible(int target, int minDaily) {
+    return 'Wochenziel ($target) kann mit MinTäglich $minDaily nicht erreicht werden — keine gültige Tagesverteilung möglich.';
+  }
+
+  @override
   String get feasibilityTitle => 'Machbarkeitsanalyse';
 
   @override

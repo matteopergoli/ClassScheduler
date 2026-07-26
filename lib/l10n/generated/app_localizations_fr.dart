@@ -324,6 +324,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'L\'objectif hebdomadaire doit être supérieur à 0.';
 
   @override
+  String validationMinDailyInfeasible(int target, int minDaily) {
+    return 'L\'objectif hebdomadaire ($target) ne peut pas être atteint avec MinJour $minDaily — aucune distribution journalière valide n\'existe.';
+  }
+
+  @override
   String get feasibilityTitle => 'Analyse de faisabilité';
 
   @override

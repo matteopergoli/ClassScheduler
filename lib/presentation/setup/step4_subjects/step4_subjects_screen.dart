@@ -797,6 +797,9 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
           case SubjectValidationError.weeklyExceedsSlots:
             return l10n.validationWeeklyExceedsSlots(
                 _weekly, widget.totalSlots);
+          case SubjectValidationError.minDailyInfeasible:
+            // MinDaily is always 0 in this screen — this case cannot fire.
+            return '';
         }
       }).toList();
     });

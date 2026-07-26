@@ -62,7 +62,7 @@ abstract class AppConstants {
   static const int    saMaxRestarts   = 3;
 
   /// Phase 1 backtracking window (number of recent assignments to undo).
-  static const int    phase1BacktrackN = 5;
+  static const int    phase1BacktrackN = 15;
 
   /// Progress update interval (every N SA iterations → send to UI).
   static const int    saProgressInterval = 5000;
@@ -71,6 +71,7 @@ abstract class AppConstants {
   static const int    saCancelCheckInterval = 1000;
 
   // ── Objective function weights (§8.1.3) ───────────────────────────────────
+  static const int    wMissingLesson     = 10000000; // dominates all other terms
   static const int    wTeacherFreeHours  = 1000; // w1
   static const int    wSubjectChanges    = 100;  // w2
   // w3 (soft constraint weight) is 1–10 per constraint weight level

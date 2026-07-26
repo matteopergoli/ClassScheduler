@@ -93,6 +93,13 @@
   "validationMaxDaysInsufficient": "Máx. diario × días activos ({product}) es menor que el objetivo semanal ({target}).",
   "validationWeeklyExceedsSlots": "El objetivo semanal ({target}) supera los slots de clase disponibles ({available}).",
   "validationWeeklyMustBePositive": "El objetivo semanal debe ser mayor que 0.",
+  "validationMinDailyInfeasible": "El objetivo semanal ({target}) no se puede alcanzar con MínDiario {minDaily} — no existe distribución diaria válida.",
+  "@validationMinDailyInfeasible": {
+    "placeholders": {
+      "target": { "type": "int" },
+      "minDaily": { "type": "int" }
+    }
+  },
   "feasibilityTitle": "Análisis de viabilidad",
   "feasibilitySlack": "Margen",
   "feasibilityInsufficient": "Lecciones disponibles insuficientes — es probable que la generación produzca un horario parcial.",

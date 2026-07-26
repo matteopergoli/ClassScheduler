@@ -145,9 +145,21 @@ class Phase2SA {
   // ── Scoring ───────────────────────────────────────────────────────────────
 
   int _score(ScheduleState state) {
-    return AppConstants.wTeacherFreeHours * f1(state) +
+    return AppConstants.wMissingLesson    * _missingLessons(state) +
+           AppConstants.wTeacherFreeHours * f1(state) +
            AppConstants.wSubjectChanges   * f2(state) +
            f3(state);
+  }
+
+  /// Count of lessons still required across all (classroom, subject) pairs.
+  int _missingLessons(ScheduleState state) {
+    var total = 0;
+    for (var c = 0; c < _input.numClassrooms; c++)
+      for (var s = 0; s < _input.numSubjects; s++) {
+        final r = state.remaining(c, s);
+        if (r > 0) total += r;
+      }
+    return total;
   }
 
   /// F1: total teacher free-hour gaps.
@@ -268,6 +280,16 @@ class Phase2SA {
   // ── Move operators ────────────────────────────────────────────────────────
 
   ScheduleState? _applyMove(ScheduleState state) {
+    // When lessons are missing, bias heavily toward FILL so SA actively
+    // tries to place them before optimising F1/F2/F3.
+    if (_missingLessons(state) > 0) {
+      final roll = _rng.nextDouble();
+      if (roll < 0.50) return _moveFill(state);
+      if (roll < 0.70) return _moveSwap(state);
+      if (roll < 0.85) return _moveRelocate(state);
+      if (roll < 0.95) return _moveCrossClass(state);
+      return _moveBlockShift(state);
+    }
     final roll = _rng.nextDouble();
     if (roll < 0.40) return _moveSwap(state);
     if (roll < 0.70) return _moveRelocate(state);
@@ -514,5 +536,35 @@ class Phase2SA {
       }
     }
     return null;
+  }
+
+  // ── FILL: place a missing lesson into a free valid slot ──────────────────
+
+  ScheduleState? _moveFill(ScheduleState state) {
+    // Collect (c, s) pairs that still need lessons placed
+    final missing = <(int, int)>[];
+    for (var c = 0; c < _input.numClassrooms; c++)
+      for (var s = 0; s < _input.numSubjects; s++)
+        if (state.remaining(c, s) > 0) missing.add((c, s));
+    if (missing.isEmpty) return null;
+
+    final (c, s) = missing[_rng.nextInt(missing.length)];
+
+    // Find every slot where the lesson can legally be placed
+    final available = <(int, int)>[];
+    for (var d = 0; d < _input.numDays; d++)
+      for (var l = 0; l < _input.numSlots; l++)
+        if (state.canPlace(c, s, d, l)) available.add((d, l));
+    if (available.isEmpty) return null;
+
+    final (d, l) = available[_rng.nextInt(available.length)];
+    final candidate = state.clone();
+    candidate.assign(c, s, d, l);
+
+    // HC-5: the destination day must satisfy MinDaily (0 or ≥ min) after
+    // the placement, otherwise we introduce a new hard violation.
+    if (!candidate.satisfiesMinDaily(c, s, d)) return null;
+
+    return candidate;
   }
 }

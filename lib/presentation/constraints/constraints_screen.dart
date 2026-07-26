@@ -866,6 +866,11 @@ class _DailyLimitFormSheetState extends ConsumerState<_DailyLimitFormSheet> {
               widget.cs.weeklyTargetHours,
               widget.totalSlots,
             );
+          case SubjectValidationError.minDailyInfeasible:
+            return l10n.validationMinDailyInfeasible(
+              widget.cs.weeklyTargetHours,
+              _minD,
+            );
         }
       }).toList();
     });

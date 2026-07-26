@@ -191,6 +191,13 @@
     }
   },
   "validationWeeklyMustBePositive": "Weekly target must be greater than 0.",
+  "validationMinDailyInfeasible": "Weekly target ({target}) cannot be achieved with MinDaily {minDaily} — no valid day distribution exists.",
+  "@validationMinDailyInfeasible": {
+    "placeholders": {
+      "target": { "type": "int" },
+      "minDaily": { "type": "int" }
+    }
+  },
   "feasibilityTitle": "Feasibility Check",
   "feasibilitySlack": "Slack",
   "feasibilityInsufficient": "Insufficient lessons available — generation is likely to produce a partial schedule.",

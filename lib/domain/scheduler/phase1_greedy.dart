@@ -89,6 +89,38 @@ class Phase1Greedy {
 
     // Step 3+4+5 — Assign remaining demand ──────────────────────────────────
     _assignAll(state, pairs, violations);
+
+    // HC-5 repair: remove partial minDaily days that can't be completed,
+    // then run a second greedy pass to reassign the freed lessons.
+    _removePartialMinDailyViolations(state);
+    final pairs2 = _buildMcfOrder(state);
+    if (pairs2.isNotEmpty) {
+      _assignAll(state, pairs2, violations);
+      _removePartialMinDailyViolations(state);
+    }
+
+    // Displacement repair: for nearly-complete pairs (remaining ≤ 3), try
+    // inserting the missing lessons by moving occupying subjects to free slots.
+    _repairWithDisplacement(state);
+    _removePartialMinDailyViolations(state);
+
+    // Reconcile: recompute violations from actual remaining demand.
+    // The greedy loop may leave (c,s) pairs with remaining > 0 unrecorded
+    // when backtracking re-sorts them to positions before the loop index.
+    violations.clear();
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        final rem = state.remaining(c, s);
+        if (rem > 0) {
+          violations.add(PartialViolation(
+            classroomIdx: c,
+            subjectIdx:   s,
+            shortfall:    rem,
+          ));
+        }
+      }
+    }
+
     _emitProgress(1.0); // 100% through Phase 1 (assignment complete)
 
     return Phase1Result(
@@ -197,6 +229,10 @@ class Phase1Greedy {
             shortfall:    state.remaining(c, s),
           ));
           i++;
+        } else {
+          // Backtrack re-sorted pairs; undone pairs may now be at positions
+          // before i. Reset to the start so they are retried in the new order.
+          i = 0;
         }
         // Whether or not backtrack resolved things, re-evaluate from current i
         continue;
@@ -206,21 +242,16 @@ class Phase1Greedy {
 
       // HC-5 post-assignment check: if this day now has 1..(minDaily-1)
       // lessons and there are no more free slots on this day to reach minDaily,
-      // the placement is irrecoverable — undo it and record a violation.
+      // undo the placement and retry — a different day will be chosen next time.
       final minD = _input.minDaily[c][s];
       if (minD > 0 && !state.satisfiesMinDaily(c, s, best.$1)) {
-        final freeLeft = _countAvailableSubjectSlots(state, c, s, best.$1);
+        final freeLeft = _countRawFreeSlotsOnDay(state, c, s, best.$1);
         final countNow = state.dailySubjectCount(c, s, best.$1);
         final needed   = minD - countNow;
         if (needed > freeLeft) {
-          // Can't reach minDaily on this day — undo
+          // Can't reach minDaily on this day — undo and retry same pair.
+          // The HC-5 tentative check in _pickBestSlot will reject this slot.
           state.remove(c, best.$1, best.$2);
-          violations.add(PartialViolation(
-            classroomIdx: c,
-            subjectIdx:   s,
-            shortfall:    state.remaining(c, s),
-          ));
-          i++;
           continue;
         }
       }
@@ -264,7 +295,7 @@ class Phase1Greedy {
             // Count only the slots that are actually placeable for (c,s),
             // not just the raw free classroom slots.
             final currentCount = state.dailySubjectCount(c, s, d);
-            final freeOnDay = _countAvailableSubjectSlots(state, c, s, d);
+            final freeOnDay = _countRawFreeSlotsOnDay(state, c, s, d);
             state.remove(c, d, l);
             final needed = minD - currentCount;
             if (needed > freeOnDay) continue; // can't reach minDaily → skip
@@ -314,12 +345,48 @@ class Phase1Greedy {
     return bestSlot;
   }
 
-  int _countAvailableSubjectSlots(ScheduleState state, int c, int s, int d) {
+  // Counts slots on day d that are physically available for (c,s) using
+  // only local checks (HC-1/2/4/7/8) — NOT the global capacity check.
+  // Used exclusively for HC-5 (minDaily) completability decisions.
+  int _countRawFreeSlotsOnDay(ScheduleState state, int c, int s, int d) {
     var count = 0;
     for (var l = 0; l < _input.numSlots; l++) {
-      if (state.canPlace(c, s, d, l)) count++;
+      if (_input.isBlocked(c, d, l))   continue;
+      if (!state.checkHC8(c, d, l))    continue; // slot must be free
+      if (!state.checkHC1(s, d, l))    continue; // teacher must be free
+      if (!state.checkHC2(c, d))       continue; // classroom daily capacity
+      if (!state.checkHC4(c, s, d))    continue; // max daily
+      if (!state.checkHC7(c, s, d, l)) continue; // must-not-assign
+      count++;
     }
     return count;
+  }
+
+  // Removes lessons from days where a subject has a partial minDaily count
+  // (0 < count < minDaily) that can no longer be completed. This repairs
+  // HC-5 violations left by the greedy pass so freed lessons can be
+  // reassigned to valid days in the second pass.
+  void _removePartialMinDailyViolations(ScheduleState state) {
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        final minD = _input.minDaily[c][s];
+        if (minD <= 1) continue;
+        for (var d = 0; d < _input.numDays; d++) {
+          final count = state.dailySubjectCount(c, s, d);
+          if (count == 0 || count >= minD) continue;
+          // Partial day: check if we can still complete it.
+          final needed    = minD - count;
+          final freeSlots = _countRawFreeSlotsOnDay(state, c, s, d);
+          if (freeSlots < needed) {
+            // Can't complete — remove partial lessons so they can be
+            // reassigned elsewhere in the second pass.
+            for (var l = 0; l < _input.numSlots; l++) {
+              if (state.schedule[c][d][l] == s) state.remove(c, d, l);
+            }
+          }
+        }
+      }
+    }
   }
 
   bool _subjectHasPartialMinDailyDay(ScheduleState state, int c, int s) {
@@ -337,6 +404,105 @@ class Phase1Greedy {
     if (l < _input.numSlots - 1 && state.schedule[c][d][l + 1] == s) {
       return true;
     }
+    return false;
+  }
+
+  // ── Displacement repair ────────────────────────────────────────────────────
+  //
+  // For pairs that are nearly complete (remaining ≤ 3), try to insert the
+  // missing lessons by displacing an occupying subject to a free slot, thereby
+  // making room for the missing lesson. Handles deadlocks that backtracking
+  // with N steps cannot resolve (e.g. when all free slots are occupied by
+  // subjects that CAN be moved elsewhere).
+
+  void _repairWithDisplacement(ScheduleState state) {
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        if (state.remaining(c, s) <= 0) continue;
+        if (state.remaining(c, s) > 3) continue; // only for nearly-complete pairs
+        while (state.remaining(c, s) > 0 &&
+               _tryDisplacementPlace(state, c, s)) { /* placed one */ }
+      }
+    }
+  }
+
+  bool _tryDisplacementPlace(ScheduleState state, int c, int s) {
+    final minD = _input.minDaily[c][s];
+
+    // Step 1: direct placement (no displacement needed)
+    for (var d = 0; d < _input.numDays; d++) {
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (!state.canPlace(c, s, d, l)) continue;
+        state.assign(c, s, d, l);
+        if (minD > 1 && !state.satisfiesMinDaily(c, s, d)) {
+          state.remove(c, d, l);
+          continue;
+        }
+        return true;
+      }
+    }
+
+    // Step 2: displacement — temporarily remove the occupant of each slot,
+    // check if (c,s,d,l) becomes viable, then find a new home for the occupant.
+    for (var d = 0; d < _input.numDays; d++) {
+      for (var l = 0; l < _input.numSlots; l++) {
+        final sp = state.schedule[c][d][l];
+        if (sp == kFree) continue;
+        final minDsp = _input.minDaily[c][sp];
+
+        state.remove(c, d, l); // sp floating
+
+        // Can s go here once sp is moved?
+        if (!state.canPlace(c, s, d, l)) {
+          state.assign(c, sp, d, l); // restore
+          continue;
+        }
+        // Tentative HC-5 check for s
+        state.assign(c, s, d, l);
+        final sOk = minD <= 1 || state.satisfiesMinDaily(c, s, d);
+        state.remove(c, d, l); // undo tentative
+        if (!sOk) {
+          state.assign(c, sp, d, l); // restore sp
+          continue;
+        }
+
+        // Find a new slot for sp
+        var displaced = false;
+        outer:
+        for (var d2 = 0; d2 < _input.numDays; d2++) {
+          for (var l2 = 0; l2 < _input.numSlots; l2++) {
+            if (state.schedule[c][d2][l2] != kFree) continue;
+            if (!state.canPlace(c, sp, d2, l2)) continue;
+
+            state.assign(c, sp, d2, l2);
+
+            // HC-5 for sp: original day d and new day d2 must be valid
+            if (minDsp > 1 && !state.satisfiesMinDaily(c, sp, d)) {
+              state.remove(c, d2, l2); continue;
+            }
+            if (minDsp > 1 && !state.satisfiesMinDaily(c, sp, d2)) {
+              state.remove(c, d2, l2); continue;
+            }
+
+            // Can s still go at (d, l) with sp at (d2, l2)?
+            if (!state.canPlace(c, s, d, l)) {
+              state.remove(c, d2, l2); continue;
+            }
+            state.assign(c, s, d, l);
+            if (minD > 1 && !state.satisfiesMinDaily(c, s, d)) {
+              state.remove(c, d, l);
+              state.remove(c, d2, l2); continue;
+            }
+            displaced = true;
+            break outer;
+          }
+        }
+
+        if (!displaced) state.assign(c, sp, d, l); // restore sp
+        if (displaced) return true;
+      }
+    }
+
     return false;
   }
 

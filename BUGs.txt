@@ -56,7 +56,9 @@ x	generating gets stuck at 30%
 
 
 Open:
-O	invalid result per un caso che invece soluzione ce l'ha
+O	l'algoritmo dice che non esiste ma soluzione e consiglia di cambiare input, ma la soluzione esiste
+O	ha in memoria MinDaily in input dalla vecchia implementazione, anche se adesso è zero
+O	quando salvo uno schedule il nome suggerito non è l'ultimo
 O	cancel button on generating doesn't work
 O	se runno la stessa scuola con gli stessi input ottengo risultati diversi
 		ora ottengo sempre stesso risultato ma sbagliato.

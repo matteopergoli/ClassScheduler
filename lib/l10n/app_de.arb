@@ -93,6 +93,13 @@
   "validationMaxDaysInsufficient": "Max. täglich × aktive Tage ({product}) ist kleiner als das Wochenziel ({target}).",
   "validationWeeklyExceedsSlots": "Das Wochenziel ({target}) überschreitet die verfügbaren Unterrichts-Slots ({available}).",
   "validationWeeklyMustBePositive": "Das Wochenziel muss größer als 0 sein.",
+  "validationMinDailyInfeasible": "Wochenziel ({target}) kann mit MinTäglich {minDaily} nicht erreicht werden — keine gültige Tagesverteilung möglich.",
+  "@validationMinDailyInfeasible": {
+    "placeholders": {
+      "target": { "type": "int" },
+      "minDaily": { "type": "int" }
+    }
+  },
   "feasibilityTitle": "Machbarkeitsanalyse",
   "feasibilitySlack": "Spielraum",
   "feasibilityInsufficient": "Nicht genug verfügbare Stunden — die Generierung wird wahrscheinlich einen unvollständigen Plan ergeben.",

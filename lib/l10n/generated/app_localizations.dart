@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'Weekly target must be greater than 0.'**
   String get validationWeeklyMustBePositive;
 
+  /// No description provided for @validationMinDailyInfeasible.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly target ({target}) cannot be achieved with MinDaily {minDaily} — no valid day distribution exists.'**
+  String validationMinDailyInfeasible(int target, int minDaily);
+
   /// No description provided for @feasibilityTitle.
   ///
   /// In en, this message translates to:

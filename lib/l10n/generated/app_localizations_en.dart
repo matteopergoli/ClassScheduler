@@ -322,6 +322,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Weekly target must be greater than 0.';
 
   @override
+  String validationMinDailyInfeasible(int target, int minDaily) {
+    return 'Weekly target ($target) cannot be achieved with MinDaily $minDaily — no valid day distribution exists.';
+  }
+
+  @override
   String get feasibilityTitle => 'Feasibility Check';
 
   @override

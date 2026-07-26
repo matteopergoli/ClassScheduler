@@ -10,6 +10,7 @@ enum SubjectValidationError {
   maxDaysInsufficient,
   weeklyExceedsSlots,
   weeklyMustBePositive,
+  minDailyInfeasible,
 }
 
 class SubjectValidationResult {
@@ -57,6 +58,20 @@ class SubjectValidator {
       errors.add(SubjectValidationError.weeklyExceedsSlots);
     }
 
+    // Rule 5: weeklyTarget is achievable given minDaily and maxDaily.
+    // For minDaily > 0, lessons on any active day must be 0 or [minDaily..maxDaily].
+    // The target is feasible iff there exists an integer k where:
+    //   ceil(target / maxDaily) ≤ k ≤ floor(target / minDaily)
+    // i.e. the minimum days required (to stay ≤ maxDaily) does not exceed
+    // the maximum days allowed (to stay ≥ minDaily on each active day).
+    if (minDaily > 0 && weeklyTarget > 0 && maxDaily >= minDaily) {
+      final minDays = (weeklyTarget + maxDaily - 1) ~/ maxDaily;
+      final maxDays = weeklyTarget ~/ minDaily;
+      if (minDays > maxDays) {
+        errors.add(SubjectValidationError.minDailyInfeasible);
+      }
+    }
+
     return errors.isEmpty
         ? SubjectValidationResult.ok()
         : SubjectValidationResult.fail(errors);
@@ -74,6 +89,8 @@ class SubjectValidator {
         return 'validationWeeklyExceedsSlots';
       case SubjectValidationError.weeklyMustBePositive:
         return 'validationWeeklyMustBePositive';
+      case SubjectValidationError.minDailyInfeasible:
+        return 'validationMinDailyInfeasible';
     }
   }
 }

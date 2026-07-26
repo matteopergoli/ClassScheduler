@@ -222,7 +222,6 @@ class GenerationService extends StateNotifier<GenerationState> {
 
       _runner = SchedulerIsolateRunner();
       _runner!.progressStream.listen((p) {
-        print('[GenerationService] progress=${p.fraction} iterations=${p.iterationsCompleted}');
         state = state.copyWith(
           progress: p.fraction,
           iterationsCompleted: p.iterationsCompleted,
@@ -336,9 +335,13 @@ class GenerationService extends StateNotifier<GenerationState> {
 
           final sIdx = result.schedule[c][d][l];
           final cellId = '${input.classroomIds[c]}_${dayCodeByIdx[d]}_$l';
-          final isViolation = result.hardViolations.any((v) =>
-              v.description.contains(input.classroomNames[c]) &&
-              v.description.contains(input.dayNames[d]));
+          final isViolation = result.hardViolations.any((v) {
+            if (!v.description.contains(input.classroomNames[c])) return false;
+            // HC-3 descriptions contain no day name — highlight empty cells of
+            // the affected classroom to show where the missing lessons should go.
+            if (v.constraintId == 'HC-3') return sIdx == sched.kFree;
+            return v.description.contains(input.dayNames[d]);
+          });
 
           cellIds.add(cellId);
           cellDocs.add({

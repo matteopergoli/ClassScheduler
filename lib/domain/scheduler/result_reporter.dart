@@ -56,8 +56,11 @@ class ResultReporter {
     // ── Hard violations ────────────────────────────────────────────────────
     final hardViolations = <ConstraintViolation>[];
 
-    // From ALGO-R03 integrity check
+    // From ALGO-R03 integrity check.
+    // HC-3 (weekly target) is fully covered by partialViolations below;
+    // skip it here to prevent duplicate entries in the violation list.
     for (final iv in integrityResult.violations) {
+      if (iv.rule == 'HC-3') continue;
       hardViolations.add(ConstraintViolation(
         constraintId: iv.rule,
         description:  iv.description,
@@ -68,16 +71,24 @@ class ResultReporter {
 
     // From Phase 1 partial violations (unmet weekly targets)
     for (final pv in partialViolations) {
-      final cName = _input.classroomNames[pv.classroomIdx];
-      final sName = _input.subjectNames[pv.subjectIdx];
+      final c     = pv.classroomIdx;
+      final s     = pv.subjectIdx;
+      final cName = _input.classroomNames[c];
+      final sName = _input.subjectNames[s];
+
+      final target = _input.weeklyTarget[c][s];
+      final minD   = _input.minDaily[c][s];
+      final maxD   = _input.maxDaily[c][s];
+
+      final suggestion = _hc3Suggestion(
+          sName, cName, target, minD, maxD, c, s, finalState);
+
       hardViolations.add(ConstraintViolation(
         constraintId: 'HC-3',
         description:
             '"$sName" in "$cName" is missing ${pv.shortfall} '
             'lesson${pv.shortfall == 1 ? '' : 's'} to meet the weekly target.',
-        suggestion:
-            'Reduce the weekly target for "$sName" in "$cName", '
-            'add more lesson slots, or relax other constraints.',
+        suggestion: suggestion,
         isHard: true,
       ));
     }
@@ -190,6 +201,116 @@ class ResultReporter {
       }
     }
     return isolated;
+  }
+
+  /// Builds a context-aware suggestion for an HC-3 partial violation.
+  ///
+  /// Checks four root causes in priority order:
+  ///   1. Arithmetic infeasibility: target not achievable with minD/maxD.
+  ///   2. Teacher overlap: teacher is busy in other classrooms during every
+  ///      free slot of this classroom.
+  ///   3. Teacher fully booked: teacher has zero free slots anywhere.
+  ///   4. MinDaily trap: canPlace passes but every valid slot would leave the
+  ///      day's count below MinDaily, so FILL is always rejected.
+  String _hc3Suggestion(
+      String sName, String cName, int target, int minD, int maxD,
+      int classroomIdx, int subjectIdx, ScheduleState finalState) {
+    // ── 1. Arithmetic infeasibility ──────────────────────────────────────────
+    if (minD > 0 && maxD >= minD) {
+      final minDays = (target + maxD - 1) ~/ maxD;
+      final maxDays = target ~/ minD;
+      if (minDays > maxDays) {
+        final suggested = _nearestFeasibleTarget(target, minD, maxD);
+        final hint = suggested > 0
+            ? ' Try setting the weekly target to $suggested.'
+            : ' Try disabling MinDaily (set to 0) or adjusting MaxDaily.';
+        return 'The weekly target ($target) for "$sName" in "$cName" cannot '
+            'be achieved with MinDaily $minD and MaxDaily $maxD — no valid '
+            'day distribution exists.$hint';
+      }
+    }
+
+    final teacherIdx  = _input.teacherOf[subjectIdx];
+    final teacherName = _input.teacherNames[teacherIdx];
+
+    // ── 2. Teacher busy in other classrooms during all free slots ────────────
+    var classroomHasFreeSlot       = false;
+    var teacherAvailableAtFreeSlot = false;
+    for (var d = 0; d < _input.numDays; d++) {
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (finalState.schedule[classroomIdx][d][l] != kFree) continue;
+        classroomHasFreeSlot = true;
+        if (finalState.isTeacherFree(teacherIdx, d, l)) {
+          teacherAvailableAtFreeSlot = true;
+          break;
+        }
+      }
+      if (teacherAvailableAtFreeSlot) break;
+    }
+
+    if (classroomHasFreeSlot && !teacherAvailableAtFreeSlot) {
+      return 'Teacher "$teacherName" is committed to other classes during '
+          'every free slot of "$cName". Reduce the total weekly lessons '
+          'taught by "$teacherName" across all classrooms, or assign a '
+          'different teacher to "$sName".';
+    }
+
+    // ── 3. Teacher has no free slots at all ───────────────────────────────────
+    var teacherTotalFree = 0;
+    for (var d = 0; d < _input.numDays; d++)
+      for (var l = 0; l < _input.numSlots; l++)
+        if (finalState.isTeacherFree(teacherIdx, d, l)) teacherTotalFree++;
+
+    if (teacherTotalFree == 0) {
+      return 'Teacher "$teacherName" has no available slots remaining '
+          '— all their time is already committed. Reduce the total '
+          'weekly lessons taught by "$teacherName", or assign a different '
+          'teacher to "$sName".';
+    }
+
+    // ── 4. MinDaily trap ─────────────────────────────────────────────────────
+    // canPlace() does not check MinDaily. Scan for slots where canPlace
+    // returns true but placing would leave the day below MinDaily, causing
+    // FILL to always return null.
+    if (minD > 1) {
+      var canPlaceAny        = false;
+      var minDailyBlocksAll  = true;
+      for (var d = 0; d < _input.numDays; d++) {
+        for (var l = 0; l < _input.numSlots; l++) {
+          if (!finalState.canPlace(classroomIdx, subjectIdx, d, l)) continue;
+          canPlaceAny = true;
+          final countAfter =
+              finalState.dailySubjectCount(classroomIdx, subjectIdx, d) + 1;
+          // satisfiesMinDaily: count must be 0 or >= minD
+          if (countAfter == 0 || countAfter >= minD) {
+            minDailyBlocksAll = false;
+            break;
+          }
+        }
+        if (!minDailyBlocksAll) break;
+      }
+      if (canPlaceAny && minDailyBlocksAll) {
+        return 'Every available slot for "$sName" in "$cName" would create '
+            'a day with fewer than MinDaily $minD lessons, which is not '
+            'allowed. Try reducing the weekly target by 1, or set '
+            'MinDaily to 0 to allow lone lessons.';
+      }
+    }
+
+    // ── 5. Generic fallback ───────────────────────────────────────────────────
+    return 'Reduce the weekly target for "$sName" in "$cName", '
+        'add more lesson slots, or relax other constraints.';
+  }
+
+  /// Returns the nearest feasible weekly target ≤ [target] that can be
+  /// achieved by distributing lessons with [minD]–[maxD] per active day.
+  int _nearestFeasibleTarget(int target, int minD, int maxD) {
+    for (var t = target - 1; t >= minD; t--) {
+      final minDays = (t + maxD - 1) ~/ maxD;
+      final maxDays = t ~/ minD;
+      if (minDays <= maxDays) return t;
+    }
+    return 0;
   }
 
   String _suggestionFor(String rule) {

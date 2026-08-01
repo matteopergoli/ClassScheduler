@@ -22,7 +22,7 @@ class VersionSheet extends ConsumerStatefulWidget {
   final List<ScheduleModel> schedules;
   final String              schoolId;
   final ScheduleModel?      selected;
-  final ValueChanged<String> onSelect;
+  final void Function(String, String) onSelect;
 
   const VersionSheet({
     super.key,
@@ -188,7 +188,7 @@ class _VersionSheetState extends ConsumerState<VersionSheet> {
                       ],
                     ),
                     onTap: () {
-                      widget.onSelect(s.id);
+                      widget.onSelect(s.id, s.name);
                       Navigator.pop(context);
                     },
                   ),
@@ -261,7 +261,8 @@ class _VersionSheetState extends ConsumerState<VersionSheet> {
       // If the deleted schedule was the currently selected one, select the
       // first remaining schedule so the parent view updates responsively.
       if (schedule.id == widget.selected?.id && _schedules.isNotEmpty) {
-        widget.onSelect(_schedules.first.id);
+        final first = _schedules.first;
+        widget.onSelect(first.id, first.name);
       }
 
       // Otherwise show a non-blocking confirmation snackbar and keep sheet open

@@ -58,9 +58,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  void _onScheduleSelected(String scheduleId) {
+  void _onScheduleSelected(String scheduleId, String scheduleName) {
     setState(() {
       _selectedScheduleId = scheduleId;
+      _currentScheduleName = scheduleName;
       _showResultPanel = false;
     });
   }
@@ -103,9 +104,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   Future<void> _startGeneration(List<ScheduleModel> existingSchedules) async {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
+    final fallbackName = 'Schedule ${existingSchedules.length + 1}';
+    final suggestedName = (_currentScheduleName?.trim().isNotEmpty ?? false)
+        ? _currentScheduleName!.trim()
+        : fallbackName;
 
     final nameCtrl = TextEditingController(
-      text: 'Schedule ${existingSchedules.length + 1}',
+      text: suggestedName,
     );
 
     final confirmed = await showDialog<bool>(
@@ -139,8 +144,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     if (confirmed != true || !mounted) return;
 
     final name = nameCtrl.text.trim().isEmpty
-        ? 'Schedule ${existingSchedules.length + 1}'
-        : nameCtrl.text.trim();
+      ? suggestedName
+      : nameCtrl.text.trim();
 
     // Check for Duplicate Name
     final nameExists = existingSchedules.any(

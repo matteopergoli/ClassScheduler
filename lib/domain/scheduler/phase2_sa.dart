@@ -75,65 +75,100 @@ class Phase2SA {
     final progressUpdateInterval =
         max(1, AppConstants.saMaxIterations ~/ 1000);
     var loopCount = 0;
-    while (T > AppConstants.saMinTemp &&
-           _iterationsCompleted < AppConstants.saMaxIterations &&
+
+    // Outer cycle loop ───────────────────────────────────────────────────
+    // A full T0→Tmin cooling cycle can complete in far fewer iterations
+    // than saMaxIterations / saMaxWallSecs allow (e.g. ~28k iterations for
+    // the default T0=500, alpha=0.9997, Tmin=0.1 — a couple of seconds).
+    // On tight / zero-slack problems that require a rare combination like
+    // BLOCK SHIFT + FILL to escape a MinDaily deadlock, one short cycle is
+    // often not enough. Previously the stagnation-based restart inside the
+    // loop (triggered by saNoImprovementLimit) could never fire because
+    // the whole cycle finished before reaching that count, so optimise()
+    // just returned early with most of the time/iteration budget unused.
+    //
+    // Fix: keep reheating and re-annealing from the best-known state until
+    // we genuinely exhaust the wall-clock budget, the iteration cap, or the
+    // restart allowance — not just until one cooling cycle finishes.
+    while (_iterationsCompleted < AppConstants.saMaxIterations &&
            stopwatch.elapsed.inSeconds < AppConstants.saMaxWallSecs) {
-      loopCount++;
-      if (loopCount <= 5 || loopCount % 10000 == 0) {
-        _debug('SA loop iteration $loopCount: T=$T iterations=$_iterationsCompleted');
-      }
+      if (_isCancelled()) break;
 
-      // Cancellation check every configured interval (ALGO-R06)
-      if (_iterationsCompleted % AppConstants.saCancelCheckInterval == 0 &&
-          _isCancelled()) break;
+      while (T > AppConstants.saMinTemp &&
+             _iterationsCompleted < AppConstants.saMaxIterations &&
+             stopwatch.elapsed.inSeconds < AppConstants.saMaxWallSecs) {
+        loopCount++;
+        if (loopCount <= 5 || loopCount % 10000 == 0) {
+          _debug('SA loop iteration $loopCount: T=$T iterations=$_iterationsCompleted');
+        }
 
-      // Progress report every smaller interval so Phase 2 shows movement.
-      if (_iterationsCompleted < 20 ||
-          _iterationsCompleted % progressUpdateInterval == 0) {
-        final iterationCount = _iterationsCompleted + 1;
-        final earlyRamp = min(1.0, iterationCount / 1000.0);
-        final laterRamp = iterationCount / AppConstants.saMaxIterations;
-        final progress = 0.35 + 0.40 * earlyRamp + 0.20 * laterRamp;
-        _onProgress(progress.clamp(0.35, 0.95), iterationCount);
-      }
+        // Cancellation check every configured interval (ALGO-R06)
+        if (_iterationsCompleted % AppConstants.saCancelCheckInterval == 0 &&
+            _isCancelled()) break;
 
-      // Restart check
-      if (noImprovCount >= AppConstants.saNoImprovementLimit &&
-          _restartsUsed < AppConstants.saMaxRestarts) {
-        current = best.clone();
-        T = AppConstants.saInitialTemp.toDouble(); // full reheat
-        noImprovCount = 0;
-        _restartsUsed++;
-      }
+        // Progress report every smaller interval so Phase 2 shows movement.
+        if (_iterationsCompleted < 20 ||
+            _iterationsCompleted % progressUpdateInterval == 0) {
+          final iterationCount = _iterationsCompleted + 1;
+          final earlyRamp = min(1.0, iterationCount / 1000.0);
+          final laterRamp = iterationCount / AppConstants.saMaxIterations;
+          final progress = 0.35 + 0.40 * earlyRamp + 0.20 * laterRamp;
+          _onProgress(progress.clamp(0.35, 0.95), iterationCount);
+        }
 
-      // Apply a random move
-      final candidate = _applyMove(current);
-      if (candidate == null) {
-        _iterationsCompleted++;
-        T *= AppConstants.saCoolingRate;
-        continue;
-      }
-
-      final delta = _score(candidate) - _score(current);
-
-      if (delta < 0 || _rng.nextDouble() < exp(-delta / T)) {
-        current = candidate;
-        if (_score(current) < bestScore) {
-          best         = current.clone();
-          bestScore    = _score(best);
+        // Stagnation-triggered reheat within a cycle (kept for long cycles
+        // on larger problems where a single cycle runs for a long time).
+        if (noImprovCount >= AppConstants.saNoImprovementLimit &&
+            _restartsUsed < AppConstants.saMaxRestarts) {
+          current = best.clone();
+          T = AppConstants.saInitialTemp.toDouble(); // full reheat
           noImprovCount = 0;
+          _restartsUsed++;
+        }
+
+        // Apply a random move
+        final candidate = _applyMove(current);
+        if (candidate == null) {
+          _iterationsCompleted++;
+          T *= AppConstants.saCoolingRate;
+          continue;
+        }
+
+        final delta = _score(candidate) - _score(current);
+
+        if (delta < 0 || _rng.nextDouble() < exp(-delta / T)) {
+          current = candidate;
+          if (_score(current) < bestScore) {
+            best         = current.clone();
+            bestScore    = _score(best);
+            noImprovCount = 0;
+          } else {
+            noImprovCount++;
+          }
         } else {
           noImprovCount++;
         }
-      } else {
-        noImprovCount++;
+
+        T *= AppConstants.saCoolingRate;
+        _iterationsCompleted++;
       }
 
-      T *= AppConstants.saCoolingRate;
-      _iterationsCompleted++;
+      // Inner cycle ended. If it cooled out naturally (T <= Tmin) rather
+      // than hitting a hard stop (cancel/time/iteration cap), and budget
+      // plus restart allowance remain, reheat from the best-known state
+      // and anneal again.
+      if (_isCancelled()) break;
+      if (_iterationsCompleted >= AppConstants.saMaxIterations) break;
+      if (stopwatch.elapsed.inSeconds >= AppConstants.saMaxWallSecs) break;
+      if (_restartsUsed >= AppConstants.saMaxRestarts) break;
+
+      current = best.clone();
+      T = AppConstants.saInitialTemp.toDouble();
+      noImprovCount = 0;
+      _restartsUsed++;
     }
 
-    print('[Phase2] SA loop exited after $loopCount iterations: T=$T iterations=$_iterationsCompleted');
+    print('[Phase2] SA loop exited after $loopCount iterations: T=$T iterations=$_iterationsCompleted restarts=$_restartsUsed');
 
     // Emit at least a 0.50 progress to show we did Phase 2, even if fast
     _onProgress(0.50, _iterationsCompleted);
@@ -413,11 +448,11 @@ class Phase2SA {
 
     // HC-1: teacher of s2 must be free in c1 at (d,l) and vice versa
     if (!candidate.canPlace(c1, s2, d, l)) {
-      _debug('Cross-class move rejected: cannot place s2=$s2 into c1=$c1 d=$d l=$l');
+      // _debug('Cross-class move rejected: cannot place s2=$s2 into c1=$c1 d=$d l=$l');
       return null;
     }
     if (!candidate.canPlace(c2, s1, d, l)) {
-      _debug('Cross-class move rejected: cannot place s1=$s1 into c2=$c2 d=$d l=$l');
+      // _debug('Cross-class move rejected: cannot place s1=$s1 into c2=$c2 d=$d l=$l');
       return null;
     }
 

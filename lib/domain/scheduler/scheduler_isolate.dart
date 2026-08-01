@@ -62,7 +62,7 @@ class SchedulerIsolateRunner {
 
     receivePort.listen((msg) {
       if (msg is ProgressUpdate) {
-        print('[SchedulerIsolateRunner] received progress ${msg.fraction} it=${msg.iterationsCompleted}');
+        // print('[SchedulerIsolateRunner] received progress ${msg.fraction} it=${msg.iterationsCompleted}');
         if (!_progressController.isClosed) {
           _progressController.add(msg);
         }

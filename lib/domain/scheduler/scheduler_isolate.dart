@@ -6,7 +6,7 @@
 // Message protocol:
 //   UI → Isolate:  _IsolateInput (spawn argument)
 //   Isolate → UI:  ProgressUpdate (periodic) | ScheduleResult (final)
-//   UI → Isolate:  'cancel' string (via cancelSendPort)
+//   UI → Isolate:  'cancel' string (via isolate-provided SendPort)
 //
 // Usage:
 //   final runner = SchedulerIsolateRunner();
@@ -29,36 +29,31 @@ class SchedulerIsolateRunner {
   Stream<ProgressUpdate> get progressStream => _progressController.stream;
 
   SendPort? _cancelPort;
-  bool _cancelled = false;
+  bool _cancelRequested = false;
+  Isolate? _activeIsolate;
+  ReceivePort? _activeReceivePort;
+  Completer<ScheduleResult>? _activeCompleter;
 
   /// Spawn the isolate, run the engine, return the final [ScheduleResult].
   /// Throws if the isolate crashes unexpectedly.
   Future<ScheduleResult> run(SchedulerInput input) async {
-    _cancelled = false;
+    _cancelRequested = false;
 
     final receivePort = ReceivePort();
-    final cancelReceivePort = ReceivePort();
-
-    final isolate = await Isolate.spawn(
-      _isolateEntry,
-      _IsolateInput(
-        sendPort:       receivePort.sendPort,
-        cancelSendPort: cancelReceivePort.sendPort,
-        input:          input,
-      ),
-      debugName: 'ClassSchedulerEngine',
-    );
-
-    // Store cancel port so caller can send cancel
-    // (cancelReceivePort is the port the *isolate* listens on;
-    //  _cancelPort is the port the *isolate* exposed so we can send to it)
-    // We pass cancelReceivePort.sendPort INTO the isolate so it can listen.
-    // The UI sends cancel via a separate channel set up below.
-
-    final uiCancelSend = ReceivePort(); // UI-side cancel port
-    _cancelPort = uiCancelSend.sendPort; // stored for cancel()
+    _cancelPort = null;
+    _activeReceivePort = receivePort;
 
     final completer = Completer<ScheduleResult>();
+    _activeCompleter = completer;
+    late final Isolate isolate;
+
+    void cleanup() {
+      _activeReceivePort?.close();
+      _activeReceivePort = null;
+      _cancelPort = null;
+      _activeIsolate = null;
+      _activeCompleter = null;
+    }
 
     receivePort.listen((msg) {
       if (msg is ProgressUpdate) {
@@ -68,22 +63,51 @@ class SchedulerIsolateRunner {
         }
       } else if (msg is ScheduleResult) {
         if (!completer.isCompleted) completer.complete(msg);
-        receivePort.close();
-        uiCancelSend.close();
+        cleanup();
         isolate.kill(priority: Isolate.immediate);
       } else if (msg is SendPort) {
         // Isolate sends its cancel listener port back so we can send to it
         _cancelPort = msg;
+        if (_cancelRequested) {
+          _cancelPort?.send('cancel');
+        }
       }
     });
+
+    isolate = await Isolate.spawn(
+      _isolateEntry,
+      _IsolateInput(
+        sendPort: receivePort.sendPort,
+        input: input,
+      ),
+      debugName: 'ClassSchedulerEngine',
+    );
+    _activeIsolate = isolate;
+
+    // Cancel could have been requested while spawning.
+    if (_cancelRequested) {
+      cancel();
+    }
 
     return completer.future;
   }
 
   /// Send a cancel signal to the running isolate.
   void cancel() {
-    _cancelled = true;
+    _cancelRequested = true;
     _cancelPort?.send('cancel');
+    _activeIsolate?.kill(priority: Isolate.immediate);
+
+    final completer = _activeCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.completeError(StateError('Scheduler generation cancelled'));
+    }
+
+    _activeReceivePort?.close();
+    _activeReceivePort = null;
+    _activeIsolate = null;
+    _activeCompleter = null;
+    _cancelPort = null;
   }
 
   void dispose() {
@@ -95,12 +119,10 @@ class SchedulerIsolateRunner {
 
 class _IsolateInput {
   final SendPort       sendPort;
-  final SendPort       cancelSendPort;
   final SchedulerInput input;
 
   const _IsolateInput({
     required this.sendPort,
-    required this.cancelSendPort,
     required this.input,
   });
 }

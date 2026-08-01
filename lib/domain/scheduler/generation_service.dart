@@ -11,6 +11,8 @@
 //   6. On offline: saves to Firestore offline cache (FR-GEN-07)
 //   7. Updates trialUsed flag if this was the user's free trial
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,17 +91,41 @@ class GenerationService extends StateNotifier<GenerationState> {
   final Ref _ref;
   final String _schoolId;
   SchedulerIsolateRunner? _runner;
+  bool _cancelRequested = false;
+  int _generationToken = 0;
 
   GenerationService(this._ref, this._schoolId) : super(const GenerationState());
 
   // ── Cancel ───────────────────────────────────────────────────────────────
 
-  void cancel() => _runner?.cancel();
+  void cancel() {
+    _cancelRequested = true;
+    _generationToken++; // invalidate any in-flight generate() execution
+    _runner?.cancel();
+
+    // Return immediately to idle from any active generation phase.
+    if (state.phase == GenerationPhase.loadingData ||
+        state.phase == GenerationPhase.validating ||
+        state.phase == GenerationPhase.generating ||
+        state.phase == GenerationPhase.saving) {
+      state = const GenerationState(phase: GenerationPhase.idle);
+    }
+  }
+
+  bool _abortIfCancelled(int token) {
+    if (!_cancelRequested && token == _generationToken) return false;
+    state = const GenerationState(phase: GenerationPhase.idle);
+    return true;
+  }
 
   // ── Main entry point ──────────────────────────────────────────────────────
 
   Future<void> generate({required String scheduleName}) async {
+    final token = ++_generationToken;
+    _cancelRequested = false;
     state = const GenerationState(phase: GenerationPhase.loadingData);
+    SchedulerIsolateRunner? localRunner;
+    StreamSubscription<sched.ProgressUpdate>? progressSub;
 
     try {
       // ── 0. Subscription / trial gate ────────────────────────────────────
@@ -116,6 +142,8 @@ class GenerationService extends StateNotifier<GenerationState> {
         );
         return;
       }
+
+      if (_abortIfCancelled(token)) return;
 
       // ── 1. Load all data ────────────────────────────────────────────────
       final uid = _ref.read(currentUserProvider)!.uid;
@@ -134,6 +162,8 @@ class GenerationService extends StateNotifier<GenerationState> {
       final constraints =
           await _ref.read(constraintRepositoryProvider(_schoolId)).fetchAll();
 
+      if (_abortIfCancelled(token)) return;
+
       // ── 2. Derive active days ─────────────────────────────────────────────
       // FIX: Derive active days from dayCapacity records first, then fall back
       // to the default weekdays. This ensures the scheduler knows exactly which
@@ -151,6 +181,8 @@ class GenerationService extends StateNotifier<GenerationState> {
 
       // ── 3. Pre-generation conflict detection (FR-HC-03) ─────────────────
       state = state.copyWith(phase: GenerationPhase.validating);
+
+      if (_abortIfCancelled(token)) return;
 
       final lessonPeriods = periods.where((p) => p.type == 'LESSON').toList()
         ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
@@ -206,6 +238,8 @@ class GenerationService extends StateNotifier<GenerationState> {
         return;
       }
 
+      if (_abortIfCancelled(token)) return;
+
       // ── 4. Build scheduler input ────────────────────────────────────────
       final input = SchedulerInputBuilder.build(
         activeDayCodes: activeDays,
@@ -217,18 +251,24 @@ class GenerationService extends StateNotifier<GenerationState> {
         constraints: constraints,
       );
 
+      if (_abortIfCancelled(token)) return;
+
       // ── 5. Run scheduler isolate ────────────────────────────────────────
       state = state.copyWith(phase: GenerationPhase.generating, progress: 0.0);
 
-      _runner = SchedulerIsolateRunner();
-      _runner!.progressStream.listen((p) {
+      localRunner = SchedulerIsolateRunner();
+      _runner = localRunner;
+      progressSub = localRunner.progressStream.listen((p) {
+        if (_cancelRequested || token != _generationToken) return;
         state = state.copyWith(
           progress: p.fraction,
           iterationsCompleted: p.iterationsCompleted,
         );
       });
 
-      final result = await _runner!.run(input);
+      final result = await localRunner.run(input);
+
+      if (_abortIfCancelled(token)) return;
 
       // ── 6. Save to Firestore (ALGO-R04) ─────────────────────────────────
       if (result.hardViolations.any((v) =>
@@ -244,6 +284,8 @@ class GenerationService extends StateNotifier<GenerationState> {
       }
 
       state = state.copyWith(phase: GenerationPhase.saving, progress: 1.0);
+
+      if (_abortIfCancelled(token)) return;
 
       await _persistResult(
         uid: uid,
@@ -262,18 +304,27 @@ class GenerationService extends StateNotifier<GenerationState> {
         await _ref.read(accountRepositoryProvider).consumeTrial();
       }
 
+      if (_abortIfCancelled(token)) return;
+
       state = state.copyWith(
         phase: GenerationPhase.done,
         result: result,
       );
     } catch (e) {
+      if (_cancelRequested || token != _generationToken) {
+        state = const GenerationState(phase: GenerationPhase.idle);
+        return;
+      }
       state = state.copyWith(
         phase: GenerationPhase.error,
         errorMessage: e.toString(),
       );
     } finally {
-      _runner?.dispose();
-      _runner = null;
+      await progressSub?.cancel();
+      localRunner?.dispose();
+      if (identical(_runner, localRunner)) {
+        _runner = null;
+      }
     }
   }
 

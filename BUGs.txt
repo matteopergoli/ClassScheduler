@@ -53,6 +53,7 @@ x	nel export pdf non compaiono i nomi delle materie, solo i colori
 x	combined overview page in pdf/xls export improved
 x	generating gets stuck at 30%
 x	quando salvo uno schedule il nome suggerito non è l'ultimo
+x	cancel button on generating doesn't work
 
 
 
@@ -61,7 +62,6 @@ O	l'algoritmo dice che non esiste ma soluzione e consiglia di cambiare input, ma
 O	se runno la stessa scuola con gli stessi input ottengo risultati diversi
 		ora ottengo sempre stesso risultato ma sbagliato.
 O	ha in memoria MinDaily in input dalla vecchia implementazione, anche se adesso è zero
-O	cancel button on generating doesn't work
 O	editing dello schedule dovrebbe essere bloccato a meno che non clicco un tasto
 O	prova hard/soft constraints, incluso min/max giornalieri
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo

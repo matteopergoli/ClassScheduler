@@ -13,6 +13,7 @@ import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/scheduler/generation_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/trial_banner.dart';
+import '../../providers/selected_school_provider.dart';
 import 'export_sheet.dart';
 import 'result_panel.dart';
 import 'schedule_grid.dart';
@@ -29,6 +30,10 @@ final _schedulesProvider =
     StreamProvider.autoDispose.family<List<ScheduleModel>, String>(
   (ref, schoolId) =>
       ref.watch(scheduleRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _schoolsProvider = StreamProvider.autoDispose<List<SchoolModel>>(
+  (ref) => ref.watch(schoolRepositoryProvider).watchAll(),
 );
 
 // ── Resolves the human-readable school name from its Firestore ID ────────
@@ -56,6 +61,17 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   ScheduleViewMode _viewMode = ScheduleViewMode.perClassroom; // Updated default
   bool _isEditing = false;
   bool _showResultPanel = false;
+
+  @override
+  void didUpdateWidget(covariant ScheduleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.schoolId != widget.schoolId) {
+      _selectedScheduleId = null;
+      _currentScheduleName = null;
+      _isEditing = false;
+      _showResultPanel = false;
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -195,6 +211,73 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
+  Future<void> _showSchoolSheet(List<SchoolModel> schools) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colors = AppColors.of(sheetContext);
+        final l10n = AppLocalizations.of(sheetContext);
+        return SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceBg,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppDimensions.radiusXl),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.borderDefault,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.yourSchools,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                ...schools.map(
+                  (school) => ListTile(
+                    leading: Icon(
+                      school.id == widget.schoolId
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      color: school.id == widget.schoolId
+                          ? colors.primary
+                          : colors.textMuted,
+                    ),
+                    title: Text(school.name),
+                    selected: school.id == widget.schoolId,
+                    onTap: () {
+                      ref.read(selectedSchoolIdProvider.notifier).state =
+                          school.id;
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -204,6 +287,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     final genState = ref.watch(generationServiceProvider(widget.schoolId));
     final schedulesAsync = ref.watch(_schedulesProvider(widget.schoolId));
+    final schoolsAsync = ref.watch(_schoolsProvider);
 
     // Ensure the school name is loaded/cached before Export is tapped.
     ref.watch(_schoolNameProvider(widget.schoolId));
@@ -230,12 +314,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           children: [
             _ScheduleHeader(
               schedulesAsync: schedulesAsync,
+              schools: schoolsAsync.valueOrNull ?? const [],
+              schoolId: widget.schoolId,
               selectedScheduleId: _selectedScheduleId,
               viewMode: _viewMode,
               genPhase: genState.phase,
               colors: colors,
               l10n: l10n,
               onVersionsTap: (schedules) => _showVersionSheet(schedules),
+              onSchoolTap: (schools) => _showSchoolSheet(schools),
               onGenerate: (schedules) => _startGeneration(schedules),
               onViewModeChanged: (mode) =>
                   setState(() {
@@ -347,12 +434,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
 class _ScheduleHeader extends StatelessWidget {
   final AsyncValue<List<ScheduleModel>> schedulesAsync;
+  final List<SchoolModel> schools;
+  final String schoolId;
   final String? selectedScheduleId;
   final ScheduleViewMode viewMode;
   final GenerationPhase genPhase;
   final AppColors colors;
   final AppLocalizations l10n;
   final void Function(List<ScheduleModel>) onVersionsTap;
+  final void Function(List<SchoolModel>) onSchoolTap;
   final void Function(List<ScheduleModel>) onGenerate;
   final void Function(ScheduleViewMode) onViewModeChanged;
   final bool isEditing;
@@ -361,12 +451,15 @@ class _ScheduleHeader extends StatelessWidget {
 
   const _ScheduleHeader({
     required this.schedulesAsync,
+    required this.schools,
+    required this.schoolId,
     required this.selectedScheduleId,
     required this.viewMode,
     required this.genPhase,
     required this.colors,
     required this.l10n,
     required this.onVersionsTap,
+    required this.onSchoolTap,
     required this.onGenerate,
     required this.onViewModeChanged,
     required this.isEditing,
@@ -396,6 +489,10 @@ class _ScheduleHeader extends StatelessWidget {
 
   Widget _content(BuildContext context, List<ScheduleModel> schedules,
       ScheduleModel? selected) {
+    final selectedSchool = schools
+      .where((school) => school.id == schoolId)
+      .firstOrNull;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
@@ -406,10 +503,35 @@ class _ScheduleHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.navSchedule,
-                      style: AppTextStyles.overline
-                          .copyWith(color: colors.textMuted)),
-                  const SizedBox(height: 2),
+                  GestureDetector(
+                    onTap: schools.length > 1
+                        ? () => onSchoolTap(schools)
+                        : null,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            selectedSchool?.name ?? schoolId,
+                            style: AppTextStyles.titleSmall.copyWith(
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (schools.length > 1) ...[
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: colors.textMuted,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   GestureDetector(
                     onTap: schedules.isNotEmpty && !_isBusy
                         ? () => onVersionsTap(schedules)

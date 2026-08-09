@@ -32,6 +32,17 @@ class SchoolsScreen extends ConsumerWidget {
     final colors  = AppColors.of(context);
     final schools = ref.watch(schoolsStreamProvider);
 
+    final schoolList = schools.valueOrNull;
+    if (schoolList != null &&
+        schoolList.isNotEmpty &&
+        ref.read(selectedSchoolIdProvider) == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted && ref.read(selectedSchoolIdProvider) == null) {
+          ref.read(selectedSchoolIdProvider.notifier).state = schoolList.first.id;
+        }
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(

@@ -55,6 +55,7 @@ x	generating gets stuck at 30%
 x	quando salvo uno schedule il nome suggerito non è l'ultimo
 x	cancel button on generating doesn't work
 x	editing dello schedule dovrebbe essere bloccato a meno che non clicco un tasto
+x	nel tab schedule non visualizza niente
 
 
 
@@ -67,7 +68,6 @@ O	prova hard/soft constraints, incluso min/max giornalieri
 O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
 		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
 O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule
-O	nel tab schedule non visualizza niente
 O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
 O	creazione apk locale per testing locale su device vero
 O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo

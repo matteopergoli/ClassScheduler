@@ -37,12 +37,14 @@ class ScheduleGrid extends ConsumerStatefulWidget {
   final String scheduleId;
   final String schoolId;
   final ScheduleViewMode viewMode;
+  final bool isEditing;
 
   const ScheduleGrid({
     super.key,
     required this.scheduleId,
     required this.schoolId,
     required this.viewMode,
+    required this.isEditing,
   });
 
   @override
@@ -140,6 +142,7 @@ class _ScheduleGridState extends ConsumerState<ScheduleGrid> {
                     cells: cells,
                     scheduleId: widget.scheduleId,
                     schoolId: widget.schoolId,
+                    isEditing: widget.isEditing,
                     dragging: _dragging,
                     onDragStart: (c) => setState(() => _dragging = c),
                     onDragEnd: () => setState(() => _dragging = null),
@@ -287,6 +290,7 @@ class _GridBody extends ConsumerWidget {
   final List<ScheduleCellModel> cells;
   final String scheduleId;
   final String schoolId;
+  final bool isEditing;
   final ScheduleCellModel? dragging;
   final ValueChanged<ScheduleCellModel> onDragStart;
   final VoidCallback onDragEnd;
@@ -305,6 +309,7 @@ class _GridBody extends ConsumerWidget {
     required this.cells,
     required this.scheduleId,
     required this.schoolId,
+    required this.isEditing,
     required this.dragging,
     required this.onDragStart,
     required this.onDragEnd,
@@ -411,6 +416,7 @@ class _GridBody extends ConsumerWidget {
                       isTeacherMode: isTeacherMode,
                       onTap: () => _showCellDetail(
                           context, cell, subject, cellClassroom, period, day),
+                        isEditing: isEditing,
                       onDragStart: () => onDragStart(cell),
                       onDragEnd: onDragEnd,
                       onAccept: (src) => _handleDrop(context, ref, src, cell),
@@ -584,6 +590,7 @@ class _LessonCell extends StatelessWidget {
   final bool isDragging;
   final AppColors colors;
   final bool isTeacherMode;
+  final bool isEditing;
   final VoidCallback onTap;
   final VoidCallback onDragStart;
   final VoidCallback onDragEnd;
@@ -599,6 +606,7 @@ class _LessonCell extends StatelessWidget {
     required this.isDragging,
     required this.colors,
     required this.isTeacherMode,
+    required this.isEditing,
     required this.onTap,
     required this.onDragStart,
     required this.onDragEnd,
@@ -702,6 +710,8 @@ class _LessonCell extends StatelessWidget {
     );
 
     if (!hasSubject) {
+      if (!isEditing) return cellContent;
+
       // Free cell — only accept drops
       return DragTarget<ScheduleCellModel>(
         onWillAcceptWithDetails: (details) => dragging != null,
@@ -721,6 +731,8 @@ class _LessonCell extends StatelessWidget {
         ),
       );
     }
+
+    if (!isEditing) return cellContent;
 
     // Occupied cell — draggable + drop target (for swap)
     return Draggable<ScheduleCellModel>(

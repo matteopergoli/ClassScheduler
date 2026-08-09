@@ -54,6 +54,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   String? _selectedScheduleId;
   String? _currentScheduleName;
   ScheduleViewMode _viewMode = ScheduleViewMode.perClassroom; // Updated default
+  bool _isEditing = false;
   bool _showResultPanel = false;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     setState(() {
       _selectedScheduleId = scheduleId;
       _currentScheduleName = scheduleName;
+      _isEditing = false;
       _showResultPanel = false;
     });
   }
@@ -236,7 +238,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               onVersionsTap: (schedules) => _showVersionSheet(schedules),
               onGenerate: (schedules) => _startGeneration(schedules),
               onViewModeChanged: (mode) =>
-                  setState(() => _viewMode = mode),
+                  setState(() {
+                    _viewMode = mode;
+                    if (mode == ScheduleViewMode.perTeacher) {
+                      _isEditing = false;
+                    }
+                  }),
+              isEditing: _isEditing,
+              onEditingChanged: (value) =>
+                  setState(() => _isEditing = value),
               onExport: _selectedScheduleId != null ? _showExport : null,
             ),
             const TrialBanner(),
@@ -304,6 +314,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               setState(() {
                 _selectedScheduleId = schedules.first.id;
                 _currentScheduleName = schedules.first.name;
+                _isEditing = false;
               });
             }
           });
@@ -325,6 +336,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           scheduleId: _selectedScheduleId!,
           schoolId: widget.schoolId,
           viewMode: _viewMode,
+          isEditing: _isEditing,
         );
       },
     );
@@ -343,6 +355,8 @@ class _ScheduleHeader extends StatelessWidget {
   final void Function(List<ScheduleModel>) onVersionsTap;
   final void Function(List<ScheduleModel>) onGenerate;
   final void Function(ScheduleViewMode) onViewModeChanged;
+  final bool isEditing;
+  final ValueChanged<bool> onEditingChanged;
   final VoidCallback? onExport;
 
   const _ScheduleHeader({
@@ -355,6 +369,8 @@ class _ScheduleHeader extends StatelessWidget {
     required this.onVersionsTap,
     required this.onGenerate,
     required this.onViewModeChanged,
+    required this.isEditing,
+    required this.onEditingChanged,
     required this.onExport,
   });
 
@@ -424,6 +440,18 @@ class _ScheduleHeader extends StatelessWidget {
               l10n: l10n,
               onTap: _isBusy ? null : () => onGenerate(schedules),
             ),
+          ]),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+            if (selectedScheduleId != null && !_isBusy)
+              _ViewModeToggle(
+                viewMode: viewMode,
+                colors: colors,
+                l10n: l10n,
+                onChanged: onViewModeChanged,
+              ),
+            const Spacer(),
             if (onExport != null && !_isBusy) ...[
               const SizedBox(width: 8),
               IconButton(
@@ -435,17 +463,25 @@ class _ScheduleHeader extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
               ),
             ],
-          ]),
-          if (selectedScheduleId != null && !_isBusy)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: _ViewModeToggle(
-                viewMode: viewMode,
-                colors: colors,
-                l10n: l10n,
-                onChanged: onViewModeChanged,
+            const SizedBox(width: 8),
+            Visibility(
+              visible: selectedScheduleId != null &&
+                  !_isBusy &&
+                  viewMode == ScheduleViewMode.perClassroom,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: OutlinedButton.icon(
+                onPressed: () => onEditingChanged(!isEditing),
+                icon: Icon(
+                  isEditing ? Icons.check_rounded : Icons.edit_outlined,
+                  size: 17,
+                ),
+                label: Text(isEditing ? l10n.done : l10n.edit),
               ),
             ),
+            ],
+          ),
         ],
       ),
     );

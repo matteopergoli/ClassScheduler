@@ -7,6 +7,7 @@ const schools = [
     classes: 6,
     lastGenerated: "2 Mar 2026",
     qualityScore: 94,
+    bestScore: 97,
     status: "perfect",
     teachers: 8,
     slotsUsed: 38,
@@ -18,6 +19,7 @@ const schools = [
     classes: 10,
     lastGenerated: "28 Feb 2026",
     qualityScore: 78,
+    bestScore: 82,
     status: "soft",
     teachers: 12,
     slotsUsed: 76,
@@ -29,6 +31,7 @@ const schools = [
     classes: 4,
     lastGenerated: "Never",
     qualityScore: null,
+    bestScore: null,
     status: "draft",
     teachers: 5,
     slotsUsed: 22,
@@ -78,11 +81,12 @@ function QualityRing({ score, size = 52 }) {
   );
 }
 
-function SchoolCard({ school, index }) {
+function SchoolCard({ school, index, onEdit }) {
   const [hovered, setHovered] = useState(false);
   const pal = palette[index % palette.length];
   const sc = statusConfig[school.status];
   const pct = Math.round((school.slotsUsed / school.slotsTotal) * 100);
+  const isValid = !!(school.classes > 0 && school.teachers > 0 && school.slotsTotal > 0 && school.slotsTotal >= school.slotsUsed);
 
   return (
     <div
@@ -126,6 +130,9 @@ function SchoolCard({ school, index }) {
           <div style={{ color: "#f1f5f9", fontSize: 18, fontWeight: 700, fontFamily: "Playfair Display, serif", lineHeight: 1.2 }}>
             {school.name}
           </div>
+          {school.bestScore != null && (
+            <div style={{ color: "#94a3b8", fontSize: 11, marginTop: 6, fontWeight: 600 }}>Best: {school.bestScore}</div>
+          )}
         </div>
         <QualityRing score={school.qualityScore} />
       </div>
@@ -163,22 +170,31 @@ function SchoolCard({ school, index }) {
 
       {/* action buttons */}
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button style={{
-          flex: 1, background: `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
-          border: "none", borderRadius: 10, padding: "8px 0", color: "#fff",
-          fontSize: 12, fontWeight: 700, fontFamily: "DM Sans, sans-serif",
-          cursor: "pointer", letterSpacing: "0.02em",
-          boxShadow: `0 4px 16px ${pal.from}50`,
-        }}>
+        <button
+          disabled={!isValid}
+          onClick={() => isValid && console.log("Generate for", school.id)}
+          style={{
+            flex: 1,
+            background: isValid ? `linear-gradient(135deg, ${pal.from}, ${pal.to})` : "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03))",
+            border: "none", borderRadius: 10, padding: "8px 0", color: "#fff",
+            fontSize: 12, fontWeight: 700, fontFamily: "DM Sans, sans-serif",
+            cursor: isValid ? "pointer" : "not-allowed", letterSpacing: "0.02em",
+            boxShadow: isValid ? `0 4px 16px ${pal.from}50` : "none",
+            opacity: isValid ? 1 : 0.5,
+          }}
+        >
           {school.status === "draft" ? "⚡ Generate" : "⚡ Re-generate"}
         </button>
-        <button style={{
-          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 10, padding: "8px 14px", color: "#94a3b8",
-          fontSize: 12, fontWeight: 600, fontFamily: "DM Sans, sans-serif",
-          cursor: "pointer",
-        }}>
-          ···
+        <button
+          onClick={() => onEdit && onEdit(school)}
+          style={{
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "8px 14px", color: "#94a3b8",
+            fontSize: 12, fontWeight: 600, fontFamily: "DM Sans, sans-serif",
+            cursor: "pointer",
+          }}
+        >
+          ✏️ Edit
         </button>
       </div>
     </div>
@@ -208,6 +224,7 @@ export default function App() {
   const [mounted, setMounted] = useState(false);
   const [activeNav, setActiveNav] = useState("Schools");
   const [showTrial, setShowTrial] = useState(true);
+  const [selectedSchool, setSelectedSchool] = useState(null);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
@@ -221,6 +238,12 @@ export default function App() {
     { icon: "📅", label: "Schedule" },
     { icon: "⚙", label: "Settings" },
   ];
+
+  function handleEdit(school) {
+    setSelectedSchool(school.id);
+    setActiveNav("Setup");
+    console.log("Editing setup for school", school.id);
+  }
 
   return (
     <div style={{
@@ -338,7 +361,7 @@ export default function App() {
                 transform: mounted ? "none" : "translateY(20px)",
                 transition: `all 0.55s cubic-bezier(.4,0,.2,1) ${0.2 + i * 0.08}s`,
               }}>
-                <SchoolCard school={school} index={i} />
+                <SchoolCard school={school} index={i} onEdit={handleEdit} />
               </div>
             ))}
           </div>

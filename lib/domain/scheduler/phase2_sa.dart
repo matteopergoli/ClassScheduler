@@ -29,6 +29,7 @@ class Phase2SA {
   static const _debugEnabled = false;
 
   void _debug(String message) {
+    if (!_debugEnabled) return;
     assert(() {
       print('[Phase2] $message');
       return true;
@@ -448,11 +449,11 @@ class Phase2SA {
 
     // HC-1: teacher of s2 must be free in c1 at (d,l) and vice versa
     if (!candidate.canPlace(c1, s2, d, l)) {
-      // _debug('Cross-class move rejected: cannot place s2=$s2 into c1=$c1 d=$d l=$l');
+      _debug('Cross-class move rejected: cannot place s2=$s2 into c1=$c1 d=$d l=$l');
       return null;
     }
     if (!candidate.canPlace(c2, s1, d, l)) {
-      // _debug('Cross-class move rejected: cannot place s1=$s1 into c2=$c2 d=$d l=$l');
+      _debug('Cross-class move rejected: cannot place s1=$s1 into c2=$c2 d=$d l=$l');
       return null;
     }
 

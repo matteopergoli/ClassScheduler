@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ClassScheduler — Homepage Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --scaffold-bg:#F8F9FF; /* AppColorsLight.scaffoldBg */
+      --card-bg:#FFFFFF; /* AppColorsLight.cardBg */
+      --primary:#6C63FF; /* AppColorsLight.primary */
+      --text-primary:#0F172A; /* AppColorsLight.textPrimary */
+      --text-muted:#64748B; /* AppColorsLight.textMuted */
+      --badge-bg:#EEF2FF; /* accent-like */
+      --success:#059669;
+    }
+    body{font-family:DM Sans, Playfair Display, system-ui, -apple-system, "Segoe UI", Roboto, Arial;background:var(--scaffold-bg);padding:24px}
+    .app-header{display:flex;justify-content:space-between;align-items:flex-start}
+    .title{font-size:28px;font-weight:700;color:#0f172a}
+    .sub{color:#475569;margin-top:6px}
+    .card{background:#fff;border-radius:12px;padding:16px;margin-top:18px;box-shadow:0 6px 20px rgba(15,23,42,0.06);width:720px}
+    .row{display:flex;align-items:center;justify-content:space-between}
+    .left{display:flex;gap:12px;align-items:center}
+    .name{font-weight:600;font-size:16px}
+    .badge{background:var(--badge-bg);color:var(--primary);padding:6px 10px;border-radius:999px;font-weight:700}
+    .pill{padding:4px 8px;border-radius:999px;font-weight:700;font-size:12px}
+    .pill.ready{background:rgba(5,150,105,0.08);color:var(--success)}
+    .pill.partial{background:#fff7ed;color:#92400e}
+    .summary{color:var(--text-muted);font-size:13px;margin-top:8px;display:flex;gap:18px}
+    .actions{display:flex;gap:8px}
+    .btn{padding:8px 10px;border-radius:8px;border:none;background:#111827;color:white;font-weight:600;cursor:pointer}
+    .btn.ghost{background:#f3f4f6;color:#111827;font-weight:600;border:1px solid #e6e9ef}
+    .btn.small{padding:6px 8px;font-size:13px}
+    .btn.disabled{opacity:0.45;cursor:not-allowed}
+    .tooltip{position:relative}
+    .tooltip .tip{position:absolute;left:50%;transform:translateX(-50%);bottom:110%;background:#111827;color:#fff;padding:6px 8px;border-radius:6px;font-size:12px;white-space:nowrap;display:none}
+    .tooltip:hover .tip{display:block}
+    .detail{margin-top:12px;background:var(--card-bg);padding:12px;border-radius:8px;color:var(--text-primary);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <div>
+      <div class="title">ClassScheduler</div>
+      <div class="sub">Overview of your schools and quick actions</div>
+    </div>
+    <div>
+      <button class="btn">+ New School</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="left">
+        <div>
+          <div class="name">Westview High School</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <div class="badge">3 schedules</div>
+            <div class="pill ready">Ready</div>
+            <div style="color:var(--text-muted);font-size:13px">Best score: 93%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost small" onclick="alert('Open schedules')">Open schedules</button>
+        <div class="tooltip">
+          <button class="btn small disabled" disabled>Generate</button>
+          <div class="tip">Disabled: setup incomplete (define rooms & periods)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary and setup/constraints details removed as requested -->
+  </div>
+
+  <script>
+    // Small demo: toggle the Generate button enabled/disabled for testing.
+    // In real UI the button should be disabled when setup incomplete.
+    function setReady(ready){
+      const btn = document.querySelector('.btn.small.disabled');
+      if(!btn) return;
+      if(ready){
+        btn.classList.remove('disabled');
+        btn.disabled = false;
+        btn.textContent = 'Generate';
+        const tip = document.querySelector('.tip'); if(tip) tip.style.display='none';
+      } else {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+        btn.textContent = 'Generate';
+        const tip = document.querySelector('.tip'); if(tip) tip.style.display='';
+      }
+    }
+  </script>
+</body>
+</html>

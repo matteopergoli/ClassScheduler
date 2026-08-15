@@ -192,7 +192,11 @@ class SchedulerEngine {
   }
 
   Phase1Result _buildPhase1Result() {
-    const retries = 6;
+    // Zero-slack / exact-cover configurations (weekly targets that sum
+    // exactly to available capacity, especially with teachers shared
+    // across classrooms) need many more randomized attempts to find a
+    // feasible ordering. 6 was too few — raised to 40.
+    const retries = 40;
     Phase1Result bestResult = Phase1Greedy(
       _input,
       rng: Random(42),

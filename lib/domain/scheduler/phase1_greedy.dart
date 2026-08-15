@@ -51,7 +51,27 @@ class Phase1Greedy {
   final Random _rng;
   final Phase1ProgressCallback? _onProgress;
   int _backtrackCount = 0;
-  static const _debugEnabled = false;
+  static const _debugEnabled = true;
+
+  // Cross-classroom teacher contention: a teacher's own weekly slack is
+  // (total slots in the week) − (their combined committed hours across
+  // ALL classrooms). Teachers with the least slack (e.g. shared across
+  // multiple classrooms with tight targets, zero-slack exact-cover setups)
+  // must be scheduled first, or they get boxed out by less-contended pairs.
+  late final List<int> _teacherSlackBySubject = _computeTeacherSlacks();
+
+  List<int> _computeTeacherSlacks() {
+    final numTeachers = _input.teacherNames.length;
+    final totalTeacherSlots = _input.numDays * _input.numSlots;
+    final committed = List<int>.filled(numTeachers, 0);
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        committed[_input.teacherOf[s]] += _input.weeklyTarget[c][s];
+      }
+    }
+    return List<int>.generate(_input.numSubjects,
+        (s) => totalTeacherSlots - committed[_input.teacherOf[s]]);
+  }
 
   Phase1Greedy(this._input, {Random? rng, Phase1ProgressCallback? onProgress})
       : _rng = rng ?? Random(42), // deterministic seed for debuggability
@@ -90,19 +110,35 @@ class Phase1Greedy {
     // Step 3+4+5 — Assign remaining demand ──────────────────────────────────
     _assignAll(state, pairs, violations);
 
-    // HC-5 repair: remove partial minDaily days that can't be completed,
-    // then run a second greedy pass to reassign the freed lessons.
-    _removePartialMinDailyViolations(state);
-    final pairs2 = _buildMcfOrder(state);
-    if (pairs2.isNotEmpty) {
-      _assignAll(state, pairs2, violations);
+    // HC-5 repair loop: for zero-slack / tightly-coupled cases (shared
+    // teachers across classrooms, exact weekly-target-to-capacity fits),
+    // a single repair pass often just shifts the MinDaily-parity problem
+    // to a different day rather than resolving it. Iterate the
+    // remove-partial → re-greedy → displacement sequence until it
+    // stabilises (no more shortfall change) or a small iteration cap.
+    var previousShortfall = -1;
+    for (var pass = 0; pass < 5; pass++) {
       _removePartialMinDailyViolations(state);
-    }
+      final passPairs = _buildMcfOrder(state);
+      if (passPairs.isNotEmpty) {
+        _assignAll(state, passPairs, violations);
+      }
+      _removePartialMinDailyViolations(state);
+      _repairWithDisplacement(state);
+      _removePartialMinDailyViolations(state);
+      _repairMinDailyChain(state);
+      _removePartialMinDailyViolations(state);
 
-    // Displacement repair: for nearly-complete pairs (remaining ≤ 3), try
-    // inserting the missing lessons by moving occupying subjects to free slots.
-    _repairWithDisplacement(state);
-    _removePartialMinDailyViolations(state);
+      var shortfall = 0;
+      for (var c = 0; c < _input.numClassrooms; c++) {
+        for (var s = 0; s < _input.numSubjects; s++) {
+          shortfall += state.remaining(c, s);
+        }
+      }
+      _debug('Repair pass $pass: shortfall=$shortfall');
+      if (shortfall == 0 || shortfall == previousShortfall) break;
+      previousShortfall = shortfall;
+    }
 
     // Reconcile: recompute violations from actual remaining demand.
     // The greedy loop may leave (c,s) pairs with remaining > 0 unrecorded
@@ -119,6 +155,71 @@ class Phase1Greedy {
           ));
         }
       }
+    }
+
+    // Diagnostic dump for any remaining shortfall: shows exactly which
+    // days the affected subject is currently placed on, in EVERY classroom
+    // it teaches (not just the one with the shortfall), plus its teacher's
+    // combined free/busy slots for the affected classroom's days. Also
+    // dumps the SAME breakdown for every OTHER subject sharing those
+    // classrooms — the block-relocation repair's matching ceiling (e.g.
+    // "4/5") means some other subject's own placement is the actual
+    // blocker, and we need to see its schedule too to find out which one
+    // and why. This is unconditional (not gated by _debugEnabled) so it
+    // always surfaces in the run console when generation fails.
+    if (violations.isNotEmpty) {
+      print('[Phase1] === MinDaily/HC-3 shortfall diagnostic dump ===');
+      final affectedSubjects = violations.map((v) => v.subjectIdx).toSet();
+      final affectedClassrooms = violations.map((v) => v.classroomIdx).toSet();
+
+      void dumpSubject(int s) {
+        final teacherIdx = _input.teacherOf[s];
+        print('[Phase1] Subject "${_input.subjectNames[s]}" '
+            '(teacher "${_input.teacherNames[teacherIdx]}"):');
+        for (var c = 0; c < _input.numClassrooms; c++) {
+          final target = _input.weeklyTarget[c][s];
+          if (target == 0) continue;
+          final minD = _input.minDaily[c][s];
+          final maxD = _input.maxDaily[c][s];
+          final rem = state.remaining(c, s);
+          final perDay = <String>[];
+          for (var d = 0; d < _input.numDays; d++) {
+            perDay.add('${_input.dayNames[d]}=${state.dailySubjectCount(c, s, d)}');
+          }
+          print('[Phase1]   classroom "${_input.classroomNames[c]}": '
+              'target=$target minD=$minD maxD=$maxD remaining=$rem  '
+              '[${perDay.join(", ")}]');
+        }
+        for (var c = 0; c < _input.numClassrooms; c++) {
+          if (_input.weeklyTarget[c][s] == 0) continue;
+          for (var d = 0; d < _input.numDays; d++) {
+            final freeSlots = <int>[];
+            for (var l = 0; l < _input.numSlots; l++) {
+              if (state.isTeacherFree(teacherIdx, d, l)) freeSlots.add(l);
+            }
+            print('[Phase1]   teacher free slots on ${_input.dayNames[d]} '
+                '(any classroom): $freeSlots');
+          }
+          break; // day list is the same regardless of which classroom c we read from
+        }
+      }
+
+      for (final s in affectedSubjects) {
+        dumpSubject(s);
+      }
+
+      print('[Phase1] --- other subjects sharing the affected classroom(s) ---');
+      final otherSubjects = <int>{};
+      for (final c in affectedClassrooms) {
+        for (var s = 0; s < _input.numSubjects; s++) {
+          if (affectedSubjects.contains(s)) continue;
+          if (_input.weeklyTarget[c][s] > 0) otherSubjects.add(s);
+        }
+      }
+      for (final s in otherSubjects) {
+        dumpSubject(s);
+      }
+      print('[Phase1] === end diagnostic dump ===');
     }
 
     _emitProgress(1.0); // 100% through Phase 1 (assignment complete)
@@ -143,12 +244,19 @@ class Phase1Greedy {
         if (demand <= 0) continue;
         final available = state.availableSlots(c, s).length;
         final slack     = available - demand;
-        items.add(_WorkItem(c: c, s: s, slack: slack, demand: demand));
+        items.add(_WorkItem(
+          c: c, s: s, slack: slack, demand: demand,
+          teacherSlack: _teacherSlackBySubject[s],
+        ));
       }
     }
 
-    // Sort ascending by slack; ties broken by descending demand (§8.2.1 Step 2)
+    // Primary: least teacher-wide slack first (busiest / most shared
+    // teacher across classrooms gets placed before it's boxed out).
+    // Secondary: original MCF — ascending pair slack, ties by demand desc.
     items.sort((a, b) {
+      final tCmp = a.teacherSlack.compareTo(b.teacherSlack);
+      if (tCmp != 0) return tCmp;
       final cmp = a.slack.compareTo(b.slack);
       return cmp != 0 ? cmp : b.demand.compareTo(a.demand);
     });
@@ -506,6 +614,268 @@ class Phase1Greedy {
     return false;
   }
 
+  // ── MinDaily block-relocation repair ────────────────────────────────────
+  //
+  // Handles the "last-mile" MinDaily trap: a subject s has remaining < minD,
+  // meaning the outstanding lesson(s) can only legally land on a day where s
+  // currently has zero lessons — but placing them alone there would violate
+  // MinDaily, and in a zero-slack schedule there's no spare free slot on
+  // that day to complete the pair.
+  //
+  // A single-donor-slot chain isn't enough when EVERY day s appears on is
+  // sitting at exactly minD (no day has a slot to spare on its own). This
+  // repair instead relocates an ENTIRE day's block of s (any day with
+  // count >= minD — donating all of it always leaves the source day valid,
+  // since 0 is allowed) onto the target day, combined with the outstanding
+  // new lesson(s), evicting as many occupants from the target day as
+  // needed into the slots the whole block just vacated. This subsumes the
+  // single-slot case (block of exactly minD, 0 or 1 evictions) while also
+  // reaching multi-eviction cases a single donor slot never could.
+  // All steps are validated with canPlace/satisfiesMinDaily before
+  // committing; any failure fully rolls back before trying the next
+  // candidate (target day, source day) combination.
+
+  void _repairMinDailyChain(ScheduleState state) {
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        final minD = _input.minDaily[c][s];
+        if (minD <= 1) continue;
+        final remaining = state.remaining(c, s);
+        if (remaining <= 0 || remaining >= minD) continue;
+
+        for (var d = 0; d < _input.numDays; d++) {
+          if (state.dailySubjectCount(c, s, d) != 0) continue;
+          if (_tryMinDailyBlockRelocate(state, c, s, d, remaining)) break;
+        }
+      }
+    }
+  }
+
+  bool _tryMinDailyBlockRelocate(
+      ScheduleState state, int c, int s, int d, int remainingBefore) {
+    final minD = _input.minDaily[c][s];
+    final maxD = _input.maxDaily[c][s];
+    print('[Phase1] BlockRelocate: trying target c=$c s=$s d=$d '
+        'remaining=$remainingBefore minD=$minD maxD=$maxD');
+
+    for (var sd = 0; sd < _input.numDays; sd++) {
+      if (sd == d) continue;
+      final blockCount = state.dailySubjectCount(c, s, sd);
+      if (blockCount < minD) continue; // not a whole valid donor block
+
+      final totalOnTarget = blockCount + remainingBefore;
+      if (totalOnTarget > maxD) {
+        print('[Phase1] BlockRelocate:   source=$sd block=$blockCount '
+            'REJECT totalOnTarget=$totalOnTarget > maxD=$maxD');
+        continue; // would exceed MaxDaily on target
+      }
+
+      final blockSlots = <int>[];
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (state.schedule[c][sd][l] == s) blockSlots.add(l);
+      }
+      var blocked = false;
+      for (final l in blockSlots) {
+        if (_isMustAssignSlot(c, sd, l)) {
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) {
+        print('[Phase1] BlockRelocate:   source=$sd REJECT must-assign in block');
+        continue;
+      }
+
+      final freeOnD = <int>[];
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (state.schedule[c][d][l] == kFree && !_input.isBlocked(c, d, l)) {
+          freeOnD.add(l);
+        }
+      }
+      final shortfall = totalOnTarget - freeOnD.length;
+      print('[Phase1] BlockRelocate:   source=$sd block=$blockCount '
+          'totalOnTarget=$totalOnTarget freeOnD=${freeOnD.length} '
+          'shortfall=$shortfall');
+      if (shortfall > blockCount) {
+        print('[Phase1] BlockRelocate:   source=$sd REJECT shortfall=$shortfall '
+            '> blockCount=$blockCount');
+        continue; // freed block can't cover it
+      }
+
+      // Remove the whole block from the source day (0 is always valid).
+      for (final l in blockSlots) {
+        state.remove(c, sd, l);
+      }
+      if (!state.satisfiesMinDaily(c, s, sd)) {
+        print('[Phase1] BlockRelocate:   source=$sd REJECT donor day invalid '
+            'after removal (should not happen)');
+        for (final l in blockSlots) state.assign(c, s, sd, l);
+        continue;
+      }
+
+      // Evict as many target-day occupants as needed into the freed slots.
+      //
+      // This is a bipartite matching problem (evictees × donor slots).
+      // Greedy first-fit assignment can leave one evictee unmatched even
+      // when a valid perfect matching exists — e.g. evictee A greedily
+      // takes the only slot evictee B could have used, when B should have
+      // taken it and A could have used a different slot. Use Kuhn's
+      // augmenting-path algorithm instead, which always finds a maximum
+      // matching if edges (occ, donorSlot) are validated correctly.
+      final evictees = <(int subject, int slot)>[];
+      for (var l = 0; l < _input.numSlots; l++) {
+        final occ = state.schedule[c][d][l];
+        if (occ == kFree || occ == s) continue;
+        if (_isMustAssignSlot(c, d, l)) continue;
+        evictees.add((occ, l));
+      }
+
+      final evictionsNeeded = shortfall > 0 ? shortfall : 0;
+      final donorSlotsList = List<int>.from(blockSlots);
+
+      // edgeOk(evicteeIdx, donorIdx): tentatively move occ to the donor
+      // slot, check validity, then immediately undo — used only to probe
+      // the edge, never left committed.
+      bool edgeOk(int evicteeIdx, int donorIdx) {
+        final (occ, srcSlot) = evictees[evicteeIdx];
+        final donorSlot = donorSlotsList[donorIdx];
+        state.remove(c, d, srcSlot);
+        var ok = state.canPlace(c, occ, sd, donorSlot);
+        if (ok) {
+          state.assign(c, occ, sd, donorSlot);
+          ok = state.satisfiesMinDaily(c, occ, d) &&
+               state.satisfiesMinDaily(c, occ, sd);
+          state.remove(c, sd, donorSlot);
+        }
+        state.assign(c, occ, d, srcSlot); // always restore after probing
+        return ok;
+      }
+
+      final slotTaken = List<int>.filled(donorSlotsList.length, -1);
+
+      bool tryMatch(int evicteeIdx, List<bool> visited) {
+        for (var di = 0; di < donorSlotsList.length; di++) {
+          if (visited[di]) continue;
+          if (!edgeOk(evicteeIdx, di)) continue;
+          visited[di] = true;
+          if (slotTaken[di] == -1 || tryMatch(slotTaken[di], visited)) {
+            slotTaken[di] = evicteeIdx;
+            return true;
+          }
+        }
+        return false;
+      }
+
+      var matchedCount = 0;
+      final matchedEvictee = List<bool>.filled(evictees.length, false);
+      for (var i = 0; i < evictees.length; i++) {
+        if (tryMatch(i, List<bool>.filled(donorSlotsList.length, false))) {
+          matchedCount++;
+          matchedEvictee[i] = true;
+        }
+      }
+
+      final evicted = <(int, int, int)>[]; // (subject, fromSlotOnD, toSlotOnSd)
+
+      if (matchedCount < evictionsNeeded) {
+        print('[Phase1] BlockRelocate:   source=$sd REJECT matching found '
+            'only $matchedCount/$evictionsNeeded valid evictions on d=$d');
+        for (var i = 0; i < evictees.length; i++) {
+          final (occ, slot) = evictees[i];
+          print('[Phase1] BlockRelocate:     evictee subject=$occ '
+              '(from d=$d slot=$slot) matched=${matchedEvictee[i]}');
+        }
+        _rollbackBlockRelocate(state, c, s, sd, d, blockSlots, evicted, const []);
+        continue;
+      }
+
+      // Commit the matching for real.
+      for (var di = 0; di < donorSlotsList.length; di++) {
+        final evicteeIdx = slotTaken[di];
+        if (evicteeIdx == -1) continue;
+        final (occ, srcSlot) = evictees[evicteeIdx];
+        final donorSlot = donorSlotsList[di];
+        state.remove(c, d, srcSlot);
+        state.assign(c, occ, sd, donorSlot);
+        evicted.add((occ, srcSlot, donorSlot));
+      }
+
+
+      // Place the relocated block + outstanding lesson(s) onto day d.
+      final slotsOnD = <int>[];
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (state.schedule[c][d][l] == kFree && !_input.isBlocked(c, d, l)) {
+          slotsOnD.add(l);
+        }
+      }
+      if (slotsOnD.length < totalOnTarget) {
+        print('[Phase1] BlockRelocate:   source=$sd REJECT slotsOnD='
+            '${slotsOnD.length} < totalOnTarget=$totalOnTarget after eviction');
+        _rollbackBlockRelocate(state, c, s, sd, d, blockSlots, evicted, const []);
+        continue;
+      }
+
+      final placedOnD = <int>[];
+      var placeFailed = false;
+      for (var i = 0; i < totalOnTarget; i++) {
+        if (!state.canPlace(c, s, d, slotsOnD[i])) {
+          placeFailed = true;
+          print('[Phase1] BlockRelocate:   source=$sd REJECT canPlace failed '
+              'for s=$s at d=$d slot=${slotsOnD[i]}');
+          break;
+        }
+        state.assign(c, s, d, slotsOnD[i]);
+        placedOnD.add(slotsOnD[i]);
+      }
+
+      if (placeFailed || !state.satisfiesMinDaily(c, s, d)) {
+        if (!placeFailed) {
+          print('[Phase1] BlockRelocate:   source=$sd REJECT final '
+              'satisfiesMinDaily check failed on target d=$d');
+        }
+        _rollbackBlockRelocate(state, c, s, sd, d, blockSlots, evicted, placedOnD);
+        continue;
+      }
+
+      _debug('MinDaily block relocation succeeded: c=$c s=$s source=$sd '
+          '(block=$blockCount) -> target=$d (total=$totalOnTarget), '
+          'evicted=${evicted.length}');
+      return true;
+    }
+
+    return false;
+  }
+
+  void _rollbackBlockRelocate(
+    ScheduleState state,
+    int c,
+    int s,
+    int sd,
+    int d,
+    List<int> blockSlots,
+    List<(int, int, int)> evicted,
+    List<int> placedOnD,
+  ) {
+    for (final l in placedOnD) {
+      state.remove(c, d, l);
+    }
+    for (final e in evicted) {
+      final occ = e.$1, originalSlotOnD = e.$2, landedSlotOnSd = e.$3;
+      state.remove(c, sd, landedSlotOnSd);
+      state.assign(c, occ, d, originalSlotOnD);
+    }
+    for (final l in blockSlots) {
+      state.assign(c, s, sd, l);
+    }
+  }
+
+  bool _isMustAssignSlot(int c, int d, int l) {
+    for (final ma in _input.mustAssign) {
+      if (ma.c == c && ma.d == d && ma.l == l) return true;
+    }
+    return false;
+  }
+
   bool _teacherBusyOnDay(ScheduleState state, int s, int d) {
     final t = _input.teacherOf[s];
     for (var l = 0; l < _input.numSlots; l++) {
@@ -571,10 +941,13 @@ class Phase1Greedy {
           s: pairs[j].s,
           slack: avail - dem,
           demand: dem,
+          teacherSlack: pairs[j].teacherSlack,
         );
       }
     }
     pairs.sort((a, b) {
+      final tCmp = a.teacherSlack.compareTo(b.teacherSlack);
+      if (tCmp != 0) return tCmp;
       final cmp = a.slack.compareTo(b.slack);
       return cmp != 0 ? cmp : b.demand.compareTo(a.demand);
     });
@@ -588,7 +961,8 @@ class Phase1Greedy {
 // ── Work item ─────────────────────────────────────────────────────────────────
 
 class _WorkItem {
-  final int c, s, slack, demand;
+  final int c, s, slack, demand, teacherSlack;
   _WorkItem({required this.c, required this.s,
-             required this.slack, required this.demand});
+             required this.slack, required this.demand,
+             required this.teacherSlack});
 }

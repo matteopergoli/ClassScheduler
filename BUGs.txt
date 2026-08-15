@@ -56,19 +56,17 @@ x	quando salvo uno schedule il nome suggerito non è l'ultimo
 x	cancel button on generating doesn't work
 x	editing dello schedule dovrebbe essere bloccato a meno che non clicco un tasto
 x	nel tab schedule non visualizza niente
+x	ha in memoria MinDaily in input dalla vecchia implementazione, anche se adesso è zero -> corretto il database
+x	l'algoritmo dice che non esiste ma soluzione e consiglia di cambiare input, ma la soluzione esiste -> converge con MinDaily=1
+x	se runno la stessa scuola con gli stessi input ottengo risultati diversi
 
 
 
 Open:
-O	l'algoritmo dice che non esiste ma soluzione e consiglia di cambiare input, ma la soluzione esiste
-O	se runno la stessa scuola con gli stessi input ottengo risultati diversi
-		ora ottengo sempre stesso risultato ma sbagliato.
-O	ha in memoria MinDaily in input dalla vecchia implementazione, anche se adesso è zero
-O	prova hard/soft constraints, incluso min/max giornalieri
-O	non capisco bene il flusso di lavoro. Finito in tab setup mi chiede di selezionare una scuola, se clicco generate sulla scuola mi va su schedule. Non va un cazzo
-		mi ha creato un file di fix ma non so dove caricarlo. Chiederglielo di nuovo
-O	non chiaro come vengono combinati tra loro Scuole/Setup/Constraints/Schedule
+O	prova hard/soft constraints, incluso min/max giornalieri -> capire come si combinano con le scuole
+O	vincolo MinDaily=2 non fa convergere il problema, probabilmente serve un nuovo algoritmo
 O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
+O	explore settings
 O	creazione apk locale per testing locale su device vero
 O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo
 O	chiedere prossimi passi per buildare app e per rilasciarla in development

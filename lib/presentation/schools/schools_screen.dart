@@ -60,12 +60,8 @@ class SchoolsScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(l10n.goodMorning,
-                              style: AppTextStyles.labelSmall.copyWith(
-                                  color: colors.textPlaceholder,
-                                  letterSpacing: 0.06,
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 2),
+                            // Removed 'Good morning' label as it's unnecessary
+                          
                           Text('ClassScheduler',
                               style: AppTextStyles.displayLarge.copyWith(
                                   color: colors.textPrimary)),

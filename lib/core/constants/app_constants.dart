@@ -59,10 +59,23 @@ abstract class AppConstants {
   static const int    saNoImprovementLimit = 50000;
 
   /// Maximum SA restarts per run (full reheat to T0 each time).
-  static const int    saMaxRestarts   = 3;
+  /// Raised from 3: at T0=500 / alpha=0.9997 / Tmin=0.1, a single cooling
+  /// cycle completes in only ~28,000 iterations — far short of
+  /// saMaxIterations or saMaxWallSecs. With only 3 restarts allowed, SA was
+  /// exhausting its restart budget after ~4 short cycles (a few seconds)
+  /// and returning early, well before the real time/iteration budget was
+  /// used. Raised so the outer cooling-cycle loop (phase2_sa.dart) can keep
+  /// reheating and re-annealing until it genuinely exhausts wall-clock time
+  /// or the iteration cap — giving tight / zero-slack problems many more
+  /// real attempts to find rare move combinations (e.g. BLOCK SHIFT + FILL)
+  /// needed to escape a MinDaily deadlock.
+  static const int    saMaxRestarts   = 200;
 
   /// Phase 1 backtracking window (number of recent assignments to undo).
-  static const int    phase1BacktrackN = 15;
+  /// Increased from 15: zero-slack / exact-cover problems (shared teachers
+  /// across classrooms with no free capacity) need much deeper undo windows
+  /// to escape deadlocks that a shallow backtrack can't resolve.
+  static const int    phase1BacktrackN = 60;
 
   /// Progress update interval (every N SA iterations → send to UI).
   static const int    saProgressInterval = 5000;

@@ -59,15 +59,16 @@ x	nel tab schedule non visualizza niente
 x	ha in memoria MinDaily in input dalla vecchia implementazione, anche se adesso è zero -> corretto il database
 x	l'algoritmo dice che non esiste ma soluzione e consiglia di cambiare input, ma la soluzione esiste -> converge con MinDaily=1
 x	se runno la stessa scuola con gli stessi input ottengo risultati diversi
+x	explore settings
+x	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
 
 
 
 Open:
 O	prova hard/soft constraints, incluso min/max giornalieri -> capire come si combinano con le scuole
 O	vincolo MinDaily=2 non fa convergere il problema, probabilmente serve un nuovo algoritmo
-O	Nella homepage deve comparire il tasto generate?? Far comparire per ogni scuola lo stato di definizione di setup/constraints? Con semplice click rimandare a tab corrispondente. Una volta definito tutto si attiva tasto generate e compare tasto per visualizzare i risultati
-O	explore settings
+O	controllare che il tasto edit constraints dalla homepage funzioni correttamente
 O	creazione apk locale per testing locale su device vero
 O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo
-O	chiedere prossimi passi per buildare app e per rilasciarla in development
+O	chiedere prossimi passi per buildare app e per rilasciarla in development -> account/language/billing management in settings
 O	chiedere opinioni di commercializzazione e rilascio

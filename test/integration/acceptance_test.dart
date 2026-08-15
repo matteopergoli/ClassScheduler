@@ -19,7 +19,8 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:classscheduler/core/constants/app_constants.dart';
 import 'package:classscheduler/data/models/app_models.dart';
 import 'package:classscheduler/domain/constraints/constraint_conflict_detector.dart';
-import 'package:classscheduler/domain/scheduler/scheduler_input.dart';
+import 'package:classscheduler/domain/scheduler/drag_drop_validator.dart';
+import 'package:classscheduler/domain/scheduler/scheduler_input.dart' as scheduler_domain;
 import 'package:classscheduler/domain/validation/subject_validator.dart';
 
 import '../helpers/engine_test_runner.dart';
@@ -163,7 +164,7 @@ void main() {
       expect(sw.elapsedMilliseconds, lessThan(1000),
           reason: 'Conflict must be detected quickly');
       expect(
-        result.status == ResultStatus.hardViolations ||
+        result.status == scheduler_domain.ResultStatus.hardViolations ||
             result.hardViolations.isNotEmpty,
         isTrue,
         reason: 'Contradictory constraints must produce a hard violation',
@@ -494,10 +495,10 @@ void main() {
     });
 
     test('ResultStatus enum has all three required values', () {
-      expect(ResultStatus.values, containsAll([
-        ResultStatus.perfect,
-        ResultStatus.softViolationsOnly,
-        ResultStatus.hardViolations,
+      expect(scheduler_domain.ResultStatus.values, containsAll([
+        scheduler_domain.ResultStatus.perfect,
+        scheduler_domain.ResultStatus.softViolationsOnly,
+        scheduler_domain.ResultStatus.hardViolations,
       ]));
     });
   });

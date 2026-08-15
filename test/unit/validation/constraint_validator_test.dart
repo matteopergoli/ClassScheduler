@@ -77,6 +77,7 @@ SubjectModel _subject(String id, String teacher) => SubjectModel(
 ClassroomSubjectModel _cs(String cr, String sub,
         {int weekly = 3, int min = 0, int max = 2}) =>
     ClassroomSubjectModel(
+      id:              '${cr}_$sub',
       classroomId:     cr,
       subjectId:       sub,
       weeklyTargetHours: weekly,
@@ -288,6 +289,7 @@ group('DragDropValidator', () {
 
     final csAssigns = [
       const ClassroomSubjectModel(
+        id:               '${_cr0}_${_sub0}',
         classroomId:       _cr0,
         subjectId:         _sub0,
         weeklyTargetHours: 2,

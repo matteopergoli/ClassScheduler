@@ -16,9 +16,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/school_repository.dart';
+import '../../data/repositories/constraint_repository.dart';
+import '../../data/repositories/period_classroom_capacity_repositories.dart';
+import '../../data/repositories/subject_repositories.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../widgets/quality_ring.dart';
 import '../widgets/trial_banner.dart';
+import '../setup/setup_screen.dart';
 import 'school_form_sheet.dart';
 import '../../providers/selected_school_provider.dart';
 import '../../data/repositories/schedule_repository.dart';
@@ -274,8 +277,30 @@ final schoolsStreamProvider = StreamProvider<List<SchoolModel>>((ref) {
   return ref.watch(schoolRepositoryProvider).watchAll();
 });
 
+final _periodsProvider = StreamProvider.family<List<PeriodModel>, String>(
+  (ref, schoolId) => ref.watch(periodRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _classroomsProvider = StreamProvider.family<List<ClassroomModel>, String>(
+  (ref, schoolId) => ref.watch(classroomRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _subjectsProvider = StreamProvider.family<List<SubjectModel>, String>(
+  (ref, schoolId) => ref.watch(subjectRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _classroomSubjectsProvider =
+    StreamProvider.family<List<ClassroomSubjectModel>, String>(
+  (ref, schoolId) =>
+      ref.watch(classroomSubjectRepositoryProvider(schoolId)).watchAll(),
+);
+
+final _dayCapacitiesProvider = StreamProvider.family<List<DayCapacityModel>, String>(
+  (ref, schoolId) => ref.watch(dayCapacityRepositoryProvider(schoolId)).watchAll(),
+);
+
 // ── SchoolCard ───────────────────────────────────────────────────────────────
-class SchoolCard extends StatefulWidget {
+class SchoolCard extends ConsumerStatefulWidget {
   final SchoolModel school;
   final int paletteIndex;
   final VoidCallback onGenerate;
@@ -290,17 +315,16 @@ class SchoolCard extends StatefulWidget {
   });
 
   @override
-  State<SchoolCard> createState() => _SchoolCardState();
+  ConsumerState<SchoolCard> createState() => _SchoolCardState();
 }
 
-class _SchoolCardState extends State<SchoolCard> {
+class _SchoolCardState extends ConsumerState<SchoolCard> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final colors  = AppColors.of(context);
     final palette = colors.palettes[widget.paletteIndex % colors.palettes.length];
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -360,8 +384,6 @@ class _SchoolCardState extends State<SchoolCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _StatusBadge(school: widget.school, colors: colors),
-                              const SizedBox(height: 6),
                               Text(widget.school.name,
                                   style: AppTextStyles.headingLarge.copyWith(
                                       color: colors.textPrimary),
@@ -382,33 +404,55 @@ class _SchoolCardState extends State<SchoolCard> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        _ScheduleCountBadge(schoolId: widget.school.id, colors: colors),
+                        _ScheduleCountBadge(
+                          schoolId: widget.school.id,
+                          colors: colors,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // Stats row
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _StatCol(label: 'Last run',
                             value: widget.school.updatedAt
                                 .toLocal()
                                 .toString()
                                 .substring(0, 10)),
-                        const SizedBox(width: 20),
-                        const _StatCol(label: 'Updated', value: '—'),
+                        const Spacer(),
+                        _BestScoreBadge(
+                          schoolId: widget.school.id,
+                          colors: colors,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Action buttons
+                    // Status shortcuts
                     Row(
                       children: [
                         Expanded(
-                          child: _GradientCardButton(
-                            label: '⚡ Generate',
-                            palette: palette,
-                            onTap: widget.onGenerate,
+                          child: _SetupStatusCard(
+                            schoolId: widget.school.id,
+                            colors: colors,
+                            onTap: () {
+                              ref.read(selectedSchoolIdProvider.notifier).state = widget.school.id;
+                              ref.read(activeSchoolProvider.notifier).state = widget.school;
+                              context.go('/setup');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ConstraintsCountCard(
+                            schoolId: widget.school.id,
+                            colors: colors,
+                            onTap: () {
+                              ref.read(selectedSchoolIdProvider.notifier).state = widget.school.id;
+                              context.go('/constraints');
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -431,6 +475,149 @@ class _SchoolCardState extends State<SchoolCard> {
 
 // ── Sub-widgets ──────────────────────────────────────────────────────────────
 
+class _SetupStatusCard extends ConsumerWidget {
+  final String schoolId;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  const _SetupStatusCard({
+    required this.schoolId,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final periods = ref.watch(_periodsProvider(schoolId)).valueOrNull ?? const <PeriodModel>[];
+    final classrooms = ref.watch(_classroomsProvider(schoolId)).valueOrNull ?? const <ClassroomModel>[];
+    final subjects = ref.watch(_subjectsProvider(schoolId)).valueOrNull ?? const <SubjectModel>[];
+    final classroomSubjects = ref.watch(_classroomSubjectsProvider(schoolId)).valueOrNull ?? const <ClassroomSubjectModel>[];
+    final dayCapacities = ref.watch(_dayCapacitiesProvider(schoolId)).valueOrNull ?? const <DayCapacityModel>[];
+
+    final isComplete = periods.isNotEmpty &&
+        classrooms.isNotEmpty &&
+        subjects.isNotEmpty &&
+        classroomSubjects.isNotEmpty &&
+        dayCapacities.isNotEmpty;
+    final statusColor = isComplete ? colors.success : colors.error;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(
+              color: statusColor.withOpacity(0.35),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Edit setup',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isComplete ? 'Ready' : 'Fix needed',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConstraintsCountCard extends ConsumerWidget {
+  final String schoolId;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  const _ConstraintsCountCard({
+    required this.schoolId,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(_constraintsCountProvider(schoolId)).valueOrNull ?? 0;
+    final color = count > 0 ? colors.primary : colors.textMuted;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: count > 0
+                ? colors.primary.withOpacity(0.12)
+                : colors.borderSubtle,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(
+              color: count > 0
+                  ? colors.primary.withOpacity(0.30)
+                  : colors.borderDefault,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Constraints',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$count',
+                style: AppTextStyles.numericDisplay.copyWith(
+                  fontSize: 18,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ScheduleCountBadge extends ConsumerWidget {
   final String schoolId;
   final AppColors colors;
@@ -441,77 +628,106 @@ class _ScheduleCountBadge extends ConsumerWidget {
     final schedulesAsync = ref.watch(_schedulesCountProvider(schoolId));
     final count = schedulesAsync.valueOrNull ?? 0;
 
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        color: count > 0
-            ? colors.primary.withOpacity(0.12)
-            : colors.borderSubtle,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          ref.read(selectedSchoolIdProvider.notifier).state = schoolId;
+          context.go('/schedule');
+        },
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: count > 0
-              ? colors.primary.withOpacity(0.30)
-              : colors.borderDefault,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$count',
-            style: AppTextStyles.numericDisplay.copyWith(
-              fontSize: 20,
-              color: count > 0 ? colors.primaryLight : colors.textDisabled,
+        child: Container(
+          width: 60,
+          height: 52,
+          decoration: BoxDecoration(
+            color: count > 0
+                ? colors.primary.withOpacity(0.12)
+                : colors.borderSubtle,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: count > 0
+                  ? colors.primary.withOpacity(0.30)
+                  : colors.borderDefault,
             ),
           ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$count',
+                style: AppTextStyles.numericDisplay.copyWith(
+                  fontSize: 20,
+                  color: count > 0 ? colors.primaryLight : colors.textDisabled,
+                ),
+              ),
+              Text(
+                count == 1 ? 'schedule' : 'schedules',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: count > 0 ? colors.textMuted : colors.textDisabled,
+                  fontSize: 8,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BestScoreBadge extends ConsumerWidget {
+  final String schoolId;
+  final AppColors colors;
+  const _BestScoreBadge({required this.schoolId, required this.colors});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bestScoreAsync = ref.watch(_bestScheduleScoreProvider(schoolId));
+    final bestScore = bestScoreAsync.valueOrNull ?? 0;
+    final scoreColor = bestScore > 0
+        ? _scoreColor(bestScore, colors)
+        : colors.textDisabled;
+
+    return Container(
+      width: 94,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: bestScore > 0 ? scoreColor.withOpacity(0.12) : colors.borderSubtle,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: bestScore > 0 ? scoreColor.withOpacity(0.30) : colors.borderDefault,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
           Text(
-            count == 1 ? 'schedule' : 'schedules',
+            'Best score',
+            overflow: TextOverflow.ellipsis,
             style: AppTextStyles.labelSmall.copyWith(
-              color: count > 0 ? colors.textMuted : colors.textDisabled,
+              color: bestScore > 0 ? colors.textMuted : colors.textDisabled,
               fontSize: 8,
+              letterSpacing: 0.02,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$bestScore',
+            style: AppTextStyles.numericDisplay.copyWith(
+              fontSize: 13,
+              color: scoreColor,
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class _StatusBadge extends StatelessWidget {
-  final SchoolModel school;
-  final AppColors colors;
-  const _StatusBadge({required this.school, required this.colors});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = colors.textMuted;
-    final bg    = colors.borderSubtle;
-    const label = 'Draft';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6, height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(label,
-              style: AppTextStyles.labelSmall.copyWith(
-                  color: color, letterSpacing: 0.04)),
-        ],
-      ),
-    );
+  Color _scoreColor(int score, AppColors colors) {
+    if (score >= 90) return colors.success;
+    if (score >= 75) return colors.warning;
+    return colors.error;
   }
 }
 
@@ -689,6 +905,29 @@ final _schedulesCountProvider =
     StreamProvider.family.autoDispose<int, String>((ref, schoolId) {
   final repo = ref.watch(scheduleRepositoryProvider(schoolId));
   return repo.watchAll().map((list) => list.length);
+});
+
+final _constraintsCountProvider =
+    StreamProvider.family.autoDispose<int, String>((ref, schoolId) {
+  final repo = ref.watch(constraintRepositoryProvider(schoolId));
+  return repo.watchAll().map((list) => list.length);
+});
+
+final _bestScheduleScoreProvider =
+    StreamProvider.family.autoDispose<int, String>((ref, schoolId) {
+  final repo = ref.watch(scheduleRepositoryProvider(schoolId));
+  return repo.watchAll().map((list) {
+    final valid = list.where((schedule) => !schedule.isCancelled).toList();
+    if (valid.isEmpty) return 0;
+
+    var bestScore = valid.first.qualityScore;
+    for (final schedule in valid.skip(1)) {
+      if (schedule.qualityScore > bestScore) {
+        bestScore = schedule.qualityScore;
+      }
+    }
+    return bestScore;
+  });
 });
 
 class _OptionTile extends StatelessWidget {

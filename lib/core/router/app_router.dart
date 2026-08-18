@@ -40,6 +40,36 @@ abstract class AppRoutes {
   static String constraintForm(String id) => '$_constraintFormBase/$id';
 }
 
+class ConstraintFormRouteArgs {
+  final String schoolId;
+  final ConstraintModel? existing;
+
+  /// Editing a HARD daily limit: these live on ClassroomSubjectModel, not
+  /// as a ConstraintModel document (see constraint_form_screen.dart doc),
+  /// so they need their own way to open the form pre-filled for editing.
+  final ClassroomSubjectModel? existingDailyLimit;
+
+  const ConstraintFormRouteArgs({
+    required this.schoolId,
+    this.existing,
+    this.existingDailyLimit,
+  });
+
+  static ConstraintFormRouteArgs? fromExtra(Object? extra) {
+    if (extra is ConstraintFormRouteArgs) return extra;
+    if (extra is ConstraintModel) {
+      return ConstraintFormRouteArgs(
+        schoolId: extra.schoolId,
+        existing: extra,
+      );
+    }
+    if (extra is String && extra.isNotEmpty) {
+      return ConstraintFormRouteArgs(schoolId: extra);
+    }
+    return null;
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
@@ -88,15 +118,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/constraint-form/:id',
         name: 'constraintForm',
         pageBuilder: (ctx, state) {
-          final id       = state.pathParameters['id']!;
-          final extra    = state.extra;
-          final schoolId = extra is String ? extra : '';
-          final existing = extra is ConstraintModel ? extra : null;
+          final id = state.pathParameters['id']!;
+          final args = ConstraintFormRouteArgs.fromExtra(state.extra);
+          final schoolId = args?.schoolId ?? '';
+          final existing = args?.existing;
+          final existingDailyLimit = args?.existingDailyLimit;
           return _slideTransition(
             key: state.pageKey,
             child: ConstraintFormScreen(
               schoolId: schoolId,
               existing: existing,
+              existingDailyLimit: existingDailyLimit,
             ),
           );
         },
@@ -124,15 +156,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.constraints,
               name: 'constraints',
-              builder: (ctx, state) => Consumer(
-                builder: (ctx, ref, _) {
-                  final schoolId =
-                      ref.watch(selectedSchoolIdProvider) ?? '';
-                  return schoolId.isEmpty
-                      ? const _NoSchoolSelectedScreen()
-                      : ConstraintsScreen(schoolId: schoolId);
-                },
-              ),
+              // ConstraintsScreen prompts for a school itself (like
+              // SetupScreen) rather than bouncing to the Schools tab.
+              builder: (ctx, state) => const ConstraintsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [

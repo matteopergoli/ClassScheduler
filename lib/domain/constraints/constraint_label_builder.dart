@@ -34,6 +34,8 @@ class ConstraintLabelBuilder {
         return _avoidTimeslot(c);
       case 'PREFER_BLOCK':
         return _preferBlock(c);
+      case 'DAILY_LIMIT':
+        return _dailyLimit(c);
       default:
         return 'Unknown constraint type: ${c.type}';
     }
@@ -82,6 +84,23 @@ class ConstraintLabelBuilder {
   String _preferBlock(ConstraintModel c) {
     final subj = _subjectName(c.subjectId);
     return '$subj should be scheduled in consecutive slots when possible.';
+  }
+
+  String _dailyLimit(ConstraintModel c) {
+    final subj = _subjectName(c.subjectId);
+    final cls  = _classroomName(c.classroomId);
+    final min  = c.minHours;
+    final max  = c.maxHours;
+    if (min != null && min > 0 && max != null) {
+      return '$subj in $cls should stay within $min–$max hours/day.';
+    }
+    if (max != null) {
+      return '$subj in $cls should stay under $max hours/day.';
+    }
+    if (min != null && min > 0) {
+      return '$subj in $cls should reach at least $min hours on days it\'s scheduled.';
+    }
+    return '$subj in $cls has a daily-hours preference.';
   }
 
   // ── Lookup helpers ────────────────────────────────────────────────────────

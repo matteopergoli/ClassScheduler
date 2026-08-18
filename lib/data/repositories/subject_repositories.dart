@@ -102,6 +102,17 @@ class ClassroomSubjectRepository extends BaseRepository {
     return model;
   }
 
+  /// Saves several assignments in one batch — used when a hard daily limit
+  /// is applied to "all classrooms" a subject is taught in at once.
+  Future<void> saveMany(List<ClassroomSubjectModel> assignments) async {
+    final batch = db.batch();
+    for (final cs in assignments) {
+      final id = cs.id.isEmpty ? newId(_col) : cs.id;
+      batch.set(_col.doc(id), cs.copyWith(id: id).toJson());
+    }
+    await batch.commit();
+  }
+
   Future<void> delete(String id) => _col.doc(id).delete();
 
   Future<void> deleteForSubject(String subjectId) async {

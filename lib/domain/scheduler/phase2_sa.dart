@@ -245,6 +245,8 @@ class Phase2SA {
           total += _penaltyAvoidTimeslot(state, sc);
         case SoftType.preferBlock:
           total += _penaltyPreferBlock(state, sc);
+        case SoftType.dailyLimit:
+          total += _penaltyDailyLimit(state, sc);
       }
     }
     return total;
@@ -290,6 +292,28 @@ class Phase2SA {
       }
     }
     return isolated * sc.weight;
+  }
+
+  /// Preference version of HC-4/HC-5 (see ClassroomSubjectModel for the hard
+  /// equivalent): penalises, per day, having the subject present below its
+  /// preferred minimum or above its preferred maximum. A day with zero
+  /// lessons of the subject never counts against the minimum — only days
+  /// where it *is* scheduled but falls short.
+  int _penaltyDailyLimit(ScheduleState state, SoftConstraintInput sc) {
+    final c = sc.classroomIdx;
+    if (c == null) return 0;
+    var violations = 0;
+    for (var d = 0; d < _input.numDays; d++) {
+      var count = 0;
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (state.schedule[c][d][l] == sc.subjectIdx) count++;
+      }
+      final min = sc.softMinDaily;
+      final max = sc.softMaxDaily;
+      if (min != null && min > 0 && count > 0 && count < min) violations++;
+      if (max != null && count > max) violations++;
+    }
+    return violations * sc.weight;
   }
 
   // ── Worst-case score (for QualityScore denominator) ───────────────────────

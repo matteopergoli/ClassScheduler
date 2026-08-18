@@ -16,7 +16,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/school_repository.dart';
-import '../../data/repositories/constraint_repository.dart';
 import '../../data/repositories/period_classroom_capacity_repositories.dart';
 import '../../data/repositories/subject_repositories.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -25,6 +24,7 @@ import '../setup/setup_screen.dart';
 import 'school_form_sheet.dart';
 import '../../providers/selected_school_provider.dart';
 import '../../data/repositories/schedule_repository.dart';
+import '../constraints/constraint_data_providers.dart';
 
 class SchoolsScreen extends ConsumerWidget {
   const SchoolsScreen({super.key});
@@ -451,6 +451,7 @@ class _SchoolCardState extends ConsumerState<SchoolCard> {
                             colors: colors,
                             onTap: () {
                               ref.read(selectedSchoolIdProvider.notifier).state = widget.school.id;
+                              ref.read(constraintsActiveSchoolProvider.notifier).state = widget.school.id;
                               context.go('/constraints');
                             },
                           ),
@@ -569,7 +570,7 @@ class _ConstraintsCountCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(_constraintsCountProvider(schoolId)).valueOrNull ?? 0;
+    final count = ref.watch(_constraintsCountProvider(schoolId));
     final color = count > 0 ? colors.primary : colors.textMuted;
 
     return Material(
@@ -907,10 +908,25 @@ final _schedulesCountProvider =
   return repo.watchAll().map((list) => list.length);
 });
 
+/// Counts ConstraintModel documents (rules + soft daily limits) plus HARD
+/// daily limits, which aren't ConstraintModel documents at all — they're
+/// structural fields on the classroom-subject assignment (see class doc in
+/// constraint_form_screen.dart) — so they'd otherwise silently not count.
 final _constraintsCountProvider =
-    StreamProvider.family.autoDispose<int, String>((ref, schoolId) {
-  final repo = ref.watch(constraintRepositoryProvider(schoolId));
-  return repo.watchAll().map((list) => list.length);
+    Provider.family.autoDispose<int, String>((ref, schoolId) {
+  final constraints =
+      ref.watch(constraintsListProvider(schoolId)).valueOrNull ?? const [];
+  final classroomSubjects = ref
+          .watch(constraintClassroomSubjectsProvider(schoolId))
+          .valueOrNull ??
+      const [];
+  final periods =
+      ref.watch(constraintPeriodsProvider(schoolId)).valueOrNull ?? const [];
+  final lessonPeriodsCount =
+      periods.where((p) => p.type == PeriodType.lesson).length;
+  final customizedDailyLimits = classroomSubjects.where((cs) =>
+      cs.minDailyHours > 0 || cs.maxDailyHours < lessonPeriodsCount).length;
+  return constraints.length + customizedDailyLimits;
 });
 
 final _bestScheduleScoreProvider =

@@ -146,6 +146,18 @@ class SchedulerInputBuilder {
           subjectIdx: s,
           weight:     weight,
         ));
+      } else if (con.type == 'DAILY_LIMIT') {
+        final c = classroomIdx[con.classroomId];
+        if (c == null) continue;
+        if (con.minHours == null && con.maxHours == null) continue;
+        softList.add(SoftConstraintInput(
+          type:         SoftType.dailyLimit,
+          subjectIdx:   s,
+          classroomIdx: c,
+          softMinDaily: con.minHours,
+          softMaxDaily: con.maxHours,
+          weight:       weight,
+        ));
       }
     }
     softList.sort((a, b) {
@@ -161,6 +173,9 @@ class SchedulerInputBuilder {
       final endA = a.endSlotIdx ?? -1;
       final endB = b.endSlotIdx ?? -1;
       if (endA != endB) return endA.compareTo(endB);
+      final clsA = a.classroomIdx ?? -1;
+      final clsB = b.classroomIdx ?? -1;
+      if (clsA != clsB) return clsA.compareTo(clsB);
       return a.weight.compareTo(b.weight);
     });
 

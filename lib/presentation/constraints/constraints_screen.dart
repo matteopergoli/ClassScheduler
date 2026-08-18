@@ -1,11 +1,11 @@
-// lib/presentation/constraints/constraints_screen.dart
+﻿// lib/presentation/constraints/constraints_screen.dart
 //
 // FR-HC-04, FR-SC-03: Constraint list with Hard | Soft tabs.
 // Each constraint shown as a human-readable sentence (ConstraintLabelBuilder).
 // Swipe-to-delete with undo snackbar. Conflict detection banner at top.
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,55 +15,29 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/constraint_repository.dart';
-import '../../data/repositories/period_classroom_capacity_repositories.dart';
-import '../../data/repositories/subject_repositories.dart';
+import '../../data/repositories/school_repository.dart';
+import '../../data/repositories/subject_repositories.dart' show ClassroomSubjectRepository;
 import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/constraints/constraint_label_builder.dart';
-import '../../domain/validation/subject_validator.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_providers.dart';
-import '../widgets/cs_button.dart';
-import '../widgets/cs_text_field.dart';
-import '../setup/step1_periods/step1_periods_screen.dart';
+import 'constraint_data_providers.dart';
 
 // ── Providers ──────────────────────────────────────────────────────────────
+//
+// Shared with constraint_form_screen.dart — see constraint_data_providers.dart.
+// Local aliases keep the rest of this file's call sites unchanged.
 
-final _constraintsProvider =
-    StreamProvider.family<List<ConstraintModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(constraintRepositoryProvider(schoolId)).watchAll(),
-);
-
-final _subjectsProvider = StreamProvider.family<List<SubjectModel>, String>(
-  (ref, schoolId) => ref.watch(subjectRepositoryProvider(schoolId)).watchAll(),
-);
-
-final _classroomsProvider = StreamProvider.family<List<ClassroomModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(classroomRepositoryProvider(schoolId)).watchAll(),
-);
-
-final _periodsProvider = StreamProvider.family<List<PeriodModel>, String>(
-  (ref, schoolId) => ref.watch(periodRepositoryProvider(schoolId)).watchAll(),
-);
-
-final _classroomSubjectsProvider =
-    StreamProvider.family<List<ClassroomSubjectModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(classroomSubjectRepositoryProvider(schoolId)).watchAll(),
-);
-
-final _dayCapacitiesProvider =
-    StreamProvider.family<List<DayCapacityModel>, String>(
-  (ref, schoolId) =>
-      ref.watch(dayCapacityRepositoryProvider(schoolId)).watchAll(),
-);
+final _constraintsProvider = constraintsListProvider;
+final _subjectsProvider = constraintSubjectsProvider;
+final _classroomsProvider = constraintClassroomsProvider;
+final _periodsProvider = constraintPeriodsProvider;
+final _classroomSubjectsProvider = constraintClassroomSubjectsProvider;
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
 class ConstraintsScreen extends ConsumerStatefulWidget {
-  final String schoolId;
-  const ConstraintsScreen({super.key, required this.schoolId});
+  const ConstraintsScreen({super.key});
 
   @override
   ConsumerState<ConstraintsScreen> createState() => _ConstraintsScreenState();
@@ -89,14 +63,45 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
+    final schoolId = ref.watch(constraintsActiveSchoolProvider);
 
-    final constraintsAsync = ref.watch(_constraintsProvider(widget.schoolId));
-    final subjectsAsync = ref.watch(_subjectsProvider(widget.schoolId));
-    final classroomsAsync = ref.watch(_classroomsProvider(widget.schoolId));
-    final periodsAsync = ref.watch(_periodsProvider(widget.schoolId));
+    // Mirrors SetupScreen: prompt for a school right here instead of
+    // bouncing the user to the Schools tab first. Uses its own selection
+    // state (constraintsActiveSchoolProvider), not the app-wide
+    // selectedSchoolIdProvider — that one gets auto-set to the first school
+    // as soon as the Schools tab loads, which would otherwise skip this
+    // picker on every first visit.
+    if (schoolId == null || schoolId.isEmpty) {
+      final schools = ref.watch(schoolsStreamProvider);
+      return Scaffold(
+        body: SafeArea(
+          child: schools.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error:   (e, _) => Center(child: Text(e.toString())),
+            data:    (list) => list.isEmpty
+                ? _NoSchoolPrompt(colors: colors)
+                : _SchoolPicker(
+                    schools: list,
+                    colors: colors,
+                    onSelect: (s) => ref
+                        .read(constraintsActiveSchoolProvider.notifier)
+                        .state = s.id,
+                  ),
+          ),
+        ),
+      );
+    }
+
+    final constraintsAsync = ref.watch(_constraintsProvider(schoolId));
+    final subjectsAsync = ref.watch(_subjectsProvider(schoolId));
+    final classroomsAsync = ref.watch(_classroomsProvider(schoolId));
+    final periodsAsync = ref.watch(_periodsProvider(schoolId));
     final classroomSubjectsAsync =
-        ref.watch(_classroomSubjectsProvider(widget.schoolId));
-    final activeDays = ref.watch(activeDaysProvider);
+        ref.watch(_classroomSubjectsProvider(schoolId));
+    final schoolName = ref.watch(schoolsStreamProvider).whenOrNull(
+          data: (schools) =>
+              schools.firstWhereOrNull((s) => s.id == schoolId)?.name,
+        );
 
     return Scaffold(
       body: SafeArea(
@@ -105,22 +110,43 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(children: [
                 Expanded(
-                  child: Text(l10n.constraints,
-                      style: AppTextStyles.displayMedium
-                          .copyWith(color: colors.textPrimary)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.constraints,
+                          style: AppTextStyles.headingLarge
+                              .copyWith(color: colors.textPrimary)),
+                      if (schoolName != null)
+                        Row(children: [
+                          Flexible(
+                            child: Text(schoolName,
+                                style: AppTextStyles.titleSmall
+                                    .copyWith(color: colors.textMuted),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () => ref
+                                .read(constraintsActiveSchoolProvider.notifier)
+                                .state = null,
+                            child: Text('Change',
+                                style: AppTextStyles.labelSmall
+                                    .copyWith(color: colors.primaryLight)),
+                          ),
+                        ]),
+                    ],
+                  ),
                 ),
-                _DailyLimitsButton(
-                  schoolId: widget.schoolId,
-                  colors: colors,
-                  l10n: l10n,
-                  activeDays: activeDays,
-                ),
-                const SizedBox(width: 12),
                 _AddButton(
-                    schoolId: widget.schoolId, colors: colors, l10n: l10n),
+                    schoolId: schoolId, colors: colors, l10n: l10n),
               ]),
             ),
             const SizedBox(height: 16),
@@ -207,12 +233,32 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                               classrooms: {for (final c in classrooms) c.id: c},
                               periods: {for (final p in periods) p.id: p},
                             );
+                            // Hard daily limits aren't ConstraintModel
+                            // documents (see class doc in
+                            // constraint_form_screen.dart) — they're
+                            // structural fields on the classroom-subject
+                            // assignment, so they'd otherwise be invisible
+                            // here even after being "created". Surface any
+                            // assignment with a non-default min/max as a
+                            // tile too.
+                            final lessonPeriodsCount = periods
+                                .where((p) => p.type == PeriodType.lesson)
+                                .length;
+                            final customizedDailyLimits = classroomSubjects
+                                .where((cs) =>
+                                    cs.minDailyHours > 0 ||
+                                    cs.maxDailyHours < lessonPeriodsCount)
+                                .toList();
                             return TabBarView(
                               controller: _tabs,
                               children: [
                                 _ConstraintList(
                                   constraints: hard,
-                                  schoolId: widget.schoolId,
+                                  dailyLimits: customizedDailyLimits,
+                                  subjectsById: builder.subjects,
+                                  classroomsById: builder.classrooms,
+                                  lessonPeriodsCount: lessonPeriodsCount,
+                                  schoolId: schoolId,
                                   labelBuilder: builder,
                                   isHard: true,
                                   colors: colors,
@@ -220,7 +266,11 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                                 ),
                                 _ConstraintList(
                                   constraints: soft,
-                                  schoolId: widget.schoolId,
+                                  dailyLimits: const [],
+                                  subjectsById: const {},
+                                  classroomsById: const {},
+                                  lessonPeriodsCount: lessonPeriodsCount,
+                                  schoolId: schoolId,
                                   labelBuilder: builder,
                                   isHard: false,
                                   colors: colors,
@@ -359,6 +409,10 @@ class _ConflictBannerState extends State<_ConflictBanner> {
 
 class _ConstraintList extends ConsumerWidget {
   final List<ConstraintModel> constraints;
+  final List<ClassroomSubjectModel> dailyLimits;
+  final Map<String, SubjectModel> subjectsById;
+  final Map<String, ClassroomModel> classroomsById;
+  final int lessonPeriodsCount;
   final String schoolId;
   final ConstraintLabelBuilder labelBuilder;
   final bool isHard;
@@ -367,6 +421,10 @@ class _ConstraintList extends ConsumerWidget {
 
   const _ConstraintList({
     required this.constraints,
+    required this.dailyLimits,
+    required this.subjectsById,
+    required this.classroomsById,
+    required this.lessonPeriodsCount,
     required this.schoolId,
     required this.labelBuilder,
     required this.isHard,
@@ -376,22 +434,46 @@ class _ConstraintList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (constraints.isEmpty) {
+    if (constraints.isEmpty && dailyLimits.isEmpty) {
       return _EmptyState(isHard: isHard, colors: colors, l10n: l10n);
     }
+    final itemCount = dailyLimits.length + constraints.length;
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-      itemCount: constraints.length,
+      itemCount: itemCount,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
-        final c = constraints[i];
+        if (i < dailyLimits.length) {
+          final cs = dailyLimits[i];
+          return _DailyLimitAssignmentTile(
+            assignment: cs,
+            subjectName: subjectsById[cs.subjectId]?.name ?? cs.subjectId,
+            classroomName: classroomsById[cs.classroomId]?.name ?? cs.classroomId,
+            colors: colors,
+            onTap: () => context.push(
+              AppRoutes.constraintForm(cs.id),
+              extra: ConstraintFormRouteArgs(
+                schoolId: schoolId,
+                existingDailyLimit: cs,
+              ),
+            ),
+            onDelete: () => _resetDailyLimit(context, ref, cs),
+          );
+        }
+        final c = constraints[i - dailyLimits.length];
         return _ConstraintTile(
           constraint: c,
           labelBuilder: labelBuilder,
           colors: colors,
           l10n: l10n,
           onDelete: () => _delete(context, ref, c),
-          onTap: () => context.push(AppRoutes.constraintForm(c.id), extra: c),
+          onTap: () => context.push(
+            AppRoutes.constraintForm(c.id),
+            extra: ConstraintFormRouteArgs(
+              schoolId: schoolId,
+              existing: c,
+            ),
+          ),
         );
       },
     );
@@ -407,6 +489,128 @@ class _ConstraintList extends ConsumerWidget {
         content: Text(l10n.constraintDeleted),
         action: SnackBarAction(
             label: l10n.undoDelete, onPressed: () => repo.create(c)),
+      ),
+    );
+  }
+
+  /// A hard daily limit isn't a document you can delete — it's structural
+  /// fields on the classroom-subject assignment (see class doc above) — so
+  /// "removing" it means resetting those fields back to their defaults
+  /// (no minimum, capped only by the day's physical slot count).
+  Future<void> _resetDailyLimit(
+      BuildContext ctx, WidgetRef ref, ClassroomSubjectModel cs) async {
+    final uid = ref.read(currentUserProvider)!.uid;
+    final repo = ClassroomSubjectRepository(uid: uid, schoolId: schoolId);
+    await repo.save(cs.copyWith(
+      minDailyHours: 0,
+      maxDailyHours: lessonPeriodsCount,
+    ));
+    if (!ctx.mounted) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(l10n.constraintDeleted),
+        action: SnackBarAction(
+          label: l10n.undoDelete,
+          onPressed: () => repo.save(cs),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Daily-limit assignment tile (hard limits only — see class doc above) ───
+
+class _DailyLimitAssignmentTile extends StatelessWidget {
+  final ClassroomSubjectModel assignment;
+  final String subjectName;
+  final String classroomName;
+  final AppColors colors;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _DailyLimitAssignmentTile({
+    required this.assignment,
+    required this.subjectName,
+    required this.classroomName,
+    required this.colors,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final min = assignment.minDailyHours;
+    final max = assignment.maxDailyHours;
+    final desc = min > 0
+        ? '$subjectName in $classroomName: min ${min}h/day, max ${max}h/day.'
+        : '$subjectName in $classroomName: max ${max}h/day.';
+
+    return Dismissible(
+      key: ValueKey(assignment.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: colors.errorBg,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        ),
+        child: Icon(Icons.delete_outline_rounded, color: colors.error),
+      ),
+      child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colors.cardBg,
+          border: Border.all(color: colors.borderDefault),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 4,
+              height: 44,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: colors.error,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.error.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('HARD · DAILY LIMIT',
+                        style: AppTextStyles.overline.copyWith(color: colors.error)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(desc,
+                      style: AppTextStyles.bodyMedium.copyWith(color: colors.textPrimary)),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline_rounded,
+                  color: colors.textMuted, size: 20),
+              tooltip: 'Delete',
+              onPressed: onDelete,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+            Icon(Icons.chevron_right_rounded, color: colors.textMuted, size: 20),
+          ],
+        ),
+      ),
       ),
     );
   }
@@ -501,6 +705,14 @@ class _ConstraintTile extends StatelessWidget {
                   ],
                 ),
               ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded,
+                    color: colors.textMuted, size: 20),
+                tooltip: 'Delete',
+                onPressed: onDelete,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
               Icon(Icons.chevron_right_rounded,
                   color: colors.textMuted, size: 20),
             ],
@@ -549,443 +761,6 @@ class _EmptyState extends StatelessWidget {
       );
 }
 
-// ── Daily limits button / sheet ───────────────────────────────────────────
-
-class _DailyLimitsButton extends StatelessWidget {
-  final String schoolId;
-  final AppColors colors;
-  final AppLocalizations l10n;
-  final List<String> activeDays;
-
-  const _DailyLimitsButton({
-    required this.schoolId,
-    required this.colors,
-    required this.l10n,
-    required this.activeDays,
-  });
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => _DailyLimitsSheet(
-            schoolId: schoolId,
-            activeDays: activeDays,
-            colors: colors,
-            l10n: l10n,
-          ),
-        ),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient:
-                LinearGradient(colors: [colors.primary, colors.primaryLight]),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                  color: colors.primary.withOpacity(0.35),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3)),
-            ],
-          ),
-          child: const Icon(Icons.tune, color: Colors.white, size: 22),
-        ),
-      );
-}
-
-class _DailyLimitsSheet extends ConsumerWidget {
-  final String schoolId;
-  final List<String> activeDays;
-  final AppColors colors;
-  final AppLocalizations l10n;
-
-  const _DailyLimitsSheet({
-    required this.schoolId,
-    required this.activeDays,
-    required this.colors,
-    required this.l10n,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final classroomSubjectsAsync =
-        ref.watch(_classroomSubjectsProvider(schoolId));
-    final subjectsAsync = ref.watch(_subjectsProvider(schoolId));
-    final classroomsAsync = ref.watch(_classroomsProvider(schoolId));
-    final periodsAsync = ref.watch(_periodsProvider(schoolId));
-    final dayCapsAsync = ref.watch(_dayCapacitiesProvider(schoolId));
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: BoxDecoration(
-          color: colors.cardBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Daily limits',
-                      style: AppTextStyles.headingLarge
-                          .copyWith(color: colors.textPrimary),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: colors.textPrimary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Edit daily min/max hours for classroom subject assignments.',
-                style:
-                    AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: classroomSubjectsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (classroomSubjects) => subjectsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
-                  data: (subjects) => classroomsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
-                    data: (classrooms) => periodsAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(child: Text('Error: $e')),
-                      data: (periods) => dayCapsAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Error: $e')),
-                        data: (dayCaps) {
-                          final lessonsPerDay = periods
-                              .where((p) => p.type == PeriodType.lesson)
-                              .length;
-                          final capacityByClassroom =
-                              <String, Map<String, int>>{};
-                          for (final cap in dayCaps) {
-                            capacityByClassroom.putIfAbsent(
-                                    cap.classroomId, () => {})[cap.dayOfWeek] =
-                                cap.activeSlots.length;
-                          }
-
-                          final totalSlotsByClassroom = <String, int>{};
-                          for (final classroom in classrooms) {
-                            totalSlotsByClassroom[classroom.id] =
-                                activeDays.fold<int>(
-                              0,
-                              (sum, day) =>
-                                  sum +
-                                  (capacityByClassroom[classroom.id]?[day] ??
-                                      lessonsPerDay),
-                            );
-                          }
-
-                          final assignments = classroomSubjects.toList()
-                            ..sort((a, b) {
-                              final roomA = classrooms
-                                  .firstWhere((c) => c.id == a.classroomId)
-                                  .name;
-                              final roomB = classrooms
-                                  .firstWhere((c) => c.id == b.classroomId)
-                                  .name;
-                              final subjectA = subjects
-                                  .firstWhere((s) => s.id == a.subjectId)
-                                  .name;
-                              final subjectB = subjects
-                                  .firstWhere((s) => s.id == b.subjectId)
-                                  .name;
-                              final cmp = roomA.compareTo(roomB);
-                              return cmp != 0
-                                  ? cmp
-                                  : subjectA.compareTo(subjectB);
-                            });
-
-                          if (assignments.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'No classroom subject assignments yet.',
-                                style: AppTextStyles.bodyMedium
-                                    .copyWith(color: colors.textMuted),
-                                textAlign: TextAlign.center,
-                              ),
-                            );
-                          }
-
-                          return ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                            itemCount: assignments.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final cs = assignments[index];
-                              final classroom = classrooms
-                                  .firstWhere((c) => c.id == cs.classroomId);
-                              final subject = subjects
-                                  .firstWhere((s) => s.id == cs.subjectId);
-                              final totalSlots =
-                                  totalSlotsByClassroom[cs.classroomId] ??
-                                      lessonsPerDay * activeDays.length;
-
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                title: Text(
-                                  '${subject.name} — ${classroom.name}',
-                                  style: AppTextStyles.bodyLarge
-                                      .copyWith(color: colors.textPrimary),
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(
-                                    'weekly ${cs.weeklyTargetHours}h · min ${cs.minDailyHours}/d · max ${cs.maxDailyHours}/d',
-                                    style: AppTextStyles.bodySmall
-                                        .copyWith(color: colors.textSecondary),
-                                  ),
-                                ),
-                                trailing: Icon(Icons.edit_outlined,
-                                    color: colors.textMuted),
-                                onTap: () => showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (_) => _DailyLimitFormSheet(
-                                    schoolId: schoolId,
-                                    cs: cs,
-                                    totalSlots: totalSlots,
-                                    activeDays: activeDays,
-                                    colors: colors,
-                                    l10n: l10n,
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DailyLimitFormSheet extends ConsumerStatefulWidget {
-  final String schoolId;
-  final ClassroomSubjectModel cs;
-  final int totalSlots;
-  final List<String> activeDays;
-  final AppColors colors;
-  final AppLocalizations l10n;
-
-  const _DailyLimitFormSheet({
-    required this.schoolId,
-    required this.cs,
-    required this.totalSlots,
-    required this.activeDays,
-    required this.colors,
-    required this.l10n,
-  });
-
-  @override
-  ConsumerState<_DailyLimitFormSheet> createState() =>
-      _DailyLimitFormSheetState();
-}
-
-class _DailyLimitFormSheetState extends ConsumerState<_DailyLimitFormSheet> {
-  late TextEditingController _minCtrl;
-  late TextEditingController _maxCtrl;
-  List<String> _errors = [];
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _minCtrl = TextEditingController(text: '${widget.cs.minDailyHours}');
-    _maxCtrl = TextEditingController(text: '${widget.cs.maxDailyHours}');
-  }
-
-  @override
-  void dispose() {
-    _minCtrl.dispose();
-    _maxCtrl.dispose();
-    super.dispose();
-  }
-
-  int get _minD => int.tryParse(_minCtrl.text) ?? 0;
-  int get _maxD => int.tryParse(_maxCtrl.text) ?? 1;
-
-  void _validate() {
-    final l10n = widget.l10n;
-    final result = SubjectValidator.validate(
-      weeklyTarget: widget.cs.weeklyTargetHours,
-      minDaily: _minD,
-      maxDaily: _maxD,
-      activeDayCount: widget.activeDays.length,
-      totalLessonSlots: widget.totalSlots,
-    );
-
-    setState(() {
-      _errors = result.errors.map((e) {
-        switch (e) {
-          case SubjectValidationError.weeklyMustBePositive:
-            return l10n.validationWeeklyMustBePositive;
-          case SubjectValidationError.minGtMax:
-            return l10n.validationMinGtMax;
-          case SubjectValidationError.maxDaysInsufficient:
-            return l10n.validationMaxDaysInsufficient(
-              _maxD * widget.activeDays.length,
-              widget.cs.weeklyTargetHours,
-            );
-          case SubjectValidationError.weeklyExceedsSlots:
-            return l10n.validationWeeklyExceedsSlots(
-              widget.cs.weeklyTargetHours,
-              widget.totalSlots,
-            );
-          case SubjectValidationError.minDailyInfeasible:
-            return l10n.validationMinDailyInfeasible(
-              widget.cs.weeklyTargetHours,
-              _minD,
-            );
-        }
-      }).toList();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = widget.colors;
-    final l10n = widget.l10n;
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        decoration: BoxDecoration(
-          color: colors.cardBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SingleChildScrollView(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Edit daily limits',
-                      style: AppTextStyles.headingLarge
-                          .copyWith(color: colors.textPrimary),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: colors.textPrimary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              CsTextField(
-                controller: _minCtrl,
-                label: l10n.minDailyHours,
-                hint: '0',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (_) => _validate(),
-              ),
-              const SizedBox(height: 12),
-              CsTextField(
-                controller: _maxCtrl,
-                label: l10n.maxDailyHours,
-                hint: '2',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (_) => _validate(),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${widget.activeDays.length} active days · max capacity: ${widget.totalSlots} slots',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: colors.textDisabled),
-              ),
-              const SizedBox(height: 12),
-              if (_errors.isNotEmpty)
-                ..._errors.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.error_outline,
-                              size: 14, color: colors.error),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(e,
-                                style: AppTextStyles.bodySmall
-                                    .copyWith(color: colors.error)),
-                          ),
-                        ],
-                      ),
-                    )),
-              const SizedBox(height: 20),
-              CsButton(
-                label: l10n.save,
-                loading: _saving,
-                onPressed: _errors.isEmpty ? _save : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _save() async {
-    _validate();
-    if (_errors.isNotEmpty) return;
-    setState(() => _saving = true);
-    final uid = ref.read(currentUserProvider)!.uid;
-    final repo =
-        ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
-    final updated = widget.cs.copyWith(
-      minDailyHours: _minD,
-      maxDailyHours: _maxD,
-    );
-    await repo.save(updated);
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.l10n.subjectSaved)),
-      );
-    }
-  }
-}
-
 // ── Add button ────────────────────────────────────────────────────────────
 
 class _AddButton extends StatelessWidget {
@@ -1001,8 +776,10 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: () =>
-            context.push(AppRoutes.constraintForm('new'), extra: schoolId),
+        onTap: () => context.push(
+          AppRoutes.constraintForm('new'),
+          extra: ConstraintFormRouteArgs(schoolId: schoolId),
+        ),
         child: Container(
           width: 40,
           height: 40,
@@ -1019,5 +796,76 @@ class _AddButton extends StatelessWidget {
           ),
           child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
         ),
+      );
+}
+
+// ── School picker (mirrors SetupScreen's) ─────────────────────────────────
+
+class _NoSchoolPrompt extends StatelessWidget {
+  final AppColors colors;
+  const _NoSchoolPrompt({required this.colors});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.school_outlined, size: 64, color: colors.textMuted),
+              const SizedBox(height: 16),
+              Text('No schools yet.',
+                  style: AppTextStyles.titleMedium
+                      .copyWith(color: colors.textPrimary)),
+              const SizedBox(height: 8),
+              Text('Go to the Schools tab to create your first school.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: colors.textMuted)),
+            ],
+          ),
+        ),
+      );
+}
+
+class _SchoolPicker extends StatelessWidget {
+  final List<SchoolModel> schools;
+  final AppColors colors;
+  final void Function(SchoolModel) onSelect;
+
+  const _SchoolPicker({
+    required this.schools,
+    required this.colors,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Text('Select a school for constraints',
+                style: AppTextStyles.titleMedium
+                    .copyWith(color: colors.textPrimary)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: schools.length,
+              itemBuilder: (_, i) => ListTile(
+                leading: Icon(Icons.school_outlined, color: colors.primary),
+                title: Text(schools[i].name,
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: colors.textPrimary)),
+                trailing: Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14, color: colors.textMuted),
+                onTap: () => onSelect(schools[i]),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
       );
 }

@@ -83,6 +83,19 @@ class ConstraintRepository extends BaseRepository {
     await _col.doc(constraint.id).set(_toDoc(constraint));
   }
 
+  /// Creates several constraints in one batch — used to expand an "all
+  /// classrooms" / "all days" selection into one document per concrete
+  /// (classroom, day) pair, since a single ConstraintModel can only ever
+  /// target one of each.
+  Future<void> createMany(List<ConstraintModel> constraints) async {
+    final batch = db.batch();
+    for (final c in constraints) {
+      final id = const Uuid().v4();
+      batch.set(_col.doc(id), _toDoc(c.copyWith(id: id, schoolId: schoolId)));
+    }
+    await batch.commit();
+  }
+
   Future<void> delete(String constraintId) async {
     await _col.doc(constraintId).delete();
   }
@@ -132,5 +145,7 @@ class ConstraintRepository extends BaseRepository {
         'periodId':    c.periodId,
         'endPeriodId': c.endPeriodId,
         'weight':      c.weight,
+        'minHours':    c.minHours,
+        'maxHours':    c.maxHours,
       };
 }

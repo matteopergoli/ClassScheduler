@@ -10,7 +10,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mockito/mockito.dart';
 
-import 'package:classscheduler/data/services/auth_service.dart';
+import 'package:classscheduler/data/repositories/base_repository.dart';
+import 'package:classscheduler/providers/auth_providers.dart';
 
 // ── Mock Firebase User ────────────────────────────────────────────────────
 

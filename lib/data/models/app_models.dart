@@ -210,7 +210,15 @@ class ClassroomSubjectModel with _$ClassroomSubjectModel {
 // ─── Constraint ────────────────────────────────────────────────────────────
 /// kind: 'HARD' | 'SOFT'
 /// type: 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' | 'AVOID_TIMESLOT' | 'PREFER_BLOCK'
+///     | 'DAILY_LIMIT'
 /// Inapplicable fields are stored as null (see §3.6 note).
+///
+/// DAILY_LIMIT (SOFT only) is a preference version of the hard daily-hours
+/// limit already carried unconditionally on ClassroomSubjectModel
+/// (minDailyHours/maxDailyHours, HC-4/HC-5). A HARD daily limit is edited
+/// directly on that assignment; a SOFT one is a ConstraintModel like any
+/// other soft rule, penalised (not blocked) by the scheduler — see
+/// SoftType.dailyLimit in scheduler_input.dart.
 @freezed
 class ConstraintModel with _$ConstraintModel {
   const factory ConstraintModel({
@@ -218,13 +226,15 @@ class ConstraintModel with _$ConstraintModel {
     required String schoolId,
     required String kind,   // 'HARD' | 'SOFT'
     required String type,   // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
-                            // 'AVOID_TIMESLOT' | 'PREFER_BLOCK'
+                            // 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
     String? classroomId,
     String? subjectId,
     String? dayOfWeek,
     String? periodId,
     String? endPeriodId,    // AVOID_TIMESLOT only
     String? weight,         // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
+    int? minHours,          // DAILY_LIMIT only (0/null = no minimum)
+    int? maxHours,          // DAILY_LIMIT only
   }) = _ConstraintModel;
 
   factory ConstraintModel.fromJson(Map<String, dynamic> json) =>

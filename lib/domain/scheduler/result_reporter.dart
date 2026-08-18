@@ -164,9 +164,45 @@ class ResultReporter {
               isHard: false,
             ));
           }
+        case SoftType.dailyLimit:
+          final count = _countDailyLimitViolations(state, sc);
+          if (count > 0) {
+            final sName = _input.subjectNames[sc.subjectIdx];
+            final cName = sc.classroomIdx != null
+                ? _input.classroomNames[sc.classroomIdx!]
+                : '?';
+            violations.add(ConstraintViolation(
+              constraintId: 'SC-DAILY-LIMIT',
+              description:
+                  '"$sName" in "$cName" falls outside its preferred daily '
+                  'hours on $count day(s).',
+              suggestion:
+                  'Try re-generating, or widen the preferred daily range '
+                  'for "$sName".',
+              isHard: false,
+            ));
+          }
       }
     }
     return violations;
+  }
+
+  int _countDailyLimitViolations(ScheduleState state, SoftConstraintInput sc) {
+    final c = sc.classroomIdx;
+    if (c == null) return 0;
+    var days = 0;
+    for (var d = 0; d < _input.numDays; d++) {
+      var count = 0;
+      for (var l = 0; l < _input.numSlots; l++) {
+        if (state.schedule[c][d][l] == sc.subjectIdx) count++;
+      }
+      final min = sc.softMinDaily;
+      final max = sc.softMaxDaily;
+      final under = min != null && min > 0 && count > 0 && count < min;
+      final over  = max != null && count > max;
+      if (under || over) days++;
+    }
+    return days;
   }
 
   int _countAvoidTimeslotViolations(

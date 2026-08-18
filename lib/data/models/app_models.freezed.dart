@@ -1756,14 +1756,18 @@ mixin _$ConstraintModel {
   String get kind => throw _privateConstructorUsedError; // 'HARD' | 'SOFT'
   String get type =>
       throw _privateConstructorUsedError; // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
-// 'AVOID_TIMESLOT' | 'PREFER_BLOCK'
+// 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
   String? get classroomId => throw _privateConstructorUsedError;
   String? get subjectId => throw _privateConstructorUsedError;
   String? get dayOfWeek => throw _privateConstructorUsedError;
   String? get periodId => throw _privateConstructorUsedError;
   String? get endPeriodId =>
       throw _privateConstructorUsedError; // AVOID_TIMESLOT only
-  String? get weight => throw _privateConstructorUsedError;
+  String? get weight =>
+      throw _privateConstructorUsedError; // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
+  int? get minHours =>
+      throw _privateConstructorUsedError; // DAILY_LIMIT only (0/null = no minimum)
+  int? get maxHours => throw _privateConstructorUsedError;
 
   /// Serializes this ConstraintModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1791,7 +1795,9 @@ abstract class $ConstraintModelCopyWith<$Res> {
       String? dayOfWeek,
       String? periodId,
       String? endPeriodId,
-      String? weight});
+      String? weight,
+      int? minHours,
+      int? maxHours});
 }
 
 /// @nodoc
@@ -1819,6 +1825,8 @@ class _$ConstraintModelCopyWithImpl<$Res, $Val extends ConstraintModel>
     Object? periodId = freezed,
     Object? endPeriodId = freezed,
     Object? weight = freezed,
+    Object? minHours = freezed,
+    Object? maxHours = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -1861,6 +1869,14 @@ class _$ConstraintModelCopyWithImpl<$Res, $Val extends ConstraintModel>
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
               as String?,
+      minHours: freezed == minHours
+          ? _value.minHours
+          : minHours // ignore: cast_nullable_to_non_nullable
+              as int?,
+      maxHours: freezed == maxHours
+          ? _value.maxHours
+          : maxHours // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 }
@@ -1883,7 +1899,9 @@ abstract class _$$ConstraintModelImplCopyWith<$Res>
       String? dayOfWeek,
       String? periodId,
       String? endPeriodId,
-      String? weight});
+      String? weight,
+      int? minHours,
+      int? maxHours});
 }
 
 /// @nodoc
@@ -1909,6 +1927,8 @@ class __$$ConstraintModelImplCopyWithImpl<$Res>
     Object? periodId = freezed,
     Object? endPeriodId = freezed,
     Object? weight = freezed,
+    Object? minHours = freezed,
+    Object? maxHours = freezed,
   }) {
     return _then(_$ConstraintModelImpl(
       id: null == id
@@ -1951,6 +1971,14 @@ class __$$ConstraintModelImplCopyWithImpl<$Res>
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
               as String?,
+      minHours: freezed == minHours
+          ? _value.minHours
+          : minHours // ignore: cast_nullable_to_non_nullable
+              as int?,
+      maxHours: freezed == maxHours
+          ? _value.maxHours
+          : maxHours // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -1968,7 +1996,9 @@ class _$ConstraintModelImpl implements _ConstraintModel {
       this.dayOfWeek,
       this.periodId,
       this.endPeriodId,
-      this.weight});
+      this.weight,
+      this.minHours,
+      this.maxHours});
 
   factory _$ConstraintModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ConstraintModelImplFromJson(json);
@@ -1983,7 +2013,7 @@ class _$ConstraintModelImpl implements _ConstraintModel {
   @override
   final String type;
 // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
-// 'AVOID_TIMESLOT' | 'PREFER_BLOCK'
+// 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
   @override
   final String? classroomId;
   @override
@@ -1997,10 +2027,16 @@ class _$ConstraintModelImpl implements _ConstraintModel {
 // AVOID_TIMESLOT only
   @override
   final String? weight;
+// 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
+  @override
+  final int? minHours;
+// DAILY_LIMIT only (0/null = no minimum)
+  @override
+  final int? maxHours;
 
   @override
   String toString() {
-    return 'ConstraintModel(id: $id, schoolId: $schoolId, kind: $kind, type: $type, classroomId: $classroomId, subjectId: $subjectId, dayOfWeek: $dayOfWeek, periodId: $periodId, endPeriodId: $endPeriodId, weight: $weight)';
+    return 'ConstraintModel(id: $id, schoolId: $schoolId, kind: $kind, type: $type, classroomId: $classroomId, subjectId: $subjectId, dayOfWeek: $dayOfWeek, periodId: $periodId, endPeriodId: $endPeriodId, weight: $weight, minHours: $minHours, maxHours: $maxHours)';
   }
 
   @override
@@ -2023,13 +2059,29 @@ class _$ConstraintModelImpl implements _ConstraintModel {
                 other.periodId == periodId) &&
             (identical(other.endPeriodId, endPeriodId) ||
                 other.endPeriodId == endPeriodId) &&
-            (identical(other.weight, weight) || other.weight == weight));
+            (identical(other.weight, weight) || other.weight == weight) &&
+            (identical(other.minHours, minHours) ||
+                other.minHours == minHours) &&
+            (identical(other.maxHours, maxHours) ||
+                other.maxHours == maxHours));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, schoolId, kind, type,
-      classroomId, subjectId, dayOfWeek, periodId, endPeriodId, weight);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      schoolId,
+      kind,
+      type,
+      classroomId,
+      subjectId,
+      dayOfWeek,
+      periodId,
+      endPeriodId,
+      weight,
+      minHours,
+      maxHours);
 
   /// Create a copy of ConstraintModel
   /// with the given fields replaced by the non-null parameter values.
@@ -2059,7 +2111,9 @@ abstract class _ConstraintModel implements ConstraintModel {
       final String? dayOfWeek,
       final String? periodId,
       final String? endPeriodId,
-      final String? weight}) = _$ConstraintModelImpl;
+      final String? weight,
+      final int? minHours,
+      final int? maxHours}) = _$ConstraintModelImpl;
 
   factory _ConstraintModel.fromJson(Map<String, dynamic> json) =
       _$ConstraintModelImpl.fromJson;
@@ -2072,7 +2126,7 @@ abstract class _ConstraintModel implements ConstraintModel {
   String get kind; // 'HARD' | 'SOFT'
   @override
   String get type; // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
-// 'AVOID_TIMESLOT' | 'PREFER_BLOCK'
+// 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
   @override
   String? get classroomId;
   @override
@@ -2084,7 +2138,11 @@ abstract class _ConstraintModel implements ConstraintModel {
   @override
   String? get endPeriodId; // AVOID_TIMESLOT only
   @override
-  String? get weight;
+  String? get weight; // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
+  @override
+  int? get minHours; // DAILY_LIMIT only (0/null = no minimum)
+  @override
+  int? get maxHours;
 
   /// Create a copy of ConstraintModel
   /// with the given fields replaced by the non-null parameter values.

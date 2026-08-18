@@ -140,6 +140,9 @@ class SoftConstraintInput {
   final int? startSlotIdx; // AVOID_TIMESLOT
   final int? endSlotIdx;   // AVOID_TIMESLOT
   final int weight;        // 1 / 5 / 10
+  final int? classroomIdx; // DAILY_LIMIT
+  final int? softMinDaily; // DAILY_LIMIT — 0/null = no minimum preference
+  final int? softMaxDaily; // DAILY_LIMIT — null = no maximum preference
 
   const SoftConstraintInput({
     required this.type,
@@ -148,10 +151,13 @@ class SoftConstraintInput {
     this.startSlotIdx,
     this.endSlotIdx,
     required this.weight,
+    this.classroomIdx,
+    this.softMinDaily,
+    this.softMaxDaily,
   });
 }
 
-enum SoftType { avoidTimeslot, preferBlock }
+enum SoftType { avoidTimeslot, preferBlock, dailyLimit }
 
 // ── Progress and result messages (sent across Isolate boundary) ──────────────
 

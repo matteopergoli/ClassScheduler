@@ -158,6 +158,8 @@ _$ConstraintModelImpl _$$ConstraintModelImplFromJson(
       periodId: json['periodId'] as String?,
       endPeriodId: json['endPeriodId'] as String?,
       weight: json['weight'] as String?,
+      minHours: (json['minHours'] as num?)?.toInt(),
+      maxHours: (json['maxHours'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$ConstraintModelImplToJson(
@@ -173,6 +175,8 @@ Map<String, dynamic> _$$ConstraintModelImplToJson(
       'periodId': instance.periodId,
       'endPeriodId': instance.endPeriodId,
       'weight': instance.weight,
+      'minHours': instance.minHours,
+      'maxHours': instance.maxHours,
     };
 
 _$ScheduleModelImpl _$$ScheduleModelImplFromJson(Map<String, dynamic> json) =>

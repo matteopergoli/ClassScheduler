@@ -1,0 +1,13 @@
+# Copy this file to android/key.properties and fill in real values.
+# android/key.properties is git-ignored — it must NEVER be committed.
+#
+# Create the keystore once (keep the .jks file and these passwords backed up
+# somewhere safe — losing them means you can never update the app again):
+#
+#   keytool -genkey -v -keystore %USERPROFILE%\classscheduler-upload.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storeFile=C:/Users/pergo/classscheduler-upload.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

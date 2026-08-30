@@ -23,9 +23,16 @@ abstract class AppConstants {
   static const String fsScheduleCells = 'scheduleCells';
 
   // ── RevenueCat ────────────────────────────────────────────────────────────
-  // TODO: replace with real keys from RevenueCat dashboard
-  static const String rcApiKeyAndroid = 'REVENUECAT_API_KEY_ANDROID';
-  static const String rcApiKeyIos     = 'REVENUECAT_API_KEY_IOS';
+  // RevenueCat *public SDK keys* are safe to ship inside the app, but we still
+  // inject them at build time so they are not committed to git. Pass them with:
+  //   flutter build appbundle --release \
+  //     --dart-define=RC_ANDROID_KEY=goog_xxx --dart-define=RC_IOS_KEY=appl_xxx
+  // If not provided, the placeholder is used and RevenueCat init silently
+  // no-ops (see subscription_service.dart) so debug builds keep working.
+  static const String rcApiKeyAndroid =
+      String.fromEnvironment('RC_ANDROID_KEY', defaultValue: 'REVENUECAT_API_KEY_ANDROID');
+  static const String rcApiKeyIos =
+      String.fromEnvironment('RC_IOS_KEY', defaultValue: 'REVENUECAT_API_KEY_IOS');
   static const String rcEntitlementId = 'classscheduler_annual';
   static const String rcProductId     = 'classscheduler_annual_1490';
 

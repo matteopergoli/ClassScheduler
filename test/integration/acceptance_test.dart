@@ -512,7 +512,10 @@ void main() {
       expect(AppConstants.saMaxIterations,     equals(500000));
       expect(AppConstants.saMaxWallSecs,       equals(55));
       expect(AppConstants.saNoImprovementLimit,equals(50000));
-      expect(AppConstants.saMaxRestarts,       equals(3));
+      // Tuned up from the SRS starting value of 3 (see rationale in
+      // AppConstants.saMaxRestarts) so the outer reheat loop can use the full
+      // wall-clock / iteration budget on tight problems.
+      expect(AppConstants.saMaxRestarts,       equals(200));
     });
 
     test('objective weights satisfy w1 >> w2 >> w3', () {

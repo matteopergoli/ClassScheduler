@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Release signing secrets — NEVER commit these ---
+android/key.properties
+*.jks
+*.keystore
+# RevenueCat / other local secrets passed via --dart-define
+.env
+dart_defines.json

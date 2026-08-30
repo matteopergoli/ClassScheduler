@@ -64,18 +64,20 @@ class ConstraintConflictDetector {
     // Index helpers
     final periodById  = {for (final p in periods) p.id: p};
     final subjectById = {for (final s in subjects) s.id: s};
+    final sortedLessonPeriods = periods.where((p) => p.type == 'LESSON').toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     // Only MUST_ASSIGN and MUST_NOT_ASSIGN constraints carry the full
-    // (classroomId, subjectId, dayOfWeek, periodId) tuple.
+    // (classroomId, subjectId, dayOfWeek, periodId..endPeriodId) tuple.
     final mustAssign    = hardConstraints
         .where((c) => c.type == 'MUST_ASSIGN').toList();
     final mustNotAssign = hardConstraints
         .where((c) => c.type == 'MUST_NOT_ASSIGN').toList();
 
-    // ── Check 1: MUST-ASSIGN vs MUST-NOT-ASSIGN on the same cell ────────────
+    // ── Check 1: MUST-ASSIGN vs MUST-NOT-ASSIGN on overlapping slots ────────
     for (final ma in mustAssign) {
       for (final mna in mustNotAssign) {
-        if (_sameCell(ma, mna)) {
+        if (_rangesOverlap(ma, mna, sortedLessonPeriods)) {
           final label = _cellLabel(ma, periodById, subjectById);
           conflicts.add(ConflictResult(
             constraintIdA: ma.id,
@@ -91,11 +93,12 @@ class ConstraintConflictDetector {
       }
     }
 
-    // ── Check 2: MUST-ASSIGN on a Break Slot ────────────────────────────────
+    // ── Check 2: MUST-ASSIGN covering a Break Slot ──────────────────────────
     for (final ma in mustAssign) {
       if (ma.periodId == null) continue;
-      final period = periodById[ma.periodId];
-      if (period != null && period.type == 'BREAK') {
+      for (final pid in _periodIdsInRange(ma, sortedLessonPeriods)) {
+        final period = periodById[pid];
+        if (period == null || period.type != 'BREAK') continue;
         final subj = subjectById[ma.subjectId]?.name ?? ma.subjectId ?? '?';
         final periodName = period.name ?? '${period.startTime}–${period.endTime}';
         conflicts.add(ConflictResult(
@@ -108,6 +111,7 @@ class ConstraintConflictDetector {
               'Change the MUST-ASSIGN constraint to target a lesson slot, '
               'or remove it.',
         ));
+        break; // one report per constraint, even if the whole range is breaks
       }
     }
 
@@ -154,8 +158,10 @@ class ConstraintConflictDetector {
     // ── Check 4: Teacher conflict — two MUST-ASSIGN force the same teacher
     //            into the same (day, slot) across different classrooms ───────
     //
-    // Group MUST-ASSIGN by (teacherName, dayOfWeek, periodId).
-    // If any group has more than one classroom → conflict.
+    // Group MUST-ASSIGN by (teacherName, dayOfWeek, periodId), expanding
+    // each constraint's range into every slot it covers first. A pair whose
+    // ranges overlap on several slots would otherwise land in several
+    // groups and get reported multiple times, so reported pairs are deduped.
     final Map<String, List<ConstraintModel>> teacherSlotMap = {};
     for (final ma in mustAssign) {
       if (ma.subjectId == null || ma.dayOfWeek == null ||
@@ -164,18 +170,23 @@ class ConstraintConflictDetector {
       }
       final subject = subjectById[ma.subjectId];
       if (subject == null) continue;
-      final key =
-          '${subject.teacherName}__${ma.dayOfWeek}__${ma.periodId}';
-      teacherSlotMap.putIfAbsent(key, () => []).add(ma);
+      for (final pid in _periodIdsInRange(ma, sortedLessonPeriods)) {
+        final key = '${subject.teacherName}__${ma.dayOfWeek}__$pid';
+        teacherSlotMap.putIfAbsent(key, () => []).add(ma);
+      }
     }
 
+    final reportedPairs = <String>{};
     for (final entry in teacherSlotMap.entries) {
       final group = entry.value;
       if (group.length < 2) continue;
 
       // Build readable description from the first two conflicting items
-      final a       = group[0];
-      final b       = group[1];
+      final a = group[0];
+      final b = group[1];
+      final pairKey = ([a.id, b.id]..sort()).join('|');
+      if (!reportedPairs.add(pairKey)) continue; // already reported
+
       final teacher = subjectById[a.subjectId]?.teacherName ?? '?';
       final period  = periodById[a.periodId];
       final timeStr = period != null
@@ -202,26 +213,89 @@ class ConstraintConflictDetector {
     return conflicts;
   }
 
+  /// Period IDs on [dayOfWeek] where [subjectId]'s teacher is already forced
+  /// elsewhere by another existing MUST_ASSIGN constraint — used by the
+  /// constraint form's live slot picker to grey out those slots before a
+  /// conflicting constraint can even be saved. [excludeConstraintId] leaves
+  /// out the constraint currently being edited, so it never conflicts with
+  /// itself.
+  static Set<String> teacherBusySlots({
+    required List<ConstraintModel> hardConstraints,
+    required List<SubjectModel> subjects,
+    required List<PeriodModel> periods,
+    required String subjectId,
+    required String dayOfWeek,
+    String? excludeConstraintId,
+  }) {
+    final subjectById = {for (final s in subjects) s.id: s};
+    final teacherName = subjectById[subjectId]?.teacherName;
+    if (teacherName == null) return const {};
+
+    final sortedLessonPeriods = periods.where((p) => p.type == 'LESSON').toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+    final busy = <String>{};
+    for (final con in hardConstraints) {
+      if (con.type != 'MUST_ASSIGN') continue;
+      if (con.id == excludeConstraintId) continue;
+      if (con.dayOfWeek != dayOfWeek) continue;
+      if (subjectById[con.subjectId]?.teacherName != teacherName) continue;
+      busy.addAll(_periodIdsInRange(con, sortedLessonPeriods));
+    }
+    return busy;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  static bool _sameCell(ConstraintModel a, ConstraintModel b) =>
-      a.classroomId == b.classroomId &&
-      a.subjectId   == b.subjectId   &&
-      a.dayOfWeek   == b.dayOfWeek   &&
-      a.periodId    == b.periodId;
+  /// Expands a constraint's periodId..endPeriodId into the ordered list of
+  /// LESSON period IDs it covers. endPeriodId null/equal to periodId (or a
+  /// periodId not found among lesson periods — e.g. a BREAK slot) yields a
+  /// single-element list containing just periodId.
+  static List<String> _periodIdsInRange(
+    ConstraintModel c,
+    List<PeriodModel> sortedLessonPeriods,
+  ) {
+    if (c.periodId == null) return const [];
+    final startIdx =
+        sortedLessonPeriods.indexWhere((p) => p.id == c.periodId);
+    if (startIdx == -1) return [c.periodId!];
+    final endIdx = c.endPeriodId != null
+        ? sortedLessonPeriods.indexWhere((p) => p.id == c.endPeriodId)
+        : -1;
+    if (endIdx == -1) return [c.periodId!];
+    final lo = startIdx < endIdx ? startIdx : endIdx;
+    final hi = startIdx < endIdx ? endIdx : startIdx;
+    return [for (var i = lo; i <= hi; i++) sortedLessonPeriods[i].id];
+  }
+
+  static bool _rangesOverlap(
+    ConstraintModel a,
+    ConstraintModel b,
+    List<PeriodModel> sortedLessonPeriods,
+  ) {
+    if (a.classroomId != b.classroomId) return false;
+    if (a.subjectId   != b.subjectId)   return false;
+    if (a.dayOfWeek   != b.dayOfWeek)   return false;
+    final aPeriods = _periodIdsInRange(a, sortedLessonPeriods).toSet();
+    final bPeriods = _periodIdsInRange(b, sortedLessonPeriods);
+    return bPeriods.any(aPeriods.contains);
+  }
 
   static String _cellLabel(
     ConstraintModel c,
     Map<String, PeriodModel> periodById,
     Map<String, SubjectModel> subjectById,
   ) {
-    final subj   = subjectById[c.subjectId]?.name ?? c.subjectId ?? '?';
-    final cls    = c.classroomId ?? '?';
-    final day    = c.dayOfWeek   ?? '?';
-    final period = c.periodId != null ? periodById[c.periodId] : null;
-    final time   = period != null
-        ? '${period.startTime}–${period.endTime}'
-        : c.periodId ?? '?';
+    final subj  = subjectById[c.subjectId]?.name ?? c.subjectId ?? '?';
+    final cls   = c.classroomId ?? '?';
+    final day   = c.dayOfWeek   ?? '?';
+    final start = c.periodId != null ? periodById[c.periodId] : null;
+    final end   = c.endPeriodId != null ? periodById[c.endPeriodId] : null;
+    final time  = start == null
+        ? (c.periodId ?? '?')
+        : (end == null || end.id == start.id)
+            ? '${start.startTime}–${start.endTime}'
+            : '${start.startTime}–${end.endTime}';
     return '$subj in $cls on $day at $time';
   }
 }

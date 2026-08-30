@@ -65,12 +65,18 @@ x	i constraint non funzionano
 x	prova hard/soft constraints, incluso min/max giornalieri -> capire come si combinano con le scuole
 x	controllare che il tasto edit constraints dalla homepage funzioni correttamente
 x	nella homepage il conteggio dei contraints non tiene di conto dei daily limit
+x	stress test constraints
+x	vincolo MinDaily=2 non fa convergere il problema, probabilmente serve un nuovo algoritmo -> mettendolo come soft constraint funziona e trova risultati analoghi a chatgpt
+x	da testare - Quando apro, modifico un constraint e lo salvo, non ne deve creare uno nuovo e lasciare quello vecchio, ma modificare quello che già esiste.
+x	banner constraint deleted non va via
+x	testare priorità dei soft constraints
+x	nei constraint soft avoid e prefer hanno una lista di selezioni diverse...
+x	aggiugere possibilità di salvare dataset di constraints
+x	provare gli slot orari di hard constraint
 
 
 
 Open:
-O	stress test constraints
-O	vincolo MinDaily=2 non fa convergere il problema, probabilmente serve un nuovo algoritmo
 O	creazione apk locale per testing locale su device vero
 O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo
 O	chiedere prossimi passi per buildare app e per rilasciarla in development -> account/language/billing management in settings

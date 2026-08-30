@@ -136,11 +136,13 @@ class MustAssign {
 class SoftConstraintInput {
   final SoftType type;
   final int subjectIdx;
-  final int? dayIdx;       // null = any day
-  final int? startSlotIdx; // AVOID_TIMESLOT
-  final int? endSlotIdx;   // AVOID_TIMESLOT
+  final int? dayIdx;       // AVOID_TIMESLOT / PREFER_BLOCK — null = any day
+  final int? startSlotIdx; // AVOID_TIMESLOT / PREFER_BLOCK — null = any slot
+  final int? endSlotIdx;   // AVOID_TIMESLOT / PREFER_BLOCK — null = any slot
   final int weight;        // 1 / 5 / 10
-  final int? classroomIdx; // DAILY_LIMIT
+  final int? classroomIdx; // all types — null = every classroom (DAILY_LIMIT
+                            // always has one; AVOID_TIMESLOT/PREFER_BLOCK
+                            // are optionally scoped to one)
   final int? softMinDaily; // DAILY_LIMIT — 0/null = no minimum preference
   final int? softMaxDaily; // DAILY_LIMIT — null = no maximum preference
 

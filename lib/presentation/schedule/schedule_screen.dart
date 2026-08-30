@@ -13,7 +13,6 @@ import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/scheduler/generation_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/trial_banner.dart';
-import '../../providers/selected_school_provider.dart';
 import 'export_sheet.dart';
 import 'result_panel.dart';
 import 'schedule_grid.dart';
@@ -45,31 +44,79 @@ final _schoolNameProvider =
   return school?.name ?? schoolId;
 });
 
+// The selected school for the current Schedule tab session. Mirrors
+// ConstraintsScreen/SetupScreen: uses its own selection state rather than
+// the app-wide selectedSchoolIdProvider — that one gets auto-set to the
+// first school as soon as the Schools tab loads, which would otherwise skip
+// the picker below on every first visit to this tab.
+final scheduleActiveSchoolProvider = StateProvider<String?>((ref) => null);
+
 // ── Screen ────────────────────────────────────────────────────────────────
 
-class ScheduleScreen extends ConsumerStatefulWidget {
-  final String schoolId;
-  const ScheduleScreen({super.key, required this.schoolId});
+class ScheduleScreen extends ConsumerWidget {
+  const ScheduleScreen({super.key});
 
   @override
-  ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final schoolId = ref.watch(scheduleActiveSchoolProvider);
+
+    if (schoolId == null || schoolId.isEmpty) {
+      final colors = AppColors.of(context);
+      final schools = ref.watch(_schoolsProvider);
+      return Scaffold(
+        body: SafeArea(
+          child: schools.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text(e.toString())),
+            data: (list) => list.isEmpty
+                ? _NoSchoolPrompt(colors: colors)
+                : _SchoolPicker(
+                    schools: list,
+                    colors: colors,
+                    onSelect: (s) => ref
+                        .read(scheduleActiveSchoolProvider.notifier)
+                        .state = s.id,
+                  ),
+          ),
+        ),
+      );
+    }
+
+    return _ScheduleScreenBody(schoolId: schoolId);
+  }
 }
 
-class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
+class _ScheduleScreenBody extends ConsumerStatefulWidget {
+  final String schoolId;
+  const _ScheduleScreenBody({required this.schoolId});
+
+  @override
+  ConsumerState<_ScheduleScreenBody> createState() => _ScheduleScreenState();
+}
+
+class _ScheduleScreenState extends ConsumerState<_ScheduleScreenBody> {
   String? _selectedScheduleId;
   String? _currentScheduleName;
   ScheduleViewMode _viewMode = ScheduleViewMode.perClassroom; // Updated default
   bool _isEditing = false;
-  bool _showResultPanel = false;
+  // The last generation result stays around (in generationServiceProvider)
+  // regardless of which schedule version is currently selected, so rather
+  // than tying its visibility to schedule selection, it's tracked as its
+  // own collapsed/expanded/dismissed UI state — switching versions just
+  // collapses it to a summary bar instead of hiding it outright, so it's
+  // still one tap away instead of gone.
+  bool _resultPanelExpanded = true;
+  bool _resultPanelDismissed = false;
 
   @override
-  void didUpdateWidget(covariant ScheduleScreen oldWidget) {
+  void didUpdateWidget(covariant _ScheduleScreenBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.schoolId != widget.schoolId) {
       _selectedScheduleId = null;
       _currentScheduleName = null;
       _isEditing = false;
-      _showResultPanel = false;
+      _resultPanelExpanded = true;
+      _resultPanelDismissed = false;
     }
   }
 
@@ -80,7 +127,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       _selectedScheduleId = scheduleId;
       _currentScheduleName = scheduleName;
       _isEditing = false;
-      _showResultPanel = false;
+      _resultPanelExpanded = false;
     });
   }
 
@@ -188,7 +235,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       return;
     }
 
-    setState(() => _showResultPanel = false);
+    setState(() => _resultPanelDismissed = true);
 
     await ref
         .read(generationServiceProvider(widget.schoolId).notifier)
@@ -263,7 +310,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     title: Text(school.name),
                     selected: school.id == widget.schoolId,
                     onTap: () {
-                      ref.read(selectedSchoolIdProvider.notifier).state =
+                      ref.read(scheduleActiveSchoolProvider.notifier).state =
                           school.id;
                       Navigator.pop(sheetContext);
                     },
@@ -294,7 +341,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     ref.listen(generationServiceProvider(widget.schoolId), (prev, next) {
       if (next.phase == GenerationPhase.done) {
-        setState(() => _showResultPanel = true);
+        setState(() {
+          _resultPanelDismissed = false;
+          _resultPanelExpanded = true;
+        });
 
         schedulesAsync.whenData((schedules) {
           if (schedules.isNotEmpty) {
@@ -337,14 +387,24 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               onExport: _selectedScheduleId != null ? _showExport : null,
             ),
             const TrialBanner(),
-            if (_showResultPanel && genState.result != null)
-              ResultPanel(
-                result: genState.result!,
-                colors: colors,
-                l10n: l10n,
-                onDismiss: () =>
-                    setState(() => _showResultPanel = false),
-              ),
+            if (!_resultPanelDismissed && genState.result != null)
+              _resultPanelExpanded
+                  ? ResultPanel(
+                      result: genState.result!,
+                      colors: colors,
+                      l10n: l10n,
+                      onCollapse: () =>
+                          setState(() => _resultPanelExpanded = false),
+                    )
+                  : ResultSummaryBar(
+                      result: genState.result!,
+                      colors: colors,
+                      l10n: l10n,
+                      onExpand: () =>
+                          setState(() => _resultPanelExpanded = true),
+                      onDismiss: () =>
+                          setState(() => _resultPanelDismissed = true),
+                    ),
             if (genState.phase == GenerationPhase.error &&
                 genState.errorMessage != null)
               _ErrorBanner(
@@ -920,4 +980,75 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── School picker (mirrors ConstraintsScreen's/SetupScreen's) ──────────────
+
+class _NoSchoolPrompt extends StatelessWidget {
+  final AppColors colors;
+  const _NoSchoolPrompt({required this.colors});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.school_outlined, size: 64, color: colors.textMuted),
+              const SizedBox(height: 16),
+              Text('No schools yet.',
+                  style: AppTextStyles.titleMedium
+                      .copyWith(color: colors.textPrimary)),
+              const SizedBox(height: 8),
+              Text('Go to the Schools tab to create your first school.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: colors.textMuted)),
+            ],
+          ),
+        ),
+      );
+}
+
+class _SchoolPicker extends StatelessWidget {
+  final List<SchoolModel> schools;
+  final AppColors colors;
+  final void Function(SchoolModel) onSelect;
+
+  const _SchoolPicker({
+    required this.schools,
+    required this.colors,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Text('Select a school for schedule',
+                style: AppTextStyles.titleMedium
+                    .copyWith(color: colors.textPrimary)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: schools.length,
+              itemBuilder: (_, i) => ListTile(
+                leading: Icon(Icons.school_outlined, color: colors.primary),
+                title: Text(schools[i].name,
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: colors.textPrimary)),
+                trailing: Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14, color: colors.textMuted),
+                onTap: () => onSelect(schools[i]),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      );
 }

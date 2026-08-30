@@ -100,6 +100,26 @@ class ConstraintRepository extends BaseRepository {
     await _col.doc(constraintId).delete();
   }
 
+  /// Atomically replaces every constraint in the live collection with
+  /// [constraints] — used when switching to a saved constraint set
+  /// (ConstraintSetModel). One batch (delete every existing doc + set every
+  /// new one) so there's never a window where the collection is only
+  /// partially replaced. Each constraint's original id is reused (the
+  /// collection was just cleared above, so there's no collision risk),
+  /// which also makes repeatedly switching between the same sets stable.
+  Future<void> replaceAll(List<ConstraintModel> constraints) async {
+    final existing = await _col.get();
+    final batch = db.batch();
+    for (final doc in existing.docs) {
+      batch.delete(doc.reference);
+    }
+    for (final c in constraints) {
+      final id = c.id.isNotEmpty ? c.id : const Uuid().v4();
+      batch.set(_col.doc(id), _toDoc(c.copyWith(id: id, schoolId: schoolId)));
+    }
+    await batch.commit();
+  }
+
   /// Deletes all constraints referencing a specific classroom.
   /// Called before a classroom is deleted (FR-CLS-02).
   Future<int> deleteForClassroom(String classroomId) async {

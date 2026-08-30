@@ -6,8 +6,10 @@
 //
 // Examples:
 //   MUST_ASSIGN   → "Maths must be scheduled in 1A on Monday at 09:00–10:00."
+//                   (or "...between 09:00 and 11:00." when it spans a range)
 //   MUST_NOT_ASSIGN → "Science must NOT be in 2B on Wednesday at 11:00–12:00."
 //   AVOID_TIMESLOT  → "English should be avoided in the 14:00–15:00 slot on Friday."
+//                     (classroom name prepended when scoped to one)
 //   PREFER_BLOCK    → "History should be scheduled in consecutive slots."
 
 import '../../data/models/app_models.dart';
@@ -53,37 +55,48 @@ class ConstraintLabelBuilder {
   // ── Private builders ──────────────────────────────────────────────────────
 
   String _mustAssign(ConstraintModel c) {
-    final subj  = _subjectName(c.subjectId);
-    final cls   = _classroomName(c.classroomId);
-    final day   = _dayName(c.dayOfWeek);
-    final time  = _periodTime(c.periodId);
+    final subj = _subjectName(c.subjectId);
+    final cls  = _classroomName(c.classroomId);
+    final day  = _dayName(c.dayOfWeek);
+    final time = _rangeTime(c.periodId, c.endPeriodId);
     return '$subj must be scheduled in $cls on $day at $time.';
   }
 
   String _mustNotAssign(ConstraintModel c) {
-    final subj  = _subjectName(c.subjectId);
-    final cls   = _classroomName(c.classroomId);
-    final day   = _dayName(c.dayOfWeek);
-    final time  = _periodTime(c.periodId);
+    final subj = _subjectName(c.subjectId);
+    final cls  = _classroomName(c.classroomId);
+    final day  = _dayName(c.dayOfWeek);
+    final time = _rangeTime(c.periodId, c.endPeriodId);
     return '$subj must NOT be scheduled in $cls on $day at $time.';
   }
 
   String _avoidTimeslot(ConstraintModel c) {
     final subj  = _subjectName(c.subjectId);
+    final cls   = c.classroomId != null ? ' in ${_classroomName(c.classroomId)}' : '';
     final day   = _dayName(c.dayOfWeek);
     final start = _periodTime(c.periodId);
     final end   = c.endPeriodId != null
         ? _periodEndTime(c.endPeriodId)
         : start;
     if (c.dayOfWeek != null) {
-      return '$subj should be avoided on $day between $start and $end.';
+      return '$subj$cls should be avoided on $day between $start and $end.';
     }
-    return '$subj should be avoided between $start and $end.';
+    return '$subj$cls should be avoided between $start and $end.';
   }
 
   String _preferBlock(ConstraintModel c) {
     final subj = _subjectName(c.subjectId);
-    return '$subj should be scheduled in consecutive slots when possible.';
+    final cls  = c.classroomId != null ? ' in ${_classroomName(c.classroomId)}' : '';
+    if (c.dayOfWeek == null && c.periodId == null) {
+      return '$subj$cls should be scheduled in consecutive slots when possible.';
+    }
+    final scope = c.periodId != null
+        ? ' between ${_periodTime(c.periodId)} and '
+            '${c.endPeriodId != null ? _periodEndTime(c.endPeriodId) : _periodTime(c.periodId)}'
+        : '';
+    final day = c.dayOfWeek != null ? ' on ${_dayName(c.dayOfWeek)}' : '';
+    return '$subj$cls should be scheduled in consecutive slots when possible'
+        '$day$scope.';
   }
 
   String _dailyLimit(ConstraintModel c) {
@@ -121,6 +134,19 @@ class ConstraintLabelBuilder {
     if (id == null) return '?';
     final p = periods[id];
     return p != null ? p.endTime : id;
+  }
+
+  String _periodStartTime(String? id) {
+    if (id == null) return '?';
+    final p = periods[id];
+    return p != null ? p.startTime : id;
+  }
+
+  /// Single-slot phrasing ("09:00–10:00") when [endId] is null or the same
+  /// slot as [startId]; range phrasing ("09:00 and 11:00") otherwise.
+  String _rangeTime(String? startId, String? endId) {
+    if (endId == null || endId == startId) return _periodTime(startId);
+    return '${_periodStartTime(startId)} and ${_periodEndTime(endId)}';
   }
 
   String _dayName(String? code) {

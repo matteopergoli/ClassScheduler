@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/app_models.dart';
 import '../../data/repositories/constraint_repository.dart';
+import '../../data/repositories/constraint_set_repository.dart';
 import '../../data/repositories/period_classroom_capacity_repositories.dart';
 import '../../data/repositories/subject_repositories.dart';
 
@@ -30,6 +31,14 @@ final constraintsListProvider =
     StreamProvider.family<List<ConstraintModel>, String>(
   (ref, schoolId) =>
       ref.watch(constraintRepositoryProvider(schoolId)).watchAll(),
+);
+
+/// Named, switchable snapshots of a school's Hard+Soft constraints — see
+/// ConstraintSetModel (app_models.dart) and ConstraintSetSheet.
+final constraintSetsProvider =
+    StreamProvider.family<List<ConstraintSetModel>, String>(
+  (ref, schoolId) =>
+      ref.watch(constraintSetRepositoryProvider(schoolId)).watchAll(),
 );
 
 final constraintSubjectsProvider =

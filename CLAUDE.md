@@ -83,6 +83,13 @@ This is the core of the app and the most subtle part of the codebase.
    to a compact integer index (`teacherOf`, `weeklyTarget[c][s]`, `blockedSlots`, `maxDaily`/`minDaily`,
    `mustAssign`, `mustNotAssignKeys`, `softConstraints`). This is what actually crosses the Isolate
    boundary in `scheduler_isolate.dart` — engine internals work only on flat int arrays/sets for speed.
+   All four rule-type constraints (MUST_ASSIGN/MUST_NOT_ASSIGN/AVOID_TIMESLOT/PREFER_BLOCK) share the
+   same `ConstraintModel` fields now: an optional `classroomId` scope (null = every classroom) and a
+   `periodId..endPeriodId` inclusive slot range (`endPeriodId` null/equal to `periodId` = a single
+   slot, the original behaviour). MUST_ASSIGN/MUST_NOT_ASSIGN ranges are expanded into one
+   `MustAssign`/cell-key per covered slot **inside the builder** — everything downstream
+   (`schedule_state.dart`, `phase1_greedy.dart`, `phase2_sa.dart`, `integrity_checker.dart`) still only
+   ever sees single slots, unaware ranges exist.
 2. **`SchedulerEngine.run()`** (`scheduler_engine.dart`) orchestrates, wrapped in a top-level try/catch
    so generation can never crash and silently returns an error `ScheduleResult` instead (ALGO-R05):
    - **Phase 1 — `Phase1Greedy`**: greedy construction with backtracking, retried up to 40 times with
@@ -109,7 +116,19 @@ This is the core of the app and the most subtle part of the codebase.
 
 Constraint-side logic (conflict detection between user-entered constraints, human-readable constraint
 labels) lives in `lib/domain/constraints/`, separate from the engine's internal `SoftConstraintInput`
-representation.
+representation. `ConstraintConflictDetector.teacherBusySlots()` is reused by the constraint form's
+`SlotRangePicker` (`lib/presentation/constraints/slot_range_picker.dart`) to grey out slots that would
+immediately conflict with an existing MUST_ASSIGN before the user can even save one.
+
+**Constraint sets** (`lib/data/models/app_models.dart`'s `ConstraintSetModel`, `constraint_set_repository.dart`,
+`constraint_set_sheet.dart`) are named, switchable snapshots of a school's whole constraint
+configuration — both the live `/constraints` collection *and* the HARD daily limits that live on
+`ClassroomSubjectModel` (not `ConstraintModel`), since "all Hard and Soft constraints" isn't complete
+without them. Each snapshot stores constraints/daily-limits as raw JSON maps rather than typed models
+(the project has no `explicit_to_json: true`, so Freezed's generated `toJson()` won't recursively
+serialize a nested `List<ConstraintModel>`). Switching sets atomically replaces the live constraints
+collection (`ConstraintRepository.replaceAll`) and re-applies matching daily limits
+(`ClassroomSubjectRepository.saveMany`) — always behind an explicit confirmation dialog, never silently.
 
 ### Export
 

@@ -84,15 +84,26 @@ class SchedulerInputBuilder {
     }
 
     // ── MUST-ASSIGN ────────────────────────────────────────────────────────
+    // periodId..endPeriodId is an inclusive slot range (endPeriodId == null
+    // or == periodId means a single forced slot, the original behaviour).
+    // The range is expanded into one MustAssign per covered slot here so
+    // every downstream consumer (schedule_state/phase1/phase2/integrity
+    // checker) keeps working against a flat per-slot list, unchanged.
     final mustAssignList = <MustAssign>[];
     for (final con in constraints) {
       if (con.type != 'MUST_ASSIGN') continue;
       final c = classroomIdx[con.classroomId];
       final s = subjectIdx[con.subjectId];
       final d = dayIdx[con.dayOfWeek];
-      final l = periodIdx[con.periodId];
-      if (c == null || s == null || d == null || l == null) continue;
-      mustAssignList.add(MustAssign(c, s, d, l));
+      final lStart = periodIdx[con.periodId];
+      if (c == null || s == null || d == null || lStart == null) continue;
+      final lEnd = (con.endPeriodId != null ? periodIdx[con.endPeriodId] : null)
+          ?? lStart;
+      final lo = lStart < lEnd ? lStart : lEnd;
+      final hi = lStart < lEnd ? lEnd : lStart;
+      for (var l = lo; l <= hi; l++) {
+        mustAssignList.add(MustAssign(c, s, d, l));
+      }
     }
     mustAssignList.sort((a, b) {
       final cmp = a.c.compareTo(b.c);
@@ -103,15 +114,22 @@ class SchedulerInputBuilder {
     });
 
     // ── MUST-NOT-ASSIGN ────────────────────────────────────────────────────
+    // Same inclusive-range expansion as MUST-ASSIGN above.
     final mustNotKeys = <int>{};
     for (final con in constraints) {
       if (con.type != 'MUST_NOT_ASSIGN') continue;
       final c = classroomIdx[con.classroomId];
       final s = subjectIdx[con.subjectId];
       final d = dayIdx[con.dayOfWeek];
-      final l = periodIdx[con.periodId];
-      if (c == null || s == null || d == null || l == null) continue;
-      mustNotKeys.add(SchedulerInput.cellKey(c, s, d, l));
+      final lStart = periodIdx[con.periodId];
+      if (c == null || s == null || d == null || lStart == null) continue;
+      final lEnd = (con.endPeriodId != null ? periodIdx[con.endPeriodId] : null)
+          ?? lStart;
+      final lo = lStart < lEnd ? lStart : lEnd;
+      final hi = lStart < lEnd ? lEnd : lStart;
+      for (var l = lo; l <= hi; l++) {
+        mustNotKeys.add(SchedulerInput.cellKey(c, s, d, l));
+      }
     }
 
     // ── Soft constraints ───────────────────────────────────────────────────
@@ -128,6 +146,7 @@ class SchedulerInputBuilder {
       };
 
       if (con.type == 'AVOID_TIMESLOT') {
+        final c      = con.classroomId != null ? classroomIdx[con.classroomId] : null;
         final d      = con.dayOfWeek != null ? dayIdx[con.dayOfWeek] : null;
         final lStart = periodIdx[con.periodId];
         final lEnd   = periodIdx[con.endPeriodId];
@@ -135,16 +154,29 @@ class SchedulerInputBuilder {
         softList.add(SoftConstraintInput(
           type:         SoftType.avoidTimeslot,
           subjectIdx:   s,
+          classroomIdx: c,
           dayIdx:       d,
           startSlotIdx: lStart,
           endSlotIdx:   lEnd,
           weight:       weight,
         ));
       } else if (con.type == 'PREFER_BLOCK') {
+        // Classroom/day/slot range are all optional here (unlike
+        // AVOID_TIMESLOT's mandatory range) — a PREFER_BLOCK with none set
+        // applies to the subject in every classroom, all week, matching
+        // constraints saved before this scoping was added.
+        final c      = con.classroomId != null ? classroomIdx[con.classroomId] : null;
+        final d      = con.dayOfWeek != null ? dayIdx[con.dayOfWeek] : null;
+        final lStart = con.periodId != null ? periodIdx[con.periodId] : null;
+        final lEnd   = con.endPeriodId != null ? periodIdx[con.endPeriodId] : null;
         softList.add(SoftConstraintInput(
-          type:       SoftType.preferBlock,
-          subjectIdx: s,
-          weight:     weight,
+          type:         SoftType.preferBlock,
+          subjectIdx:   s,
+          classroomIdx: c,
+          dayIdx:       d,
+          startSlotIdx: lStart,
+          endSlotIdx:   lEnd,
+          weight:       weight,
         ));
       } else if (con.type == 'DAILY_LIMIT') {
         final c = classroomIdx[con.classroomId];

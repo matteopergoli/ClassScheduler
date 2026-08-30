@@ -179,6 +179,34 @@ Map<String, dynamic> _$$ConstraintModelImplToJson(
       'maxHours': instance.maxHours,
     };
 
+_$ConstraintSetModelImpl _$$ConstraintSetModelImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ConstraintSetModelImpl(
+      id: json['id'] as String,
+      schoolId: json['schoolId'] as String,
+      name: json['name'] as String,
+      savedAt: const TimestampConverter().fromJson(json['savedAt']),
+      constraints: (json['constraints'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
+      dailyLimits: (json['dailyLimits'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$ConstraintSetModelImplToJson(
+        _$ConstraintSetModelImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'schoolId': instance.schoolId,
+      'name': instance.name,
+      'savedAt': const TimestampConverter().toJson(instance.savedAt),
+      'constraints': instance.constraints,
+      'dailyLimits': instance.dailyLimits,
+    };
+
 _$ScheduleModelImpl _$$ScheduleModelImplFromJson(Map<String, dynamic> json) =>
     _$ScheduleModelImpl(
       id: json['id'] as String,

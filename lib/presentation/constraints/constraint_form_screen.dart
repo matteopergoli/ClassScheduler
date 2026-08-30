@@ -42,6 +42,7 @@ import '../../data/models/app_models.dart';
 import '../../data/repositories/constraint_repository.dart';
 import '../../data/repositories/school_repository.dart';
 import '../../data/repositories/subject_repositories.dart' show ClassroomSubjectRepository;
+import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/validation/subject_validator.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_providers.dart';
@@ -50,6 +51,7 @@ import '../widgets/cs_button.dart';
 import '../widgets/cs_dropdown.dart';
 import '../widgets/cs_text_field.dart';
 import 'constraint_data_providers.dart';
+import 'slot_range_picker.dart';
 
 // ── Form family ───────────────────────────────────────────────────────────
 
@@ -57,11 +59,20 @@ enum _Family { rule, dailyLimit }
 
 // Sentinel dropdown values for "apply to every X" — distinct from any real
 // Firestore ID so they can't collide. Only offered when creating (not
-// editing) a rule, since a single ConstraintModel can only carry one
-// classroomId/dayOfWeek — picking one fans out into several documents at
-// save time instead of mutating what "editing this constraint" means.
+// editing) a MUST_ASSIGN/MUST_NOT_ASSIGN rule, since a single ConstraintModel
+// can only carry one classroomId/dayOfWeek — picking one fans out into
+// several documents at save time instead of mutating what "editing this
+// constraint" means.
 const _kAllClassrooms = '__ALL_CLASSROOMS__';
 const _kAllDays = '__ALL_DAYS__';
+
+// Sentinel dropdown values for "no specific X" on AVOID_TIMESLOT/PREFER_BLOCK
+// — unlike the fan-out sentinels above, these resolve to a plain `null` on
+// the single document being created/edited (no fan-out involved), so —
+// unlike _kAllClassrooms/_kAllDays — they're offered whether creating or
+// editing.
+const _kAnyClassroom = '__ANY_CLASSROOM__';
+const _kAnyDay = '__ANY_DAY__';
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
@@ -189,6 +200,21 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     return _positive ? 'PREFER_BLOCK' : 'AVOID_TIMESLOT';
   }
 
+  /// _classroomId/_dayOfWeek with the "any"/"all" sentinels resolved to the
+  /// real value actually persisted: `_kAnyClassroom`/`_kAnyDay` (offered for
+  /// AVOID_TIMESLOT/PREFER_BLOCK) always mean null; `_kAllClassrooms`/
+  /// `_kAllDays` (offered only when creating a MUST_ASSIGN/MUST_NOT_ASSIGN)
+  /// are handled by their own fan-out branch in _saveRule before these
+  /// getters would ever see them, but resolving them to null here too is a
+  /// harmless safety net rather than relying on that being airtight forever.
+  String? get _resolvedClassroomId =>
+      (_classroomId == _kAnyClassroom || _classroomId == _kAllClassrooms)
+          ? null
+          : _classroomId;
+
+  String? get _resolvedDayOfWeek =>
+      (_dayOfWeek == _kAnyDay || _dayOfWeek == _kAllDays) ? null : _dayOfWeek;
+
   void _setKind(String kind) {
     setState(() {
       _kind = kind;
@@ -231,28 +257,20 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 
       if (widget.existing != null) {
         // Editing an existing ConstraintModel always targets exactly one
-        // document — the "all classrooms" / "all days" options aren't
-        // offered in this mode. (Arriving via existingDailyLimit but then
-        // switching to the Rule family falls through to create instead,
-        // since there's no ConstraintModel to update in that case.)
+        // document — the fan-out "all classrooms" / "all days" options
+        // aren't offered in this mode. Classroom/day/slot-range are now the
+        // same four fields regardless of type; the "any"/"all" sentinels
+        // resolve to null via the getters above.
         final model = ConstraintModel(
           id:          widget.existing!.id,
           schoolId:    widget.schoolId,
           kind:        _kind,
           type:        type,
           subjectId:   _subjectId,
-          classroomId: (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN')
-              ? _classroomId
-              : null,
-          dayOfWeek:   (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN' ||
-                        type == 'AVOID_TIMESLOT')
-              ? _dayOfWeek
-              : null,
-          periodId:    (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN' ||
-                        type == 'AVOID_TIMESLOT')
-              ? _periodId
-              : null,
-          endPeriodId: type == 'AVOID_TIMESLOT' ? _endPeriodId : null,
+          classroomId: _resolvedClassroomId,
+          dayOfWeek:   _resolvedDayOfWeek,
+          periodId:    _periodId,
+          endPeriodId: _endPeriodId,
           weight:      _kind == 'SOFT' ? _weight : null,
         );
         await repo.update(model);
@@ -284,27 +302,39 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
                 classroomId: c,
                 dayOfWeek: d,
                 periodId: _periodId,
+                // The slot range itself doesn't fan out — only classroom
+                // and day do — so every generated document keeps the same
+                // start/end.
+                endPeriodId: _endPeriodId,
               ),
         ]);
+        // Arrived via existingDailyLimit (a HARD daily limit) but switched
+        // to the Rule family — that's a different representation with
+        // nothing to "update", so the old one has to be cleared explicitly
+        // or it's left behind as a stale duplicate.
+        await _clearExistingDailyLimit(_lessonPeriods(periods).length);
       } else {
-        // AVOID_TIMESLOT / PREFER_BLOCK — always a single document.
-        // For AVOID_TIMESLOT, "all days" is the engine's existing
-        // null-dayOfWeek = "any day" behaviour made an explicit choice,
-        // not a fan-out.
+        // AVOID_TIMESLOT / PREFER_BLOCK — always a single document, both
+        // when creating and editing: there's no fan-out for these two
+        // types, "any classroom"/"any day" are just plain null values on
+        // the one document. For PREFER_BLOCK the whole classroom/day/slot
+        // range is additionally optional (unlike AVOID_TIMESLOT, which
+        // requires a classroom-independent start/end range).
         final model = ConstraintModel(
           id: '',
           schoolId: widget.schoolId,
           kind: _kind,
           type: type,
           subjectId: _subjectId,
-          dayOfWeek: type == 'AVOID_TIMESLOT'
-              ? (_dayOfWeek == _kAllDays ? null : _dayOfWeek)
-              : null,
-          periodId: type == 'AVOID_TIMESLOT' ? _periodId : null,
-          endPeriodId: type == 'AVOID_TIMESLOT' ? _endPeriodId : null,
+          classroomId: _resolvedClassroomId,
+          dayOfWeek: _resolvedDayOfWeek,
+          periodId: _periodId,
+          endPeriodId: _endPeriodId,
           weight: _kind == 'SOFT' ? _weight : null,
         );
         await repo.create(model);
+        // Same reasoning as the MUST_ASSIGN/MUST_NOT_ASSIGN branch above.
+        await _clearExistingDailyLimit(_lessonPeriods(periods).length);
       }
       if (mounted) context.pop();
     } catch (e) {
@@ -312,6 +342,19 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// Resets the HARD daily limit this form was opened to edit (if any) back
+  /// to its defaults. Called whenever a save ends up creating a different
+  /// kind of representation instead of updating this one in place — without
+  /// this, the old limit stays set on the classroom-subject assignment and
+  /// shows up as a stale duplicate alongside the newly-saved constraint.
+  Future<void> _clearExistingDailyLimit(int lessonPeriodsCount) async {
+    final dl = widget.existingDailyLimit;
+    if (dl == null) return;
+    final uid = ref.read(currentUserProvider)!.uid;
+    final repo = ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
+    await repo.save(dl.copyWith(minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
   }
 
   String? _validateRule() {
@@ -325,7 +368,9 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       if (_periodId == null) return 'Please select a start slot.';
       if (_endPeriodId == null) return 'Please select an end slot.';
     }
-    // PREFER_BLOCK: only subject is required (checked above).
+    // PREFER_BLOCK: only subject is required (checked above) — its
+    // day/start/end slot fields are an optional scope, unlike AVOID_TIMESLOT
+    // where start/end are mandatory.
     return null;
   }
 
@@ -422,19 +467,34 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     try {
       if (_kind == 'HARD') {
         final uid = ref.read(currentUserProvider)!.uid;
-        final repo = ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
+        final csRepo = ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
         final effectiveMax = _dlNoMax ? lessonPeriodsCount : _dlMax;
-        await repo.saveMany([
+        await csRepo.saveMany([
           for (final cs in assignments)
             cs.copyWith(minDailyHours: _dlMin, maxDailyHours: effectiveMax),
         ]);
+        // Editing moved this limit onto a different subject/classroom
+        // assignment — the one we were opened to edit isn't in the set we
+        // just saved, so its old min/max would otherwise stay set and show
+        // up as a stale duplicate.
+        final dl = widget.existingDailyLimit;
+        if (dl != null && !assignments.any((cs) => cs.id == dl.id)) {
+          await csRepo.save(dl.copyWith(
+              minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
+        }
+        // Was previously a SOFT DAILY_LIMIT ConstraintModel — that document
+        // has no relation to the classroom-subject fields just written, so
+        // it has to be deleted explicitly or it's left behind.
+        if (widget.existing != null) {
+          await ref
+              .read(constraintRepositoryProvider(widget.schoolId))
+              .delete(widget.existing!.id);
+        }
       } else {
         final repo = ref.read(constraintRepositoryProvider(widget.schoolId));
         if (widget.existing != null) {
           // Editing an existing SOFT DAILY_LIMIT ConstraintModel always
-          // targets exactly one document. (Arriving via existingDailyLimit
-          // — a HARD limit — but then switching to SOFT falls through to
-          // create instead, since there's no ConstraintModel to update.)
+          // targets exactly one document.
           final model = ConstraintModel(
             id:          widget.existing!.id,
             schoolId:    widget.schoolId,
@@ -462,6 +522,9 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
                 maxHours: _dlNoMax ? null : _dlMax,
               ),
           ]);
+          // Arrived via existingDailyLimit (a HARD limit) but switched to
+          // SOFT — see _clearExistingDailyLimit doc.
+          await _clearExistingDailyLimit(lessonPeriodsCount);
         }
       }
       if (mounted) context.pop();
@@ -484,6 +547,13 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     final periodsAsync           = ref.watch(_periodsProvider(widget.schoolId));
     final classroomSubjectsAsync = ref.watch(_classroomSubjectsProvider(widget.schoolId));
     final dayCapsAsync           = ref.watch(_dayCapacitiesProvider(widget.schoolId));
+    // Only used to grey out slots a MUST_ASSIGN would immediately conflict
+    // on (see _buildRuleFields) — a nice-to-have, not core form data, so it
+    // doesn't gate the rest of the form behind another loading state; while
+    // still loading, disabling simply doesn't kick in yet.
+    final hardConstraints = (ref.watch(_constraintsProvider(widget.schoolId)).valueOrNull ?? const [])
+        .where((c) => c.kind == 'HARD')
+        .toList();
     final schoolName = ref.watch(schoolsStreamProvider).whenOrNull(
           data: (schools) => schools
               .firstWhereOrNull((s) => s.id == widget.schoolId)
@@ -530,7 +600,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
                 error:   (e, _) => Center(child: Text('Error: $e')),
                 data: (dayCaps) => _buildForm(
                   colors, l10n, subjects, classrooms, periods,
-                  classroomSubjects, dayCaps,
+                  classroomSubjects, dayCaps, hardConstraints,
                 ),
               ),
             ),
@@ -569,6 +639,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     List<PeriodModel> periods,
     List<ClassroomSubjectModel> classroomSubjects,
     List<DayCapacityModel> dayCaps,
+    List<ConstraintModel> hardConstraints,
   ) {
     final lessonPeriods = _lessonPeriods(periods);
     final type = _type;
@@ -631,7 +702,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           const SizedBox(height: 20),
 
           if (_family == _Family.rule)
-            ..._buildRuleFields(colors, l10n, type, subjects, classrooms, lessonPeriods)
+            ..._buildRuleFields(colors, l10n, type, subjects, classrooms,
+                periods, lessonPeriods, dayCaps, hardConstraints)
           else
             ..._buildDailyLimitFields(
               colors, l10n, subjects, dlClassroomsForSubject,
@@ -670,17 +742,68 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     );
   }
 
+  /// All 4 rule types (Must/Must-not/Prefer/Avoid) now share the exact same
+  /// field set — Subject → Classroom → Day → Slot(s) — so switching between
+  /// them never reshuffles the form; only which fields are *required* vs.
+  /// "any X" differs:
+  ///   MUST_ASSIGN/MUST_NOT_ASSIGN — classroom, day and slot all required.
+  ///   AVOID_TIMESLOT              — classroom/day optional, slot required.
+  ///   PREFER_BLOCK                — everything but subject is optional.
   List<Widget> _buildRuleFields(
     AppColors colors,
     AppLocalizations l10n,
     String type,
     List<SubjectModel> subjects,
     List<ClassroomModel> classrooms,
+    List<PeriodModel> allPeriods,
     List<PeriodModel> lessonPeriods,
+    List<DayCapacityModel> dayCaps,
+    List<ConstraintModel> hardConstraints,
   ) {
-    final needsClassroomDayPeriod =
+    final classroomDayRequired =
         type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN';
-    final needsTimeRange = type == 'AVOID_TIMESLOT';
+
+    final resolvedClassroomId = _resolvedClassroomId;
+    final resolvedDay = _resolvedDayOfWeek;
+
+    // ── Dynamic slot disabling ──────────────────────────────────────────
+    // Reason strings double as the cell's tooltip.
+    final disabledReasons = <int, String>{};
+
+    // Structurally blocked for this classroom on this day — only checkable
+    // once both are a concrete (non-"any") value.
+    if (resolvedClassroomId != null && resolvedDay != null) {
+      final cap = dayCaps.firstWhereOrNull((d) =>
+          d.classroomId == resolvedClassroomId && d.dayOfWeek == resolvedDay);
+      if (cap != null) {
+        for (var i = 0; i < lessonPeriods.length; i++) {
+          if (!cap.activeSlots.contains(i)) {
+            disabledReasons[i] = 'Not available for this classroom on this day.';
+          }
+        }
+      }
+    }
+
+    // MUST_ASSIGN only: the subject's teacher is already forced elsewhere
+    // at this day/slot by another existing MUST_ASSIGN.
+    if (type == 'MUST_ASSIGN' && _subjectId != null && resolvedDay != null) {
+      final busyPeriodIds = ConstraintConflictDetector.teacherBusySlots(
+        hardConstraints: hardConstraints,
+        subjects: subjects,
+        periods: allPeriods,
+        subjectId: _subjectId!,
+        dayOfWeek: resolvedDay,
+        excludeConstraintId: widget.existing?.id,
+      );
+      for (var i = 0; i < lessonPeriods.length; i++) {
+        if (busyPeriodIds.contains(lessonPeriods[i].id)) {
+          disabledReasons[i] = 'Teacher already assigned elsewhere at this time.';
+        }
+      }
+    }
+
+    final startIdx = _lessonIndexOf(_periodId, lessonPeriods);
+    final endIdx   = _lessonIndexOf(_endPeriodId, lessonPeriods);
 
     return [
       // ── Subject (always required) ─────────────────────────────────
@@ -698,80 +821,59 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       ),
       const SizedBox(height: 16),
 
-      if (needsClassroomDayPeriod) ...[
-        _SectionLabel(label: l10n.classrooms, colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('classroom'),
-          value: _classroomId,
-          hint: 'Select classroom',
-          items: _classroomItems(classrooms, colors),
-          onChanged: (v) => setState(() => _classroomId = v),
-        ),
-        const SizedBox(height: 16),
-        _SectionLabel(label: 'Day', colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('day'),
-          value: _dayOfWeek,
-          hint: 'Select day',
-          items: _dayItemsForRule(l10n, colors),
-          onChanged: (v) => setState(() => _dayOfWeek = v),
-        ),
-        const SizedBox(height: 16),
-        _SectionLabel(label: 'Slot', colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('period'),
-          value: _periodId,
-          hint: 'Select slot',
-          items: lessonPeriods.map((p) => DropdownMenuItem(
-            value: p.id,
-            child: Text('${p.startTime}–${p.endTime}'),
-          )).toList(),
-          onChanged: (v) => setState(() => _periodId = v),
-        ),
-        const SizedBox(height: 16),
-      ],
+      // ── Classroom ────────────────────────────────────────────────
+      // Label AND hint text stay the same regardless of type, so Hard and
+      // Soft rules read identically — "Any classroom"/"Any day" is just the
+      // placeholder shown before a choice is made; for Must/Must-not a
+      // concrete classroom/day is still required at save time (_validateRule).
+      _SectionLabel(label: l10n.classrooms, colors: colors),
+      const SizedBox(height: 8),
+      CsDropdown<String>(
+        key: const ValueKey('classroom'),
+        value: _classroomId,
+        hint: 'Any classroom',
+        items: classroomDayRequired
+            ? _classroomItems(classrooms, colors)
+            : _classroomItemsOptional(classrooms, colors),
+        onChanged: (v) => setState(() => _classroomId = v),
+      ),
+      const SizedBox(height: 16),
 
-      if (needsTimeRange) ...[
-        _SectionLabel(label: 'Day (optional)', colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('day'),
-          value: _dayOfWeek,
-          hint: 'Any day',
-          items: _dayItemsForRule(l10n, colors),
-          onChanged: (v) => setState(() => _dayOfWeek = v),
-        ),
-        const SizedBox(height: 16),
-        _SectionLabel(label: 'Start slot', colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('period'),
-          value: _periodId,
-          hint: 'Select start slot',
-          items: lessonPeriods.map((p) => DropdownMenuItem(
-            value: p.id,
-            child: Text('${p.startTime}–${p.endTime}'),
-          )).toList(),
-          onChanged: (v) => setState(() => _periodId = v),
-        ),
-        const SizedBox(height: 16),
-        _SectionLabel(label: 'End slot', colors: colors),
-        const SizedBox(height: 8),
-        CsDropdown<String>(
-          key: const ValueKey('endPeriod'),
-          value: _endPeriodId,
-          hint: 'Select end slot',
-          items: lessonPeriods.map((p) => DropdownMenuItem(
-            value: p.id,
-            child: Text('${p.startTime}–${p.endTime}'),
-          )).toList(),
-          onChanged: (v) => setState(() => _endPeriodId = v),
-        ),
-        const SizedBox(height: 16),
-      ],
+      // ── Day ──────────────────────────────────────────────────────
+      _SectionLabel(label: 'Day', colors: colors),
+      const SizedBox(height: 8),
+      CsDropdown<String>(
+        key: const ValueKey('day'),
+        value: _dayOfWeek,
+        hint: 'Any day',
+        items: classroomDayRequired
+            ? _dayItemsForRule(l10n, colors)
+            : _dayItemsOptional(l10n, colors),
+        onChanged: (v) => setState(() => _dayOfWeek = v),
+      ),
+      const SizedBox(height: 16),
+
+      // ── Slot(s) — visual picker instead of dropdowns ────────────────
+      _SectionLabel(label: 'Slot', colors: colors),
+      const SizedBox(height: 8),
+      SlotRangePicker(
+        allPeriods: allPeriods,
+        startSlotIdx: startIdx,
+        endSlotIdx: endIdx,
+        disabledLessonIndices: disabledReasons.keys.toSet(),
+        disabledReasons: disabledReasons,
+        colors: colors,
+        onRangeChanged: (start, end) => setState(() {
+          _periodId = start != null ? lessonPeriods[start].id : null;
+          _endPeriodId = end != null ? lessonPeriods[end].id : null;
+        }),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Tap a slot to select it, tap another to select a range.',
+        style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
+      ),
+      const SizedBox(height: 16),
 
       // ── Weight (SOFT only) ──────────────────────────────────────
       if (_kind == 'SOFT') ...[
@@ -786,6 +888,12 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         const SizedBox(height: 16),
       ],
     ];
+  }
+
+  int? _lessonIndexOf(String? periodId, List<PeriodModel> lessonPeriods) {
+    if (periodId == null) return null;
+    final idx = lessonPeriods.indexWhere((p) => p.id == periodId);
+    return idx == -1 ? null : idx;
   }
 
   List<Widget> _buildDailyLimitFields(
@@ -1019,6 +1127,38 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       ),
     ...classrooms.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
   ];
+
+  /// Day items for AVOID_TIMESLOT/PREFER_BLOCK — an "Any day" item is always
+  /// offered (create or edit), unlike _dayItemsForRule's create-only "All
+  /// days": here it resolves to a plain `null` on the one document rather
+  /// than fanning out into several, so there's no reason to hide it while
+  /// editing.
+  List<DropdownMenuItem<String>> _dayItemsOptional(
+    AppLocalizations l10n,
+    AppColors colors,
+  ) => [
+    DropdownMenuItem(
+      value: _kAnyDay,
+      child: Text('Any day',
+          style: TextStyle(
+              color: colors.primary, fontWeight: FontWeight.w600)),
+    ),
+    ..._dayItems(l10n),
+  ];
+
+  /// Classroom items for AVOID_TIMESLOT/PREFER_BLOCK — see _dayItemsOptional.
+  List<DropdownMenuItem<String>> _classroomItemsOptional(
+    List<ClassroomModel> classrooms,
+    AppColors colors,
+  ) => [
+    DropdownMenuItem(
+      value: _kAnyClassroom,
+      child: Text('Any classroom',
+          style: TextStyle(
+              color: colors.primary, fontWeight: FontWeight.w600)),
+    ),
+    ...classrooms.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+  ];
 }
 
 // ── Kind toggle ────────────────────────────────────────────────────────────
@@ -1108,7 +1248,8 @@ class _RuleFamilySelector extends StatelessWidget {
     final negativeLabel = isHard ? 'Must not' : 'Avoid';
     final positiveDesc  = isHard
         ? 'Force a subject into a specific classroom slot.'
-        : 'Encourage consecutive lessons for a subject.';
+        : 'Encourage consecutive lessons for a subject, optionally '
+            'limited to a day/time range.';
     final negativeDesc  = isHard
         ? 'Block a subject from a specific classroom slot.'
         : 'Discourage a subject during a time range.';
@@ -1275,3 +1416,4 @@ final _classroomsProvider = constraintClassroomsProvider;
 final _periodsProvider = constraintPeriodsProvider;
 final _classroomSubjectsProvider = constraintClassroomSubjectsProvider;
 final _dayCapacitiesProvider = constraintDayCapacitiesProvider;
+final _constraintsProvider = constraintsListProvider;

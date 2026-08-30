@@ -22,6 +22,7 @@ import '../../domain/constraints/constraint_label_builder.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_providers.dart';
 import 'constraint_data_providers.dart';
+import 'constraint_set_sheet.dart';
 
 // ── Providers ──────────────────────────────────────────────────────────────
 //
@@ -98,10 +99,33 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
     final periodsAsync = ref.watch(_periodsProvider(schoolId));
     final classroomSubjectsAsync =
         ref.watch(_classroomSubjectsProvider(schoolId));
+    // Watched (not just read on tap) so the stream is already warmed up by
+    // the time the user opens the sheet — the sheet itself doesn't watch
+    // this provider (it receives a static snapshot, same as VersionSheet
+    // receives its schedule list), so a cold `ref.read` here could hand it
+    // an empty list on the very first tap before Firestore's first
+    // snapshot arrives.
+    final constraintSetsAsync = ref.watch(constraintSetsProvider(schoolId));
     final schoolName = ref.watch(schoolsStreamProvider).whenOrNull(
           data: (schools) =>
               schools.firstWhereOrNull((s) => s.id == schoolId)?.name,
         );
+
+    // Tab badge counts. HARD also folds in daily limits stored on
+    // ClassroomSubjectModel (see the comment on `customizedDailyLimits`
+    // below) since those show up as tiles in the Hard tab too, even though
+    // they aren't ConstraintModel documents. Falls back to 0 while the
+    // underlying streams are still loading.
+    final allConstraints = constraintsAsync.valueOrNull ?? const [];
+    final hardCount = allConstraints.where((c) => c.kind == 'HARD').length;
+    final softCount = allConstraints.where((c) => c.kind == 'SOFT').length;
+    final tabLessonPeriodsCount = (periodsAsync.valueOrNull ?? const [])
+        .where((p) => p.type == PeriodType.lesson)
+        .length;
+    final hardDailyLimitCount = (classroomSubjectsAsync.valueOrNull ?? const [])
+        .where((cs) =>
+            cs.minDailyHours > 0 || cs.maxDailyHours < tabLessonPeriodsCount)
+        .length;
 
     return Scaffold(
       body: SafeArea(
@@ -145,6 +169,18 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                     ],
                   ),
                 ),
+                _ConstraintSetsButton(
+                  colors: colors,
+                  onTap: () => _showConstraintSetSheet(
+                    context,
+                    schoolId,
+                    allConstraints,
+                    classroomSubjectsAsync.valueOrNull ?? const [],
+                    constraintSetsAsync.valueOrNull ?? const [],
+                    tabLessonPeriodsCount,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 _AddButton(
                     schoolId: schoolId, colors: colors, l10n: l10n),
               ]),
@@ -194,8 +230,9 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                   unselectedLabelColor: colors.textMuted,
                   dividerColor: Colors.transparent,
                   tabs: [
-                    Tab(text: l10n.hardConstraints),
-                    Tab(text: l10n.softConstraints),
+                    Tab(text:
+                        '${l10n.hardConstraints} (${hardCount + hardDailyLimitCount})'),
+                    Tab(text: '${l10n.softConstraints} ($softCount)'),
                   ],
                 ),
               ),
@@ -288,6 +325,28 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showConstraintSetSheet(
+    BuildContext context,
+    String schoolId,
+    List<ConstraintModel> currentConstraints,
+    List<ClassroomSubjectModel> currentClassroomSubjects,
+    List<ConstraintSetModel> sets,
+    int lessonPeriodsCount,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConstraintSetSheet(
+        schoolId: schoolId,
+        sets: sets,
+        currentConstraints: currentConstraints,
+        currentClassroomSubjects: currentClassroomSubjects,
+        lessonPeriodsCount: lessonPeriodsCount,
       ),
     );
   }
@@ -481,12 +540,28 @@ class _ConstraintList extends ConsumerWidget {
 
   Future<void> _delete(
       BuildContext ctx, WidgetRef ref, ConstraintModel c) async {
+    // Captured before the await: the ScaffoldMessengerState itself stays
+    // valid for the app's lifetime (it's anchored above the tab shell), but
+    // `ctx` belongs to this one list row, which the Firestore stream can —
+    // and, once the delete lands, will — rebuild out from under us. Resolving
+    // `ScaffoldMessenger.of(ctx)` *after* that point risks the SnackBar
+    // never getting a chance to auto-dismiss cleanly.
+    final messenger = ScaffoldMessenger.of(ctx);
     final repo = ref.read(constraintRepositoryProvider(schoolId));
     await repo.delete(c.id);
-    if (!ctx.mounted) return;
-    ScaffoldMessenger.of(ctx).showSnackBar(
+    // removeCurrentSnackBar (not clearSnackBars/hideCurrentSnackBar) — those
+    // animate the old bar out before the new one starts, so back-to-back
+    // deletes each interrupt that hand-off and the queue never drains,
+    // making the banner look stuck. remove is synchronous: the next bar
+    // starts immediately.
+    messenger.removeCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.constraintDeleted),
+        // SnackBar.persist defaults to true whenever an action is set (so
+        // the bar normally waits for the user to tap it) — that's what was
+        // making this one stay on screen forever instead of timing out.
+        persist: false,
         action: SnackBarAction(
             label: l10n.undoDelete, onPressed: () => repo.create(c)),
       ),
@@ -499,16 +574,18 @@ class _ConstraintList extends ConsumerWidget {
   /// (no minimum, capped only by the day's physical slot count).
   Future<void> _resetDailyLimit(
       BuildContext ctx, WidgetRef ref, ClassroomSubjectModel cs) async {
+    final messenger = ScaffoldMessenger.of(ctx);
     final uid = ref.read(currentUserProvider)!.uid;
     final repo = ClassroomSubjectRepository(uid: uid, schoolId: schoolId);
     await repo.save(cs.copyWith(
       minDailyHours: 0,
       maxDailyHours: lessonPeriodsCount,
     ));
-    if (!ctx.mounted) return;
-    ScaffoldMessenger.of(ctx).showSnackBar(
+    messenger.removeCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.constraintDeleted),
+        persist: false,
         action: SnackBarAction(
           label: l10n.undoDelete,
           onPressed: () => repo.save(cs),
@@ -757,6 +834,38 @@ class _EmptyState extends StatelessWidget {
               style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
             ),
           ]),
+        ),
+      );
+}
+
+// ── Constraint sets button ──────────────────────────────────────────────────
+//
+// Opens ConstraintSetSheet — outlined/secondary styling (vs. _AddButton's
+// filled gradient) so it reads as the lighter-weight "manage sets" action
+// next to the primary "add constraint" one.
+
+class _ConstraintSetsButton extends StatelessWidget {
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  const _ConstraintSetsButton({
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: colors.surfaceVariant,
+            border: Border.all(color: colors.borderDefault),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.layers_outlined,
+              color: colors.textSecondary, size: 20),
         ),
       );
 }

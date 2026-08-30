@@ -20,7 +20,6 @@ import '../../presentation/schedule/schedule_screen.dart';
 import '../../presentation/settings/settings_screen.dart';
 import '../../presentation/shell/main_shell.dart';
 import '../../data/models/app_models.dart';
-import '../../providers/selected_school_provider.dart';
 
 // ── Route names (use these constants for navigation) ────────────────────────
 abstract class AppRoutes {
@@ -165,15 +164,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.schedule,
               name: 'schedule',
-              builder: (ctx, state) => Consumer(
-                builder: (ctx, ref, _) {
-                  final schoolId =
-                      ref.watch(selectedSchoolIdProvider) ?? '';
-                  return schoolId.isEmpty
-                      ? const _NoSchoolSelectedScreen()
-                      : ScheduleScreen(schoolId: schoolId);
-                },
-              ),
+              // ScheduleScreen prompts for a school itself (like
+              // SetupScreen/ConstraintsScreen) rather than bouncing to the
+              // Schools tab.
+              builder: (ctx, state) => const ScheduleScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -216,28 +210,3 @@ CustomTransitionPage<void> _slideTransition({
         child: FadeTransition(opacity: animation, child: c),
       ),
     );
-
-class _NoSchoolSelectedScreen extends StatelessWidget {
-  const _NoSchoolSelectedScreen();
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(child: Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.school_outlined, size: 64, color: Color(0xFF64748B)),
-        const SizedBox(height: 16),
-        const Text('No school selected',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        const Text('Go to the Schools tab and tap a school.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B))),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: () => context.go(AppRoutes.schools),
-          child: const Text('Go to Schools'),
-        ),
-      ]),
-    )),
-  );
-}

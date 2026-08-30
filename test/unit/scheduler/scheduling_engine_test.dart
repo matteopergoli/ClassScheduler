@@ -8,6 +8,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:classscheduler/core/constants/app_constants.dart';
 import 'package:classscheduler/domain/scheduler/phase1_greedy.dart';
 import 'package:classscheduler/domain/scheduler/schedule_state.dart';
 import 'package:classscheduler/domain/scheduler/scheduler_engine.dart';
@@ -418,11 +419,12 @@ void main() {
     test('restartsUsed ≥ 0 and final score ≤ initial score', () {
       // We can't guarantee restarts on every run since it's stochastic,
       // but we can assert the invariant: restartsUsed is in valid range
-      // and the engine always returns a result.
+      // (0..saMaxRestarts) and the engine always returns a result.
       final result = runEngine(maxConfigInput());
 
-      expect(result.restartsUsed, inInclusiveRange(0, 3),
-          reason: 'restartsUsed must be between 0 and 3');
+      expect(result.restartsUsed,
+          inInclusiveRange(0, AppConstants.saMaxRestarts),
+          reason: 'restartsUsed must be between 0 and saMaxRestarts');
       expect(result.qualityScore, inInclusiveRange(0, 100));
     });
   });
@@ -476,6 +478,83 @@ void main() {
       expect(result.qualityScore, lessThan(100),
           reason:
               'Partial/violated schedule cannot score 100');
+    });
+  });
+
+  // ── ALG-T16: soft DAILY_LIMIT spreads a subject across the week ─────────
+  // Regression for the "days full of one subject" complaint: with the soft
+  // daily-limit penalty scaled per excess hour (AppConstants.wDailyLimitUnit)
+  // the optimiser must un-pile a subject rather than stacking its whole
+  // weekly quota onto one or two days to minimise F2 subject changes.
+  group('ALG-T16 — soft DAILY_LIMIT weekly spread', () {
+    ({List<int> perDay, int maxOnAnyDay, int overLimitHours}) analyse(
+        ScheduleResult result) {
+      final perDay = <int>[];
+      var overLimitHours = 0;
+      for (var d = 0; d < 5; d++) {
+        var count = 0;
+        for (var l = 0; l < 6; l++) {
+          if (result.schedule[0][d][l] == 0) count++;
+        }
+        perDay.add(count);
+        if (count > 2) overLimitHours += count - 2;
+      }
+      return (
+        perDay: perDay,
+        maxOnAnyDay: perDay.reduce((a, b) => a > b ? a : b),
+        overLimitHours: overLimitHours,
+      );
+    }
+
+    test('weekly target still met', () {
+      final result = runEngine(dailyLimitSoftInput());
+      final total = analyse(result).perDay.fold(0, (a, b) => a + b);
+      expect(total, equals(10),
+          reason: 'All 10 lessons must still be placed');
+      expect(
+        result.hardViolations.where((v) => v.constraintId == 'HC-3'),
+        isEmpty,
+      );
+    });
+
+    test('no day is stacked far above the preferred maximum', () {
+      // A perfect 2-2-2-2-2 spread exists; allow a little SA slack but the
+      // pathological "6 on one day" outcome must not survive.
+      final result = runEngine(dailyLimitSoftInput());
+      final a = analyse(result);
+      expect(a.maxOnAnyDay, lessThanOrEqualTo(3),
+          reason: 'Subject piled onto one day: perDay=${a.perDay}');
+      expect(a.overLimitHours, lessThanOrEqualTo(2),
+          reason: 'Too many hours over the soft cap: perDay=${a.perDay}');
+    });
+
+    test('spreads across at least four days', () {
+      final result = runEngine(dailyLimitSoftInput());
+      final a = analyse(result);
+      final daysUsed = a.perDay.where((c) => c > 0).length;
+      expect(daysUsed, greaterThanOrEqualTo(4),
+          reason: 'Subject should touch ≥ 4 days: perDay=${a.perDay}');
+    });
+
+    test('Phase 1 already spreads (does not hand SA a piled state)', () {
+      // Locks in the step-2 change: greedy construction is soft-max aware,
+      // so it must not build the pathological single-day pile that Phase 2
+      // then has to dismantle.
+      final p1 = runPhase1(dailyLimitSoftInput());
+      final perDay = [
+        for (var d = 0; d < 5; d++)
+          [for (var l = 0; l < 6; l++) p1.state.schedule[0][d][l]]
+              .where((s) => s == 0)
+              .length,
+      ];
+      final total = perDay.fold(0, (a, b) => a + b);
+      final maxOnAnyDay = perDay.reduce((a, b) => a > b ? a : b);
+      final daysUsed = perDay.where((c) => c > 0).length;
+      expect(total, equals(10), reason: 'Phase 1 must place all lessons');
+      expect(maxOnAnyDay, lessThanOrEqualTo(3),
+          reason: 'Phase 1 piled the subject: perDay=$perDay');
+      expect(daysUsed, greaterThanOrEqualTo(4),
+          reason: 'Phase 1 should already spread: perDay=$perDay');
     });
   });
 }

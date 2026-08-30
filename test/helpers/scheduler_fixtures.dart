@@ -202,6 +202,49 @@ SchedulerInput softConstraintInput() {
   );
 }
 
+// ── SOFT DAILY_LIMIT: spread a subject across the week (ALG-T16) ───────────
+// 1 classroom, 1 subject, 5 days, 6 slots. weeklyTarget = 10, hard MaxDaily
+// = 6 (so piling is *possible*), but a soft DAILY_LIMIT prefers ≤ 2 per day.
+// A perfect spread (2 per day × 5 days) exists with zero violations, so the
+// optimiser should reach it rather than stacking 6 on one day to minimise
+// F2 subject changes.
+
+SchedulerInput dailyLimitSoftInput() {
+  return SchedulerInput(
+    numClassrooms: 1,
+    numSubjects:   1,
+    numDays:       5,
+    numSlots:      6,
+    classroomNames: ['Room A'],
+    subjectNames:   ['Maths'],
+    teacherNames:   ['Alice'],
+    dayNames:       ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+    slotLabels: [
+      '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+    ],
+    classroomIds:  ['cr0'],
+    subjectIds:    ['s0'],
+    periodIds:     ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'],
+    teacherOf:     [0],
+    weeklyTarget:  [[10]],
+    blockedSlots: {},
+    maxDaily:      [[6]], // hard cap loose enough to allow a lopsided week
+    minDaily:      [[0]],
+    mustAssign:        [],
+    mustNotAssignKeys: {},
+    softConstraints: [
+      // Prefer at most 2 Maths per day (high weight).
+      const SoftConstraintInput(
+        type:         SoftType.dailyLimit,
+        subjectIdx:   0,
+        weight:       10,
+        classroomIdx: 0,
+        softMaxDaily: 2,
+      ),
+    ],
+  );
+}
+
 // ── Maximum configuration: 10 classrooms, 10 subjects (ALG-T06) ───────────
 
 SchedulerInput maxConfigInput() {

@@ -77,6 +77,11 @@ service cloud.firestore {
           allow read, write: if isOwner(uid);
         }
 
+        // ── ConstraintSets (named, switchable snapshots) ─────────────────────
+        match /constraintSets/{setId} {
+          allow read, write: if isOwner(uid);
+        }
+
         // ── Schedules ──────────────────────────────────────────────────────
         match /schedules/{scheduleId} {
           allow read, write: if isOwner(uid);

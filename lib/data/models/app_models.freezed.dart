@@ -1757,12 +1757,14 @@ mixin _$ConstraintModel {
   String get type =>
       throw _privateConstructorUsedError; // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
 // 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
-  String? get classroomId => throw _privateConstructorUsedError;
+  String? get classroomId =>
+      throw _privateConstructorUsedError; // null = every classroom, for AVOID_TIMESLOT/PREFER_BLOCK
   String? get subjectId => throw _privateConstructorUsedError;
   String? get dayOfWeek => throw _privateConstructorUsedError;
   String? get periodId => throw _privateConstructorUsedError;
   String? get endPeriodId =>
-      throw _privateConstructorUsedError; // AVOID_TIMESLOT only
+      throw _privateConstructorUsedError; // all 4 rule types — null/==periodId = single slot,
+// otherwise an inclusive periodId..endPeriodId range
   String? get weight =>
       throw _privateConstructorUsedError; // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
   int? get minHours =>
@@ -2016,6 +2018,7 @@ class _$ConstraintModelImpl implements _ConstraintModel {
 // 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
   @override
   final String? classroomId;
+// null = every classroom, for AVOID_TIMESLOT/PREFER_BLOCK
   @override
   final String? subjectId;
   @override
@@ -2024,7 +2027,8 @@ class _$ConstraintModelImpl implements _ConstraintModel {
   final String? periodId;
   @override
   final String? endPeriodId;
-// AVOID_TIMESLOT only
+// all 4 rule types — null/==periodId = single slot,
+// otherwise an inclusive periodId..endPeriodId range
   @override
   final String? weight;
 // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
@@ -2128,7 +2132,8 @@ abstract class _ConstraintModel implements ConstraintModel {
   String get type; // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
 // 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
   @override
-  String? get classroomId;
+  String?
+      get classroomId; // null = every classroom, for AVOID_TIMESLOT/PREFER_BLOCK
   @override
   String? get subjectId;
   @override
@@ -2136,7 +2141,8 @@ abstract class _ConstraintModel implements ConstraintModel {
   @override
   String? get periodId;
   @override
-  String? get endPeriodId; // AVOID_TIMESLOT only
+  String? get endPeriodId; // all 4 rule types — null/==periodId = single slot,
+// otherwise an inclusive periodId..endPeriodId range
   @override
   String? get weight; // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
   @override
@@ -2149,6 +2155,325 @@ abstract class _ConstraintModel implements ConstraintModel {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ConstraintModelImplCopyWith<_$ConstraintModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ConstraintSetModel _$ConstraintSetModelFromJson(Map<String, dynamic> json) {
+  return _ConstraintSetModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ConstraintSetModel {
+  String get id => throw _privateConstructorUsedError;
+  String get schoolId => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  @TimestampConverter()
+  DateTime get savedAt =>
+      throw _privateConstructorUsedError; // Snapshot of ConstraintModel.toJson() for every constraint that
+// existed when this set was saved.
+  List<Map<String, dynamic>> get constraints =>
+      throw _privateConstructorUsedError; // Snapshot of HARD daily limits — {classroomId, subjectId,
+// minDailyHours, maxDailyHours} per classroom-subject assignment.
+// These aren't ConstraintModel documents (they're structural fields on
+// ClassroomSubjectModel), so they need their own snapshot to make "all
+// Hard and Soft constraints" actually complete. Restored by matching
+// (classroomId, subjectId) rather than an id, so it still works if the
+// assignment doc was recreated since this set was saved.
+  List<Map<String, dynamic>> get dailyLimits =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ConstraintSetModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ConstraintSetModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ConstraintSetModelCopyWith<ConstraintSetModel> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ConstraintSetModelCopyWith<$Res> {
+  factory $ConstraintSetModelCopyWith(
+          ConstraintSetModel value, $Res Function(ConstraintSetModel) then) =
+      _$ConstraintSetModelCopyWithImpl<$Res, ConstraintSetModel>;
+  @useResult
+  $Res call(
+      {String id,
+      String schoolId,
+      String name,
+      @TimestampConverter() DateTime savedAt,
+      List<Map<String, dynamic>> constraints,
+      List<Map<String, dynamic>> dailyLimits});
+}
+
+/// @nodoc
+class _$ConstraintSetModelCopyWithImpl<$Res, $Val extends ConstraintSetModel>
+    implements $ConstraintSetModelCopyWith<$Res> {
+  _$ConstraintSetModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ConstraintSetModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? schoolId = null,
+    Object? name = null,
+    Object? savedAt = null,
+    Object? constraints = null,
+    Object? dailyLimits = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      schoolId: null == schoolId
+          ? _value.schoolId
+          : schoolId // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      savedAt: null == savedAt
+          ? _value.savedAt
+          : savedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      constraints: null == constraints
+          ? _value.constraints
+          : constraints // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+      dailyLimits: null == dailyLimits
+          ? _value.dailyLimits
+          : dailyLimits // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ConstraintSetModelImplCopyWith<$Res>
+    implements $ConstraintSetModelCopyWith<$Res> {
+  factory _$$ConstraintSetModelImplCopyWith(_$ConstraintSetModelImpl value,
+          $Res Function(_$ConstraintSetModelImpl) then) =
+      __$$ConstraintSetModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String schoolId,
+      String name,
+      @TimestampConverter() DateTime savedAt,
+      List<Map<String, dynamic>> constraints,
+      List<Map<String, dynamic>> dailyLimits});
+}
+
+/// @nodoc
+class __$$ConstraintSetModelImplCopyWithImpl<$Res>
+    extends _$ConstraintSetModelCopyWithImpl<$Res, _$ConstraintSetModelImpl>
+    implements _$$ConstraintSetModelImplCopyWith<$Res> {
+  __$$ConstraintSetModelImplCopyWithImpl(_$ConstraintSetModelImpl _value,
+      $Res Function(_$ConstraintSetModelImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ConstraintSetModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? schoolId = null,
+    Object? name = null,
+    Object? savedAt = null,
+    Object? constraints = null,
+    Object? dailyLimits = null,
+  }) {
+    return _then(_$ConstraintSetModelImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      schoolId: null == schoolId
+          ? _value.schoolId
+          : schoolId // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      savedAt: null == savedAt
+          ? _value.savedAt
+          : savedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      constraints: null == constraints
+          ? _value._constraints
+          : constraints // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+      dailyLimits: null == dailyLimits
+          ? _value._dailyLimits
+          : dailyLimits // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ConstraintSetModelImpl implements _ConstraintSetModel {
+  const _$ConstraintSetModelImpl(
+      {required this.id,
+      required this.schoolId,
+      required this.name,
+      @TimestampConverter() required this.savedAt,
+      final List<Map<String, dynamic>> constraints = const [],
+      final List<Map<String, dynamic>> dailyLimits = const []})
+      : _constraints = constraints,
+        _dailyLimits = dailyLimits;
+
+  factory _$ConstraintSetModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ConstraintSetModelImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String schoolId;
+  @override
+  final String name;
+  @override
+  @TimestampConverter()
+  final DateTime savedAt;
+// Snapshot of ConstraintModel.toJson() for every constraint that
+// existed when this set was saved.
+  final List<Map<String, dynamic>> _constraints;
+// Snapshot of ConstraintModel.toJson() for every constraint that
+// existed when this set was saved.
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get constraints {
+    if (_constraints is EqualUnmodifiableListView) return _constraints;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_constraints);
+  }
+
+// Snapshot of HARD daily limits — {classroomId, subjectId,
+// minDailyHours, maxDailyHours} per classroom-subject assignment.
+// These aren't ConstraintModel documents (they're structural fields on
+// ClassroomSubjectModel), so they need their own snapshot to make "all
+// Hard and Soft constraints" actually complete. Restored by matching
+// (classroomId, subjectId) rather than an id, so it still works if the
+// assignment doc was recreated since this set was saved.
+  final List<Map<String, dynamic>> _dailyLimits;
+// Snapshot of HARD daily limits — {classroomId, subjectId,
+// minDailyHours, maxDailyHours} per classroom-subject assignment.
+// These aren't ConstraintModel documents (they're structural fields on
+// ClassroomSubjectModel), so they need their own snapshot to make "all
+// Hard and Soft constraints" actually complete. Restored by matching
+// (classroomId, subjectId) rather than an id, so it still works if the
+// assignment doc was recreated since this set was saved.
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get dailyLimits {
+    if (_dailyLimits is EqualUnmodifiableListView) return _dailyLimits;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_dailyLimits);
+  }
+
+  @override
+  String toString() {
+    return 'ConstraintSetModel(id: $id, schoolId: $schoolId, name: $name, savedAt: $savedAt, constraints: $constraints, dailyLimits: $dailyLimits)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ConstraintSetModelImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.schoolId, schoolId) ||
+                other.schoolId == schoolId) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.savedAt, savedAt) || other.savedAt == savedAt) &&
+            const DeepCollectionEquality()
+                .equals(other._constraints, _constraints) &&
+            const DeepCollectionEquality()
+                .equals(other._dailyLimits, _dailyLimits));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      schoolId,
+      name,
+      savedAt,
+      const DeepCollectionEquality().hash(_constraints),
+      const DeepCollectionEquality().hash(_dailyLimits));
+
+  /// Create a copy of ConstraintSetModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ConstraintSetModelImplCopyWith<_$ConstraintSetModelImpl> get copyWith =>
+      __$$ConstraintSetModelImplCopyWithImpl<_$ConstraintSetModelImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ConstraintSetModelImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ConstraintSetModel implements ConstraintSetModel {
+  const factory _ConstraintSetModel(
+      {required final String id,
+      required final String schoolId,
+      required final String name,
+      @TimestampConverter() required final DateTime savedAt,
+      final List<Map<String, dynamic>> constraints,
+      final List<Map<String, dynamic>> dailyLimits}) = _$ConstraintSetModelImpl;
+
+  factory _ConstraintSetModel.fromJson(Map<String, dynamic> json) =
+      _$ConstraintSetModelImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get schoolId;
+  @override
+  String get name;
+  @override
+  @TimestampConverter()
+  DateTime
+      get savedAt; // Snapshot of ConstraintModel.toJson() for every constraint that
+// existed when this set was saved.
+  @override
+  List<Map<String, dynamic>>
+      get constraints; // Snapshot of HARD daily limits — {classroomId, subjectId,
+// minDailyHours, maxDailyHours} per classroom-subject assignment.
+// These aren't ConstraintModel documents (they're structural fields on
+// ClassroomSubjectModel), so they need their own snapshot to make "all
+// Hard and Soft constraints" actually complete. Restored by matching
+// (classroomId, subjectId) rather than an id, so it still works if the
+// assignment doc was recreated since this set was saved.
+  @override
+  List<Map<String, dynamic>> get dailyLimits;
+
+  /// Create a copy of ConstraintSetModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ConstraintSetModelImplCopyWith<_$ConstraintSetModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

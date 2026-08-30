@@ -18,6 +18,7 @@ abstract class AppConstants {
   static const String fsSubjects    = 'subjects';
   static const String fsClassroomSubjects = 'classroomSubjects';
   static const String fsConstraints = 'constraints';
+  static const String fsConstraintSets = 'constraintSets';
   static const String fsSchedules   = 'schedules';
   static const String fsScheduleCells = 'scheduleCells';
 
@@ -88,6 +89,24 @@ abstract class AppConstants {
   static const int    wTeacherFreeHours  = 1000; // w1
   static const int    wSubjectChanges    = 100;  // w2
   // w3 (soft constraint weight) is 1–10 per constraint weight level
+
+  /// Per-excess-hour multiplier for soft DAILY_LIMIT violations.
+  /// The soft daily-limit penalty is
+  ///   excessHours × constraintWeight × wDailyLimitUnit
+  /// where excessHours is how far a day sits above softMax (or below softMin,
+  /// counting only days where the subject is present).
+  ///
+  /// Rationale: the old penalty was a flat 1-per-violated-day × weight, so a
+  /// whole lopsidedly-packed week scored ≤ 10 total — trivially outweighed by
+  /// F2 (wSubjectChanges = 100), whose block-compaction reward is *minimised*
+  /// by piling a subject's entire weekly quota onto one day. It was also
+  /// gradient-free (8h and 3h over a max of 2 both scored 1), so SA could not
+  /// improve a day incrementally. Scaling per excess hour restores the
+  /// gradient; 50 makes one medium-weight (5) constraint exceeded by a single
+  /// hour (5 × 50 = 250) cost more than one avoided subject change (100),
+  /// while staying far below wMissingLesson so it never blocks a required
+  /// lesson.
+  static const int    wDailyLimitUnit    = 50;
 
   // ── Soft constraint penalty values ────────────────────────────────────────
   static const int    softWeightLow    = 1;

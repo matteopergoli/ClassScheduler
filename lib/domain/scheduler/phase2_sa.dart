@@ -263,7 +263,10 @@ class Phase2SA {
     var violations = 0;
     final start = sc.startSlotIdx ?? 0;
     final end   = sc.endSlotIdx   ?? (_input.numSlots - 1);
-    for (var c = 0; c < _input.numClassrooms; c++) {
+    final classrooms = sc.classroomIdx != null
+        ? [sc.classroomIdx!]
+        : List.generate(_input.numClassrooms, (i) => i);
+    for (final c in classrooms) {
       final days = sc.dayIdx != null
           ? [sc.dayIdx!]
           : List.generate(_input.numDays, (i) => i);
@@ -277,12 +280,25 @@ class Phase2SA {
   }
 
   int _penaltyPreferBlock(ScheduleState state, SoftConstraintInput sc) {
-    // Penalise isolated (non-adjacent) occurrences of the subject
+    // Penalise isolated (non-adjacent) occurrences of the subject, optionally
+    // scoped to a classroom/day/slot range (all null = whole week in every
+    // classroom, same as before this scoping existed). Adjacency itself
+    // still looks at the real neighbouring slots regardless of scope — only
+    // whether an isolated occurrence counts against this constraint is
+    // restricted to the range.
     var isolated = 0;
     final s = sc.subjectIdx;
-    for (var c = 0; c < _input.numClassrooms; c++) {
-      for (var d = 0; d < _input.numDays; d++) {
-        for (var l = 0; l < _input.numSlots; l++) {
+    final classrooms = sc.classroomIdx != null
+        ? [sc.classroomIdx!]
+        : List.generate(_input.numClassrooms, (i) => i);
+    final days = sc.dayIdx != null
+        ? [sc.dayIdx!]
+        : List.generate(_input.numDays, (i) => i);
+    final start = sc.startSlotIdx ?? 0;
+    final end   = sc.endSlotIdx   ?? (_input.numSlots - 1);
+    for (final c in classrooms) {
+      for (final d in days) {
+        for (var l = start; l <= end; l++) {
           if (state.schedule[c][d][l] != s) continue;
           final prevSame = l > 0 && state.schedule[c][d][l - 1] == s;
           final nextSame = l < _input.numSlots - 1 &&
@@ -302,7 +318,11 @@ class Phase2SA {
   int _penaltyDailyLimit(ScheduleState state, SoftConstraintInput sc) {
     final c = sc.classroomIdx;
     if (c == null) return 0;
-    var violations = 0;
+    // Sum the *hours* a day is outside the preferred range, not a flat
+    // per-day flag — SA needs a smooth 8→7→…→max gradient to descend,
+    // otherwise every over-limit day looks equally bad and it never
+    // un-piles one. See AppConstants.wDailyLimitUnit for the scaling.
+    var excessHours = 0;
     for (var d = 0; d < _input.numDays; d++) {
       var count = 0;
       for (var l = 0; l < _input.numSlots; l++) {
@@ -310,15 +330,26 @@ class Phase2SA {
       }
       final min = sc.softMinDaily;
       final max = sc.softMaxDaily;
-      if (min != null && min > 0 && count > 0 && count < min) violations++;
-      if (max != null && count > max) violations++;
+      // Below preferred minimum: only days where the subject is scheduled
+      // but short (a day with zero lessons never counts against the min).
+      if (min != null && min > 0 && count > 0 && count < min) {
+        excessHours += min - count;
+      }
+      // Above preferred maximum: every hour over the cap.
+      if (max != null && count > max) {
+        excessHours += count - max;
+      }
     }
-    return violations * sc.weight;
+    return excessHours * sc.weight * AppConstants.wDailyLimitUnit;
   }
 
-  // ── Worst-case score (for QualityScore denominator) ───────────────────────
+  // ── Worst-case magnitudes (for QualityScore normalisation) ────────────────
 
-  int worstCaseScore() {
+  /// Worst-case magnitude of each objective dimension, kept separate rather
+  /// than combined into one weighted total — see ResultReporter.buildResult
+  /// for why a single combined denominator makes the reported score
+  /// insensitive to soft-constraint violations.
+  ({int f1, int f2, int f3}) worstCasePerDimension() {
     // F1 worst: every teacher has a gap in every slot on every day
     final numTeachers = _input.teacherNames.length;
     final f1Worst = numTeachers * _input.numDays * _input.numSlots;
@@ -328,13 +359,23 @@ class Phase2SA {
                     _input.numDays *
                     (_input.numSlots - 1);
 
-    // F3 worst: every soft constraint fully violated
-    final f3Worst = _input.softConstraints.fold(
-        0, (sum, sc) => sum + sc.weight * _input.numClassrooms * _input.numDays);
+    // F3 worst: every soft constraint fully violated. The daily-limit bound
+    // differs because its penalty is now scaled per excess hour
+    // (excessHours × weight × wDailyLimitUnit), worst case being every day
+    // maximally over the cap.
+    var f3Worst = 0;
+    for (final sc in _input.softConstraints) {
+      if (sc.type == SoftType.dailyLimit) {
+        f3Worst += sc.weight *
+                   AppConstants.wDailyLimitUnit *
+                   _input.numDays *
+                   _input.numSlots;
+      } else {
+        f3Worst += sc.weight * _input.numClassrooms * _input.numDays;
+      }
+    }
 
-    return AppConstants.wTeacherFreeHours * f1Worst +
-           AppConstants.wSubjectChanges   * f2Worst +
-           f3Worst;
+    return (f1: f1Worst, f2: f2Worst, f3: f3Worst);
   }
 
   // ── Move operators ────────────────────────────────────────────────────────

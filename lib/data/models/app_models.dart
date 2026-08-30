@@ -227,11 +227,12 @@ class ConstraintModel with _$ConstraintModel {
     required String kind,   // 'HARD' | 'SOFT'
     required String type,   // 'MUST_ASSIGN' | 'MUST_NOT_ASSIGN' |
                             // 'AVOID_TIMESLOT' | 'PREFER_BLOCK' | 'DAILY_LIMIT'
-    String? classroomId,
+    String? classroomId,    // null = every classroom, for AVOID_TIMESLOT/PREFER_BLOCK
     String? subjectId,
     String? dayOfWeek,
     String? periodId,
-    String? endPeriodId,    // AVOID_TIMESLOT only
+    String? endPeriodId,    // all 4 rule types — null/==periodId = single slot,
+                            // otherwise an inclusive periodId..endPeriodId range
     String? weight,         // 'LOW' | 'MEDIUM' | 'HIGH' (SOFT only)
     int? minHours,          // DAILY_LIMIT only (0/null = no minimum)
     int? maxHours,          // DAILY_LIMIT only
@@ -239,6 +240,39 @@ class ConstraintModel with _$ConstraintModel {
 
   factory ConstraintModel.fromJson(Map<String, dynamic> json) =>
       _$ConstraintModelFromJson(json);
+}
+
+// ─── ConstraintSet ─────────────────────────────────────────────────────────
+/// A named, savable/switchable snapshot of "all Hard and Soft constraints"
+/// for a school — see lib/data/repositories/constraint_set_repository.dart.
+///
+/// `constraints` and `dailyLimits` are stored as raw JSON maps rather than
+/// typed models: the project has no `explicit_to_json: true` codegen
+/// config, so Freezed's generated toJson() would not recursively serialize
+/// a nested List<ConstraintModel> — callers convert explicitly at the
+/// repository boundary (ConstraintModel.toJson()/.fromJson()) instead.
+@freezed
+class ConstraintSetModel with _$ConstraintSetModel {
+  const factory ConstraintSetModel({
+    required String id,
+    required String schoolId,
+    required String name,
+    @TimestampConverter() required DateTime savedAt,
+    // Snapshot of ConstraintModel.toJson() for every constraint that
+    // existed when this set was saved.
+    @Default([]) List<Map<String, dynamic>> constraints,
+    // Snapshot of HARD daily limits — {classroomId, subjectId,
+    // minDailyHours, maxDailyHours} per classroom-subject assignment.
+    // These aren't ConstraintModel documents (they're structural fields on
+    // ClassroomSubjectModel), so they need their own snapshot to make "all
+    // Hard and Soft constraints" actually complete. Restored by matching
+    // (classroomId, subjectId) rather than an id, so it still works if the
+    // assignment doc was recreated since this set was saved.
+    @Default([]) List<Map<String, dynamic>> dailyLimits,
+  }) = _ConstraintSetModel;
+
+  factory ConstraintSetModel.fromJson(Map<String, dynamic> json) =>
+      _$ConstraintSetModelFromJson(json);
 }
 
 // ─── Schedule ──────────────────────────────────────────────────────────────

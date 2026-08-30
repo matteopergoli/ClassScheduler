@@ -383,11 +383,28 @@ class Phase1Greedy {
   // count *after* placement — we must actually assign to know if the day
   // will have 0 or >= minDaily lessons for this subject.
 
+  // Slots scoring within this margin of the best are treated as
+  // "comparably good" and picked among uniformly at random, rather than
+  // only randomizing on an exact (1e-9) tie. The old exact-tie threshold
+  // meant every one of Phase1's 40 retries (each with a different RNG
+  // seed, see scheduler_engine.dart) walked the *identical* greedy path
+  // whenever there was any clear best-scoring slot at each step — which is
+  // almost always, since real inputs rarely produce exact float ties. For
+  // tight/zero-slack cases that need a specific placement order to find
+  // the (existing) feasible packing, that collapsed 40 "different" seeds
+  // into 40 runs of the same deterministic failure. The margin is wide
+  // enough to absorb the tie-break term (±~0.11 max, see below) without
+  // conflating the +5/+10/±1000 heuristic bonuses, which still dominate.
+  static const _slotScoreMargin = 1.5;
+
   (int, int)? _pickBestSlot(ScheduleState state, int c, int s) {
     final remaining = state.remaining(c, s);
-    (int, int)? bestSlot;
-    var bestScore = double.negativeInfinity;
     final minD = _input.minDaily[c][s];
+    // Soft DAILY_LIMIT preferred max for (c,s), if any. Steers construction
+    // toward a distributed week so Phase 2 doesn't start from a fully-piled
+    // state that F2 (subject-change minimisation) then actively defends.
+    final softMax = _softMaxDailyFor(c, s);
+    final candidates = <(int, int, double)>[];
 
     for (var d = 0; d < _input.numDays; d++) {
       for (var l = 0; l < _input.numSlots; l++) {
@@ -414,9 +431,15 @@ class Phase1Greedy {
         }
 
         var score = 0.0;
+        final dayCount = state.dailySubjectCount(c, s, d);
 
-        // +10 if adjacent to an existing same-subject slot (promotes blocks)
-        if (_hasAdjacentSame(state, c, s, d, l)) score += 10;
+        // +10 if adjacent to an existing same-subject slot (promotes blocks),
+        // but only while the day is still under its soft daily max — build a
+        // block of the preferred size, don't stack the whole weekly quota.
+        if (_hasAdjacentSame(state, c, s, d, l) &&
+            (softMax == null || dayCount < softMax.max)) {
+          score += 10;
+        }
 
         // +5 if teacher already has a lesson on that day (reduces F1 gaps)
         if (_subjectHasPartialMinDailyDay(state, c, s)) {
@@ -432,6 +455,15 @@ class Phase1Greedy {
 
         if (_teacherBusyOnDay(state, s, d)) score += 5;
 
+        // Escalating penalty once the day already holds >= the soft daily
+        // max for this subject. Dwarfs the +10/+5 clustering bonuses so the
+        // greedy spreads across days, but stays below the ±1000 MinDaily
+        // term (HC-5 must never yield to a soft preference) — hence the cap.
+        if (softMax != null && dayCount >= softMax.max) {
+          final over = dayCount - softMax.max + 1;
+          score -= (20.0 * softMax.weight * over).clamp(0.0, 900.0);
+        }
+
         // Subtract soft constraint penalty for AVOID_TIMESLOT violations
         score -= _softPenalty(s, d, l);
 
@@ -439,18 +471,22 @@ class Phase1Greedy {
         final tieBreak = -(d * _input.numSlots + l) * 0.001;
         score += tieBreak;
 
-        if (score > bestScore) {
-          bestScore = score;
-          bestSlot  = (d, l);
-        } else if ((score - bestScore).abs() < 1e-9 && _rng.nextBool()) {
-          bestSlot = (d, l);
-        }
+        candidates.add((d, l, score));
       }
     }
-    if (bestSlot == null) {
+
+    if (candidates.isEmpty) {
       _debug('No available slot for c=$c s=$s remaining=$remaining');
+      return null;
     }
-    return bestSlot;
+
+    final bestScore = candidates.fold(
+        double.negativeInfinity, (best, e) => max(best, e.$3));
+    final nearBest = candidates
+        .where((e) => bestScore - e.$3 <= _slotScoreMargin)
+        .toList();
+    final (d, l, _) = nearBest[_rng.nextInt(nearBest.length)];
+    return (d, l);
   }
 
   // Counts slots on day d that are physically available for (c,s) using
@@ -895,6 +931,27 @@ class Phase1Greedy {
       if (l >= start && l <= end) penalty += sc.weight;
     }
     return penalty;
+  }
+
+  /// Most restrictive soft DAILY_LIMIT max for (c, s), with the weight of the
+  /// constraint that set it, or null if no soft max applies. DAILY_LIMIT
+  /// constraints always carry a classroomIdx, but tolerate a null scope too.
+  ({int max, int weight})? _softMaxDailyFor(int c, int s) {
+    int? best;
+    var weight = 0;
+    for (final sc in _input.softConstraints) {
+      if (sc.type != SoftType.dailyLimit) continue;
+      if (sc.subjectIdx != s) continue;
+      if (sc.classroomIdx != null && sc.classroomIdx != c) continue;
+      final m = sc.softMaxDaily;
+      if (m == null) continue;
+      if (best == null || m < best) {
+        best = m;
+        weight = sc.weight;
+      }
+    }
+    final b = best;
+    return b == null ? null : (max: b, weight: weight);
   }
 
   // ── Limited backtracking (§8.2.1 Step 5) ─────────────────────────────────

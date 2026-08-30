@@ -9,7 +9,6 @@
 //   - ResultStatus: perfect / softViolationsOnly / hardViolations
 //   - Plain-language ConstraintViolation list for hard + soft violations
 
-import '../../core/constants/app_constants.dart';
 import 'integrity_checker.dart';
 import 'phase1_greedy.dart';
 import 'phase2_sa.dart';
@@ -39,15 +38,27 @@ class ResultReporter {
     final f1 = _sa.f1(finalState);
     final f2 = _sa.f2(finalState);
     final f3 = _sa.f3(finalState);
-    final f  = AppConstants.wTeacherFreeHours * f1 +
-               AppConstants.wSubjectChanges   * f2 +
-               f3;
 
     // ── Quality score (§8.4.3) ─────────────────────────────────────────────
-    final fWorst = _sa.worstCaseScore();
-    var quality = fWorst > 0
-        ? (100 * (1 - f / fWorst)).round().clamp(0, 100)
-        : 100;
+    // Each dimension is normalised against its OWN worst case and then
+    // averaged, rather than combining the raw weighted sums (w1*f1 + w2*f2
+    // + f3) into a single ratio over a single combined worst case. F1's
+    // worst case (every teacher idle in every slot of every day) and F2's
+    // (every adjacent slot pair a different subject) are astronomically
+    // larger than any real schedule ever reaches, so a combined denominator
+    // let those two terms swamp F3 completely: the SA already drives real
+    // f1/f2 close to zero, so f3 (the soft-constraint penalty) ended up a
+    // rounding error next to the inflated f1Worst/f2Worst terms — a
+    // schedule could violate every soft constraint and still round to a
+    // quality score of 99 or 100. Averaging independent ratios instead
+    // guarantees soft-constraint violations move the score by a real,
+    // visible amount regardless of how compact the rest of the schedule is.
+    final worst = _sa.worstCasePerDimension();
+    final f1Ratio = worst.f1 > 0 ? f1 / worst.f1 : 0.0;
+    final f2Ratio = worst.f2 > 0 ? f2 / worst.f2 : 0.0;
+    final f3Ratio = worst.f3 > 0 ? f3 / worst.f3 : 0.0;
+    final combinedRatio = (f1Ratio + f2Ratio + f3Ratio) / 3;
+    var quality = (100 * (1 - combinedRatio)).round().clamp(0, 100);
 
     final hardPenalty = integrityResult.violations.length * 10 +
         partialViolations.fold(0, (sum, v) => sum + v.shortfall * 5);
@@ -132,6 +143,9 @@ class ResultReporter {
           final count = _countAvoidTimeslotViolations(state, sc);
           if (count > 0) {
             final sName  = _input.subjectNames[sc.subjectIdx];
+            final clsStr = sc.classroomIdx != null
+                ? ' in "${_input.classroomNames[sc.classroomIdx!]}"'
+                : '';
             final dayStr = sc.dayIdx != null
                 ? ' on ${_input.dayNames[sc.dayIdx!]}'
                 : '';
@@ -141,7 +155,7 @@ class ResultReporter {
             violations.add(ConstraintViolation(
               constraintId: 'SC-AVOID',
               description:
-                  '"$sName" was placed$dayStr in the '
+                  '"$sName"$clsStr was placed$dayStr in the '
                   '$start–$end range $count time(s).',
               suggestion:
                   'Consider reducing the weekly target or adjusting '
@@ -150,14 +164,24 @@ class ResultReporter {
             ));
           }
         case SoftType.preferBlock:
-          final count = _countIsolatedSlots(state, sc.subjectIdx);
+          final count = _countIsolatedSlots(state, sc);
           if (count > 0) {
             final sName = _input.subjectNames[sc.subjectIdx];
+            final clsStr = sc.classroomIdx != null
+                ? ' in "${_input.classroomNames[sc.classroomIdx!]}"'
+                : '';
+            final dayStr = sc.dayIdx != null
+                ? ' on ${_input.dayNames[sc.dayIdx!]}'
+                : '';
+            final rangeStr = sc.startSlotIdx != null
+                ? ' (${_input.slotLabels[sc.startSlotIdx!]}–'
+                    '${_input.slotLabels[sc.endSlotIdx ?? (_input.numSlots - 1)]})'
+                : '';
             violations.add(ConstraintViolation(
               constraintId: 'SC-BLOCK',
               description:
-                  '"$sName" has $count isolated (non-consecutive) '
-                  'lesson${count == 1 ? '' : 's'}.',
+                  '"$sName"$clsStr has $count isolated (non-consecutive) '
+                  'lesson${count == 1 ? '' : 's'}$dayStr$rangeStr.',
               suggestion:
                   'Try re-generating — the optimiser may find a '
                   'better block arrangement.',
@@ -210,7 +234,10 @@ class ResultReporter {
     var count = 0;
     final start = sc.startSlotIdx ?? 0;
     final end   = sc.endSlotIdx   ?? (_input.numSlots - 1);
-    for (var c = 0; c < _input.numClassrooms; c++) {
+    final classrooms = sc.classroomIdx != null
+        ? [sc.classroomIdx!]
+        : List.generate(_input.numClassrooms, (i) => i);
+    for (final c in classrooms) {
       final days = sc.dayIdx != null
           ? [sc.dayIdx!]
           : List.generate(_input.numDays, (i) => i);
@@ -223,11 +250,20 @@ class ResultReporter {
     return count;
   }
 
-  int _countIsolatedSlots(ScheduleState state, int s) {
+  int _countIsolatedSlots(ScheduleState state, SoftConstraintInput sc) {
+    final s = sc.subjectIdx;
+    final classrooms = sc.classroomIdx != null
+        ? [sc.classroomIdx!]
+        : List.generate(_input.numClassrooms, (i) => i);
+    final days = sc.dayIdx != null
+        ? [sc.dayIdx!]
+        : List.generate(_input.numDays, (i) => i);
+    final start = sc.startSlotIdx ?? 0;
+    final end   = sc.endSlotIdx   ?? (_input.numSlots - 1);
     var isolated = 0;
-    for (var c = 0; c < _input.numClassrooms; c++) {
-      for (var d = 0; d < _input.numDays; d++) {
-        for (var l = 0; l < _input.numSlots; l++) {
+    for (final c in classrooms) {
+      for (final d in days) {
+        for (var l = start; l <= end; l++) {
           if (state.schedule[c][d][l] != s) continue;
           final prev = l > 0 && state.schedule[c][d][l - 1] == s;
           final next = l < _input.numSlots - 1 &&

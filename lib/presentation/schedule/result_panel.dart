@@ -23,14 +23,14 @@ class ResultPanel extends StatelessWidget {
   final ScheduleResult    result;
   final AppColors         colors;
   final AppLocalizations  l10n;
-  final VoidCallback      onDismiss;
+  final VoidCallback      onCollapse;
 
   const ResultPanel({
     super.key,
     required this.result,
     required this.colors,
     required this.l10n,
-    required this.onDismiss,
+    required this.onCollapse,
   });
 
   @override
@@ -84,9 +84,12 @@ class ResultPanel extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: onDismiss,
-                  child: Icon(Icons.close_rounded,
-                      size: 18, color: colors.textMuted),
+                  onTap: onCollapse,
+                  child: Tooltip(
+                    message: 'Collapse',
+                    child: Icon(Icons.expand_less_rounded,
+                        size: 20, color: colors.textMuted),
+                  ),
                 ),
               ]),
             ),
@@ -182,6 +185,98 @@ class ResultPanel extends StatelessWidget {
   String _formatDuration(Duration d) {
     if (d.inSeconds < 1) return '${d.inMilliseconds}ms';
     return '${d.inSeconds}.${(d.inMilliseconds % 1000) ~/ 100}s';
+  }
+}
+
+// ── Collapsed summary bar ────────────────────────────────────────────────
+//
+// The full ResultPanel collapses into this one-line bar rather than
+// disappearing outright — the last generation result stays available (it
+// lives in generationServiceProvider, independent of which schedule
+// version is currently selected) so switching versions shouldn't lose
+// access to it. Tap to expand back into the full panel; the small close
+// icon dismisses it until the next generation.
+
+class ResultSummaryBar extends StatelessWidget {
+  final ScheduleResult   result;
+  final AppColors        colors;
+  final AppLocalizations l10n;
+  final VoidCallback     onExpand;
+  final VoidCallback     onDismiss;
+
+  const ResultSummaryBar({
+    super.key,
+    required this.result,
+    required this.colors,
+    required this.l10n,
+    required this.onExpand,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSoft    = result.status == ResultStatus.softViolationsOnly;
+    final isPerfect = result.status == ResultStatus.perfect;
+
+    final bannerColor = isPerfect
+        ? colors.success
+        : isSoft
+            ? colors.warning
+            : colors.error;
+
+    final statusText = isPerfect
+        ? l10n.resultPerfect
+        : isSoft
+            ? l10n.resultSoftViolations(result.softViolations.length)
+            : l10n.resultHardViolations(result.hardViolations.length);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: GestureDetector(
+        onTap: onExpand,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: bannerColor.withOpacity(0.10),
+            border: Border.all(color: bannerColor.withOpacity(0.30)),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          ),
+          child: Row(children: [
+            Icon(
+              isPerfect
+                  ? Icons.check_circle_outline_rounded
+                  : isSoft
+                      ? Icons.warning_amber_rounded
+                      : Icons.error_outline_rounded,
+              color: bannerColor, size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text('${result.qualityScore}',
+                style: AppTextStyles.labelMedium.copyWith(
+                    color: bannerColor, fontWeight: FontWeight.w800)),
+            Text('/100',
+                style: AppTextStyles.labelSmall
+                    .copyWith(color: colors.textMuted)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.labelSmall
+                      .copyWith(color: colors.textMuted)),
+            ),
+            Icon(Icons.expand_more_rounded,
+                size: 18, color: colors.textMuted),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onDismiss,
+              child: Icon(Icons.close_rounded,
+                  size: 16, color: colors.textMuted),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 

@@ -25,6 +25,7 @@ import 'school_form_sheet.dart';
 import '../../providers/selected_school_provider.dart';
 import '../../data/repositories/schedule_repository.dart';
 import '../constraints/constraint_data_providers.dart';
+import '../schedule/schedule_screen.dart' show scheduleActiveSchoolProvider;
 
 class SchoolsScreen extends ConsumerWidget {
   const SchoolsScreen({super.key});
@@ -132,6 +133,8 @@ class SchoolsScreen extends ConsumerWidget {
                               paletteIndex: i,
                               onGenerate: () {
                               ref.read(selectedSchoolIdProvider.notifier)
+                                  .state = list[i].id;
+                              ref.read(scheduleActiveSchoolProvider.notifier)
                                   .state = list[i].id;
                               context.go('/schedule');
                             },
@@ -634,6 +637,7 @@ class _ScheduleCountBadge extends ConsumerWidget {
       child: InkWell(
         onTap: () {
           ref.read(selectedSchoolIdProvider.notifier).state = schoolId;
+          ref.read(scheduleActiveSchoolProvider.notifier).state = schoolId;
           context.go('/schedule');
         },
         borderRadius: BorderRadius.circular(14),

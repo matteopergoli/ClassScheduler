@@ -8,8 +8,8 @@ _Ultimo aggiornamento: 30 agosto 2026_
 
 ## 1. Titolare del trattamento
 
-Il titolare del trattamento è **[Nome Cognome / Ragione sociale]**, con sede in
-**[indirizzo]**, e-mail di contatto **[privacy@classscheduler.app]**.
+Il titolare del trattamento è Matteo Pergoli, con sede in
+via Giuseppe Giusti 24 San Miniato (PI), e-mail di contatto pergolimatteo@gmail.com.
 
 ## 2. Quali dati raccogliamo
 
@@ -61,7 +61,7 @@ opposizione. Puoi:
 - Modificare i contenuti direttamente nell'app.
 - Cancellare l'account e tutti i dati da **Impostazioni → Account → Elimina
   account**.
-- Scrivere a **[privacy@classscheduler.app]** per qualsiasi altra richiesta;
+- Scrivere a pergolimatteo@gmail.com per qualsiasi altra richiesta;
   risponderemo entro 30 giorni.
 
 Puoi inoltre proporre reclamo al **Garante per la protezione dei dati

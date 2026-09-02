@@ -66,7 +66,7 @@ l'algoritmo.
 | `lib/core/constants/app_constants.dart` | Chiavi RevenueCat da `--dart-define`, con segnaposto come default | Passi le chiavi vere in build senza versionarle |
 | `AndroidManifest.xml` / `Info.plist` | Nome visibile → **ClassScheduler** (era `classscheduler` minuscolo) | È il nome sotto l'icona |
 | `legal/privacy-policy.it.md`, `legal/terms-of-service.it.md` | Nuovi: bozze IT, GDPR-aware, tarate su cosa fa l'app | Obbligatorie per Play Store. **Da far rivedere** e pubblicare online |
-| `RELEASE.md` | Nuovo: guida operativa alla build e pubblicazione | La checklist meccanica |
+| `GUIDA_PASSO_PASSO.it.md` | Nuovo: la sequenza lineare di tutti i passi operativi | La checklist meccanica, un punto alla volta |
 | `test/integration/acceptance_test.dart` | Allineato `saMaxRestarts` a 200 | Il test era rimasto indietro rispetto a una modifica voluta |
 
 > **Nota sull'applicationId.** In `app_constants.dart` il campo `packageName`

@@ -9,7 +9,7 @@ _Ultimo aggiornamento: 30 agosto 2026_
 
 ClassScheduler ("app") è un'applicazione mobile che genera automaticamente orari
 scolastici a partire dai dati inseriti dall'utente. Il titolare è
-**[Nome / Ragione sociale]** ("noi").
+Matteo Pergoli ("noi").
 
 ## 2. Account
 
@@ -68,8 +68,8 @@ salvo casi di abuso grave.
 ## 9. Legge applicabile e foro
 
 Si applica la legge italiana. Per i consumatori è competente il foro del luogo
-di residenza o domicilio; per gli altri utenti, il foro di **[città]**.
+di residenza o domicilio; per gli altri utenti, il foro di Pisa.
 
 ## 10. Contatti
 
-**[support@classscheduler.app]**
+pergolimatteo@gmail.com

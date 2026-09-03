@@ -136,39 +136,136 @@ Poi committa (`git commit -am "chore: URL legali reali"`).
 
 ✅ *Risultato atteso:* il progetto Firebase mostra "Blaze" e hai un budget attivo.
 
-### 1.4 🟢 Fai il deploy di regole e indici Firestore
-```bash
-firebase login
-firebase deploy --only firestore:rules,firestore:indexes
+### 1.4 Pubblica le regole di sicurezza e gli indici Firestore
+
+Questo passo si fa **online, sul sito di Firebase** (console.firebase.google.com),
+oppure da terminale con la Firebase CLI. Sul tuo PC la CLI non è installata,
+quindi la via più veloce è il sito. Sono due cose distinte: **regole** e **indici**.
+
+**A) Regole di sicurezza — falla SUBITO (è la protezione dei dati)** 🟢
+1. <https://console.firebase.google.com> → progetto **classscheduler-b2918**.
+2. Menù a sinistra: **Build → Firestore Database** → scheda **Rules** (Regole).
+3. Apri il file `firestore.rules` del progetto, **seleziona tutto, copia**.
+4. Incolla nel riquadro sul sito **sostituendo** quello che c'è → premi
+   **Publish** (Pubblica).
+
+✅ *Risultato atteso:* in cima compare "Last published: oggi". Se prima c'era
+scritto qualcosa come `allow read, write: if true;` (modalità test), ora non
+c'è più: il database è chiuso e ogni utente vede solo i propri dati.
+
+**B) Indici — puoi farli ora oppure durante la beta** 🟡
+Servono 8 indici composti (elencati in `firestore.indexes.json`). Senza, alcune
+schermate danno un errore a runtime. Due modi:
+
+- *Il più semplice:* **non farli adesso.** Durante il test, quando una schermata
+  ha bisogno di un indice, Firestore mostra un errore con un **link diretto**:
+  cliccalo, si apre la console già compilata, premi **Create**. Ne creerai
+  qualcuno in pochi minuti mentre provi l'app.
+- *Tutti in una volta (serve la CLI):* installa Node.js da <https://nodejs.org>,
+  poi nel terminale del progetto:
+  ```bash
+  npm install -g firebase-tools
+  firebase login
+  firebase deploy --only firestore:rules,firestore:indexes
+  ```
+  Ho già preparato `firebase.json` e `.firebaserc`, quindi il comando funziona
+  senza altra configurazione. La creazione degli indici lato Google richiede
+  qualche minuto dopo il "Deploy complete!".
+
+> Per ora fai solo la parte **A**. La parte B la gestisci quando parte la beta.
+
+### 1.5 Controlla e sistema l'accesso degli utenti (Authentication)
+
+Tutto sul sito: <https://console.firebase.google.com> → progetto
+**classscheduler-b2918** → menù a sinistra **Build → Authentication**.
+Tre sotto-passi.
+
+#### 1.5.a 🟢 Verifica i metodi di accesso attivi
+Scheda **Sign-in method** (Metodo di accesso). Devi vedere **abilitati**:
+- **Email/Password** → deve essere "Enabled".
+- **Google** → deve essere "Enabled". Se lo apri, controlla che il campo
+  "Nome pubblico del progetto" sia `ClassScheduler` e che ci sia una email di
+  assistenza selezionata.
+- **Apple** → per ora **lascialo com'è** (spento va bene): serve solo quando
+  farai la versione iOS.
+
+Se Email/Password o Google risultano disabilitati, clicca sulla riga → attiva →
+**Save**.
+
+✅ *Risultato atteso:* nella lista, accanto a Email/Password e Google c'è scritto
+"Enabled".
+
+#### 1.5.b 🟢 Impronte SHA per il login Google su Android
+Il login con Google su Android funziona **solo** se Firebase conosce l'"impronta
+digitale" (SHA-1 / SHA-256) del certificato con cui l'app è firmata. Ne servono
+di più, in momenti diversi:
+
+| Impronta | Da dove viene | Quando aggiungerla |
+|---|---|---|
+| Debug | Il tuo PC (keystore di debug di Flutter) | **ora**, per provare l'app in sviluppo |
+| Upload key | Il keystore che generi al passo **2.1** | dopo il passo 2.1 |
+| App signing key | Generata da Google quando attivi Play App Signing (passo **2.4**) | **dopo il passo 2.4** — è quella che quasi tutti dimenticano, e senza il login Google si rompe in produzione |
+
+**Ora** aggiungi solo quella di debug. In PowerShell, dal progetto — il modo più
+semplice (mostra debug e release insieme):
+```powershell
+cd android
+.\gradlew signingReport
 ```
+oppure con keytool per percorso completo (su PowerShell serve `&` e
+`$env:USERPROFILE`, non `%USERPROFILE%`):
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+```
+Copia le righe **SHA1** e **SHA-256** (variante `debug`). Poi in Firebase Console:
+**Impostazioni progetto** (ingranaggio in alto a sinistra) → scheda **Generali**
+→ sezione **Le tue app** → app Android `com.classscheduler.classscheduler` →
+**Aggiungi impronta digitale** → incolla SHA-1, salva, ripeti per SHA-256.
 
-✅ *Risultato atteso:* il comando termina con "Deploy complete!". In console,
-`Firestore → Rules` mostra la data di oggi.
+> 📌 Segnati questo: **dopo il passo 2.4** dovrai tornare qui e aggiungere le
+> impronte della "App signing key" (le trovi in Play Console → Test e release →
+> **Firma dell'app** → "Certificato della chiave di firma dell'app"). Se lo
+> salti, il login Google funziona in test ma **fallisce per gli utenti veri**.
 
-### 1.5 🟢 Controlla Authentication
-In `Firebase Console → Authentication`:
-- **Sign-in method:** Email/Password e Google devono essere **abilitati**.
-- **Templates:** apri "Reimposta password" e "Verifica indirizzo email", metti
-  la lingua **italiano** e un nome mittente sensato ("ClassScheduler").
+#### 1.5.c 🟢 Traduci in italiano le email automatiche
+Firebase invia da solo le email di "reimposta password" e "verifica indirizzo".
+Di default sono in inglese. Scheda **Templates** (Modelli):
+1. In alto scegli la lingua del modello: **italiano**.
+2. Apri **Reimpostazione della password** → **Verifica indirizzo email** →
+   per ciascuno imposta **Nome mittente** = `ClassScheduler` e controlla che il
+   testo sia in italiano. Salva.
+3. L'indirizzo mittente resta `noreply@classscheduler-b2918.firebaseapp.com`:
+   per il lancio va bene, personalizzare il dominio si può fare più avanti.
+
+✅ *Risultato atteso:* i modelli mostrano testo italiano e mittente
+"ClassScheduler".
 
 ---
 
 ## TAPPA 2 — Chiave di firma + icona + prima build
 
 ### 2.1 🟢⚠️ Genera la chiave di firma (una volta per sempre)
-```bash
-keytool -genkey -v -keystore %USERPROFILE%\classscheduler-upload.jks ^
-  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+In **PowerShell**, da una cartella qualsiasi (il file finisce in `C:\Users\pergo\`),
+tutto su una riga (`keytool` non è nel PATH → percorso completo):
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkey -v -keystore "$env:USERPROFILE\classscheduler-upload.jks" -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
-Ti chiede: una password per il keystore, i tuoi dati (nome, org, città, paese
-`IT`), e conferma. **Annota tutto.**
+Ti chiede in sequenza: una **password** per il keystore (digitala 2 volte),
+nome/cognome, unità e organizzazione (Invio per saltare), città (`San Miniato`),
+provincia (`Pisa`), **codice paese** (`IT`), conferma (`sì`), e infine la
+password della chiave → premi **Invio** per usare la stessa del keystore.
+**Annota tutto.**
 
 Poi:
-```bash
+```powershell
 copy android\key.properties.example android\key.properties
+notepad android\key.properties
 ```
-Apri `android/key.properties` e compila `storeFile` (percorso completo del
-`.jks`), `storePassword`, `keyAlias` (`upload`), `keyPassword`.
+Compila:
+- `storeFile=C:/Users/pergo/classscheduler-upload.jks` (barre `/`, non `\`)
+- `storePassword=` la password scelta sopra
+- `keyAlias=upload`
+- `keyPassword=` la stessa password (se hai premuto Invio all'ultima domanda)
 
 > ⚠️ **Backup ADESSO.** Copia il file `classscheduler-upload.jks` e le password
 > in **due posti sicuri** (es. password manager + chiavetta/USB o cloud
@@ -177,14 +274,18 @@ Apri `android/key.properties` e compila `storeFile` (percorso completo del
 
 ✅ *Verifica:* `git status` **non** deve elencare `key.properties` né file `.jks`.
 
-### 2.2 🟢 Metti un'icona vera (ora è quella di default di Flutter)
-Ti serve un'immagine quadrata **1024×1024 px** PNG del logo (fondo pieno, senza
-angoli arrotondati — li mette il sistema). Se non ce l'hai, fattene fare una
-semplice (anche solo iniziali "CS" su fondo colorato).
+### 2.2 Icona e splash screen
 
-Quando ce l'hai, chiedimi di configurare `flutter_launcher_icons` e
-`flutter_native_splash`: aggiungo i pacchetti, il blocco di config e genero
-icona + splash per Android in un colpo.
+**Icona — ✅ FATTA.** Un mini-orario su gradiente viola del brand. L'art è
+generata da `test/generate_icon.dart` (`assets/icon/`), applicata ad Android e
+iOS con `flutter_launcher_icons` (config in `pubspec.yaml`). Per rigenerarla dopo
+una modifica: `flutter test test/generate_icon.dart` poi
+`dart run flutter_launcher_icons`. Per cambiarne il disegno, chiedi.
+
+**Splash screen — ✅ FATTA.** Sfondo viola del brand con il logo-orario al
+centro, via `flutter_native_splash` (config in `pubspec.yaml`, art
+`assets/icon/splash_logo.png`). Applicata ad Android (incl. Android 12+) e iOS.
+Per rigenerarla dopo una modifica dell'art: `dart run flutter_native_splash:create`.
 
 ### 2.3 🟡 Crea l'app (guscio) su Play Console
 1. Play Console → **Crea app**.
@@ -343,10 +444,25 @@ produzione**. Compila il breve form (com'è andato il test, ecc.). Google
 risponde di solito in **pochi giorni**.
 
 ### 6.2 🟡 Ultimo giro di checklist
-Assicurati che tutte le sezioni "Contenuti dell'app" e "Scheda" siano ✅.
-Ricontrolla su un telefono reale i punti critici della tua `QA_CHECKLIST.md`
-(in particolare AC-06 performance, AC-09 prova, AC-10 ripristino, AC-13
-cancellazione account, AC-15 offline).
+
+**Cose rimandate che ORA vanno chiuse:**
+- [ ] **Indici Firestore (passo 1.4.B):** creati tutti gli 8, oppure verificato
+      durante la beta che nessuna schermata dà più l'errore "requires an index".
+- [ ] **Impronte SHA della App signing key (passo 1.5.b):** aggiunte in Firebase
+      Console dopo il primo caricamento su Play. Verifica: il login con Google
+      funziona su una build **scaricata dal Play Store** (non solo in locale).
+- [ ] **URL legali (passo 1.2):** `privacyPolicyUrl` e `termsUrl` in
+      `app_constants.dart` puntano alle pagine vere e pubblicate.
+- [ ] **Chiavi RevenueCat di produzione** passate con `--dart-define` nella build
+      finale (passo 4.3).
+- [ ] **Icona e splash** non più quelli di default (passo 2.2).
+
+**Verifiche su un telefono reale** (punti critici di `QA_CHECKLIST.md`):
+AC-06 performance, AC-09 prova gratuita, AC-10 ripristino acquisti,
+AC-13 cancellazione account, AC-15 generazione offline.
+
+Assicurati infine che tutte le sezioni "Contenuti dell'app" e "Scheda" in Play
+Console siano ✅ verdi.
 
 ### 6.3 🟡 Crea la release di Produzione
 **Produzione → Crea release** → riusa lo stesso `.aab` testato → note di
@@ -364,8 +480,7 @@ Invia in revisione (1–7 giorni la prima volta).
 ## Cosa posso fare io per te (chiedimelo)
 
 - ~~Preparare la cartella `docs/` con Privacy e Termini in HTML per GitHub Pages.~~ ✅ fatto
-- Aggiungere e configurare `flutter_launcher_icons` + `flutter_native_splash`
-  (mi serve il PNG 1024×1024).
+- ~~Configurare icona (`flutter_launcher_icons`) e splash (`flutter_native_splash`).~~ ✅ fatto
 - Implementare la voce "Invia feedback" nelle Impostazioni.
 - Aggiungere una GitHub Action che lancia `flutter analyze` + `flutter test` a
   ogni push.

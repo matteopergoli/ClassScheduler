@@ -51,3 +51,4 @@ android/key.properties
 # RevenueCat / other local secrets passed via --dart-define
 .env
 dart_defines.json
+pswd.txt

@@ -124,8 +124,8 @@ abstract class AppConstants {
   static const int    generationTimeoutSecs = 60;
 
   // ── GDPR ─────────────────────────────────────────────────────────────────
-  static const String privacyPolicyUrl = 'https://classscheduler.app/privacy';
-  static const String termsUrl         = 'https://classscheduler.app/terms';
+static const String privacyPolicyUrl = 'https://matteopergoli.github.io/ClassScheduler/privacy.html';
+static const String termsUrl          = 'https://matteopergoli.github.io/ClassScheduler/terms.html';
 
   static const List<String> defaultActiveDays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 }

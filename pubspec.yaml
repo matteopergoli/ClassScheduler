@@ -1,7 +1,7 @@
 name: classscheduler
 description: AI-Powered Classroom Timetable Generator
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -28,7 +28,10 @@ dependencies:
   sign_in_with_apple: ">=6.0.0 <7.0.0"
 
   # --- In-App Purchase ---
-  purchases_flutter: ">=4.0.0 <10.0.0"
+  # 10.x required by Google Play (bundles Play Billing Library 8; <10 shipped
+  # Billing 7, which Play now rejects). Bumping this forces share_plus >=12
+  # and web >=1 (shared transitive constraint).
+  purchases_flutter: ">=10.0.0 <11.0.0"
 
   # --- Data / Models ---
   freezed_annotation: ^2.4.4
@@ -57,7 +60,7 @@ dependencies:
   equatable: ^2.0.5
   logger: ">=2.4.0 <3.0.0"
   path_provider: ">=2.1.0 <3.0.0"
-  share_plus: ">=9.0.0 <10.0.0"
+  share_plus: ">=12.0.0 <13.0.0"
 
 dev_dependencies:
   flutter_test:

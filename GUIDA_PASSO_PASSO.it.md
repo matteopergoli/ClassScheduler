@@ -315,6 +315,15 @@ consigliato: Google custodisce la chiave finale, tu gestisci solo la upload key)
 ✅ *Risultato atteso:* la release "interna" risulta caricata, senza errori
 bloccanti sull'`.aab`.
 
+> **Se ricarichi dopo un errore:** ogni nuovo `.aab` deve avere un `versionCode`
+> più alto del precedente. Incrementa il numero dopo il `+` in `pubspec.yaml`
+> (es. `1.0.0+2` → `1.0.0+3`) e ricostruisci. La versione attuale è già a
+> `1.0.0+2` dopo il fix della Billing Library.
+>
+> **Nome pacchetto:** se Play Console ha bloccato un nome diverso da
+> `com.classscheduler.classscheduler`, crea una **nuova app** su Play Console —
+> il nome si fissa col primo `.aab` caricato.
+
 ---
 
 ## TAPPA 3 — Scheda Play Store + dichiarazioni
@@ -460,6 +469,9 @@ risponde di solito in **pochi giorni**.
 **Verifiche su un telefono reale** (punti critici di `QA_CHECKLIST.md`):
 AC-06 performance, AC-09 prova gratuita, AC-10 ripristino acquisti,
 AC-13 cancellazione account, AC-15 generazione offline.
+In più, per via del bump di `purchases_flutter` 8→10 e `share_plus` 9→12:
+riprova un **acquisto + ripristino** e un **export PDF/Excel con condivisione**
+su dispositivo reale.
 
 Assicurati infine che tutte le sezioni "Contenuti dell'app" e "Scheda" in Play
 Console siano ✅ verdi.

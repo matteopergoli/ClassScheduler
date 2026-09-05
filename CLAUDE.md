@@ -158,7 +158,10 @@ stubs). Generated Dart lives in `lib/l10n/generated/` (excluded from analysis, r
 - `tools/reset_min_daily.js` (see `tools/RESET_MIN_DAILY_README.md`) is a one-off Firestore Admin SDK
   migration script for clearing stale `minDailyHours` values — needs a service account, not part of
   the app build.
-- Firebase/Riverpod/go_router/IAP dependency versions in `pubspec.yaml` are intentionally pinned below
-  known-breaking major versions (see inline comments) — don't casually bump majors.
+- Firebase/Riverpod/go_router dependency versions in `pubspec.yaml` are intentionally pinned below
+  known-breaking major versions (see inline comments) — don't casually bump majors. Exception:
+  `purchases_flutter` is on 10.x (forced by Google Play's Billing Library 8 requirement), which
+  dragged `share_plus` to 12.x and `web` to 1.x. `share_plus` 12 replaced `Share.shareXFiles(...)`
+  with `SharePlus.instance.share(ShareParams(...))` — the only call site is `export_service.dart`.
 - Keep this file updated when you make architecturally significant changes (new scheduler phases,
   changed data model shape, new top-level routes/tabs, changed SA tuning defaults, etc.).

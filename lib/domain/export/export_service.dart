@@ -90,11 +90,15 @@ class ExportService extends StateNotifier<ExportState> {
       }
 
       state = const ExportState(phase: ExportPhase.sharing);
-      await Share.shareXFiles([XFile(file.path,
-          mimeType: format == ExportFormat.pdf
-              ? 'application/pdf'
-              : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
-          subject: '$schoolName — $scheduleName');
+      await SharePlus.instance.share(ShareParams(
+        files: [
+          XFile(file.path,
+              mimeType: format == ExportFormat.pdf
+                  ? 'application/pdf'
+                  : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+        ],
+        subject: '$schoolName — $scheduleName',
+      ));
 
       state = const ExportState(phase: ExportPhase.done);
     } catch (e) {

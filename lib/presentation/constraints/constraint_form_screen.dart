@@ -585,19 +585,19 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       ),
       body: subjectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('Error: $e')),
+        error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
         data: (subjects) => classroomsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error:   (e, _) => Center(child: Text('Error: $e')),
+          error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
           data: (classrooms) => periodsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:   (e, _) => Center(child: Text('Error: $e')),
+            error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
             data: (periods) => classroomSubjectsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error:   (e, _) => Center(child: Text('Error: $e')),
+              error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
               data: (classroomSubjects) => dayCapsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error:   (e, _) => Center(child: Text('Error: $e')),
+                error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                 data: (dayCaps) => _buildForm(
                   colors, l10n, subjects, classrooms, periods,
                   classroomSubjects, dayCaps, hardConstraints,
@@ -672,7 +672,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Kind toggle: HARD | SOFT ────────────────────────────────
-          _SectionLabel(label: 'Constraint Type', colors: colors),
+          _SectionLabel(label: AppLocalizations.of(context).constraintTypeLabel, colors: colors),
           const SizedBox(height: 8),
           _KindToggle(
             kind: _kind,
@@ -683,7 +683,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           const SizedBox(height: 20),
 
           // ── Family + polarity ────────────────────────────────────────
-          _SectionLabel(label: 'Rule', colors: colors),
+          _SectionLabel(label: AppLocalizations.of(context).ruleLabel, colors: colors),
           const SizedBox(height: 8),
           _RuleFamilySelector(
             kind: _kind,
@@ -831,7 +831,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       CsDropdown<String>(
         key: const ValueKey('classroom'),
         value: _classroomId,
-        hint: 'Any classroom',
+        hint: AppLocalizations.of(context).anyClassroomOption,
         items: classroomDayRequired
             ? _classroomItems(classrooms, colors)
             : _classroomItemsOptional(classrooms, colors),
@@ -840,12 +840,12 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       const SizedBox(height: 16),
 
       // ── Day ──────────────────────────────────────────────────────
-      _SectionLabel(label: 'Day', colors: colors),
+      _SectionLabel(label: AppLocalizations.of(context).dayFieldLabel, colors: colors),
       const SizedBox(height: 8),
       CsDropdown<String>(
         key: const ValueKey('day'),
         value: _dayOfWeek,
-        hint: 'Any day',
+        hint: AppLocalizations.of(context).anyDayOption,
         items: classroomDayRequired
             ? _dayItemsForRule(l10n, colors)
             : _dayItemsOptional(l10n, colors),
@@ -854,7 +854,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       const SizedBox(height: 16),
 
       // ── Slot(s) — visual picker instead of dropdowns ────────────────
-      _SectionLabel(label: 'Slot', colors: colors),
+      _SectionLabel(label: AppLocalizations.of(context).slotLabel, colors: colors),
       const SizedBox(height: 8),
       SlotRangePicker(
         allPeriods: allPeriods,
@@ -877,7 +877,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 
       // ── Weight (SOFT only) ──────────────────────────────────────
       if (_kind == 'SOFT') ...[
-        _SectionLabel(label: 'Priority', colors: colors),
+        _SectionLabel(label: AppLocalizations.of(context).priorityLabel, colors: colors),
         const SizedBox(height: 8),
         _WeightSelector(
           weight: _weight,
@@ -940,7 +940,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           if (!_isEditing && availableClassrooms.length > 1)
             DropdownMenuItem(
               value: _kAllClassrooms,
-              child: Text('All classrooms',
+              child: Text(AppLocalizations.of(context).allClassrooms,
                   style: TextStyle(
                       color: colors.primary, fontWeight: FontWeight.w600)),
             ),
@@ -1030,7 +1030,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
                       classroomNames, lessonPeriodsCount);
                 }),
               ),
-              Text('No maximum (up to a full day)',
+              Text(AppLocalizations.of(context).noMaximumFullDay,
                   style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted)),
             ],
           ),
@@ -1055,7 +1055,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           ),
         const SizedBox(height: 12),
         if (_kind == 'SOFT') ...[
-          _SectionLabel(label: 'Priority', colors: colors),
+          _SectionLabel(label: AppLocalizations.of(context).priorityLabel, colors: colors),
           const SizedBox(height: 8),
           _WeightSelector(
             weight: _weight,
@@ -1105,7 +1105,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     if (!_isEditing)
       DropdownMenuItem(
         value: _kAllDays,
-        child: Text('All days',
+        child: Text(AppLocalizations.of(context).allDaysOption,
             style: TextStyle(
                 color: colors.primary, fontWeight: FontWeight.w600)),
       ),
@@ -1121,7 +1121,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     if (!_isEditing)
       DropdownMenuItem(
         value: _kAllClassrooms,
-        child: Text('All classrooms',
+        child: Text(AppLocalizations.of(context).allClassrooms,
             style: TextStyle(
                 color: colors.primary, fontWeight: FontWeight.w600)),
       ),
@@ -1139,7 +1139,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
   ) => [
     DropdownMenuItem(
       value: _kAnyDay,
-      child: Text('Any day',
+      child: Text(AppLocalizations.of(context).anyDayOption,
           style: TextStyle(
               color: colors.primary, fontWeight: FontWeight.w600)),
     ),
@@ -1153,7 +1153,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
   ) => [
     DropdownMenuItem(
       value: _kAnyClassroom,
-      child: Text('Any classroom',
+      child: Text(AppLocalizations.of(context).anyClassroomOption,
           style: TextStyle(
               color: colors.primary, fontWeight: FontWeight.w600)),
     ),
@@ -1273,7 +1273,7 @@ class _RuleFamilySelector extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _RuleCard(
-          label: 'Daily limit',
+          label: AppLocalizations.of(context).dailyLimitLabel,
           description: isHard
               ? 'Require a minimum and/or maximum number of daily hours '
                   'for a subject — blocks generation if unmet.'

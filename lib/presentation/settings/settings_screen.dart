@@ -35,8 +35,7 @@ class SettingsScreen extends ConsumerWidget {
                     .copyWith(color: colors.textPrimary)),
             const SizedBox(height: 24),
 
-            // Se l10n.appearance dà errore, usa 'Appearance'
-            _SectionHeader(title: 'Appearance', colors: colors),
+            _SectionHeader(title: l10n.appearanceSection, colors: colors),
             _SettingTile(
               label: l10n.language,
               value: _getLanguageName(locale?.languageCode ?? 'en'),
@@ -51,37 +50,37 @@ class SettingsScreen extends ConsumerWidget {
             _SettingTile(
               label: l10n.theme,
               value: themeMode == ThemeMode.system
-                  ? 'System'
+                  ? l10n.themeSystem
                   : themeMode == ThemeMode.dark
-                      ? 'Dark'
-                      : 'Light',
+                      ? l10n.themeDark
+                      : l10n.themeLight,
               icon: Icons.dark_mode_outlined,
               colors: colors,
               onTap: () => _showThemePicker(context, ref, themeMode),
             ),
 
             const SizedBox(height: 24),
-            _SectionHeader(title: 'Account', colors: colors),
+            _SectionHeader(title: l10n.account, colors: colors),
             _SettingTile(
-              label: 'Subscription',
-              value: 'Manage',
+              label: l10n.subscription,
+              value: l10n.manage,
               icon: Icons.star_outline_rounded,
               colors: colors,
               onTap: () => context.push('/subscription'),
             ),
 
             const SizedBox(height: 24),
-            _SectionHeader(title: 'Support', colors: colors),
+            _SectionHeader(title: l10n.supportSection, colors: colors),
             _SettingTile(
-              label: 'Contact Support',
+              label: l10n.contactSupport,
               icon: Icons.help_outline_rounded,
               colors: colors,
-              onTap: () => _launchUrl('mailto:support@chronoschool.com'),
+              onTap: () => _launchUrl('mailto:pergolimatteo@gmail.com'),
             ),
 
             const SizedBox(height: 32),
             CsButton(
-              label: 'Logout',
+              label: l10n.logOut,
               outline: true,
               onPressed: () => ref.read(authServiceProvider).signOut(),
             ),
@@ -98,10 +97,11 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showLanguagePicker(BuildContext context, WidgetRef ref, Locale current) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Select Language'),
+        title: Text(l10n.selectLanguage),
         content: _LanguageDialog(
           currentLocale: current,
           onSelect: (langCode) {
@@ -114,6 +114,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showThemePicker(BuildContext context, WidgetRef ref, ThemeMode current) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -121,21 +122,21 @@ class SettingsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('System'),
+              title: Text(l10n.themeSystem),
               onTap: () {
                 ref.read(themeProvider.notifier).setTheme(ThemeMode.system);
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              title: const Text('Light'),
+              title: Text(l10n.themeLight),
               onTap: () {
                 ref.read(themeProvider.notifier).setTheme(ThemeMode.light);
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              title: const Text('Dark'),
+              title: Text(l10n.themeDark),
               onTap: () {
                 ref.read(themeProvider.notifier).setTheme(ThemeMode.dark);
                 Navigator.pop(context);
@@ -161,16 +162,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text('This action cannot be undone.'),
+        title: Text(l10n.deleteAccount),
+        content: Text(l10n.actionCannotBeUndone),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => ref.read(authServiceProvider).deleteAccount(),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

@@ -223,7 +223,7 @@ class _ScheduleScreenState extends ConsumerState<_ScheduleScreenBody> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(l10n.newVersion),
-          content: Text('A schedule with the name "$name" already exists. Please choose a unique name.'),
+          content: Text(AppLocalizations.of(context).scheduleNameExists(name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -997,11 +997,11 @@ class _NoSchoolPrompt extends StatelessWidget {
             children: [
               Icon(Icons.school_outlined, size: 64, color: colors.textMuted),
               const SizedBox(height: 16),
-              Text('No schools yet.',
+              Text(AppLocalizations.of(context).noSchoolsYet,
                   style: AppTextStyles.titleMedium
                       .copyWith(color: colors.textPrimary)),
               const SizedBox(height: 8),
-              Text('Go to the Schools tab to create your first school.',
+              Text(AppLocalizations.of(context).goToSchoolsTab,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium
                       .copyWith(color: colors.textMuted)),
@@ -1028,7 +1028,7 @@ class _SchoolPicker extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: Text('Select a school for schedule',
+            child: Text(AppLocalizations.of(context).selectSchoolForSchedule,
                 style: AppTextStyles.titleMedium
                     .copyWith(color: colors.textPrimary)),
           ),

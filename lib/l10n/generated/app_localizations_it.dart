@@ -527,7 +527,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get themeLight => 'Chiaro';
 
   @override
-  String get themeSystem => 'Predefinito di sistema';
+  String get themeSystem => 'Sistema';
 
   @override
   String get account => 'Account';
@@ -864,4 +864,218 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get featureMultipleSchools => 'Più scuole per account';
+
+  @override
+  String get manage => 'Gestisci';
+
+  @override
+  String get collapse => 'Comprimi';
+
+  @override
+  String switchedToSet(String name) {
+    return 'Passato a \"$name\".';
+  }
+
+  @override
+  String get apply => 'Applica';
+
+  @override
+  String get logOut => 'Esci';
+
+  @override
+  String get changeAction => 'Cambia';
+
+  @override
+  String get orSeparator => 'oppure';
+
+  @override
+  String get templatesTitle => 'Modelli';
+
+  @override
+  String get builtInTemplates => 'Predefiniti';
+
+  @override
+  String get myTemplates => 'I miei modelli';
+
+  @override
+  String get saveAsTemplate => 'Salva come modello';
+
+  @override
+  String get savePeriodsAsTemplate => 'Salva le ore come modello';
+
+  @override
+  String get templateNameLabel => 'Nome del modello';
+
+  @override
+  String get templateNameHint => 'es. Il mio orario scolastico';
+
+  @override
+  String get renameTemplate => 'Rinomina modello';
+
+  @override
+  String get deleteTemplate => 'Elimina modello';
+
+  @override
+  String get templateSaved => 'Modello salvato.';
+
+  @override
+  String get tapTimeFieldsHint =>
+      'Tocca i campi dell\'orario per usare il selettore.';
+
+  @override
+  String get breakNameHint => 'es. Ricreazione';
+
+  @override
+  String get priorityLabel => 'Priorità';
+
+  @override
+  String get ruleLabel => 'Regola';
+
+  @override
+  String get slotLabel => 'Fascia oraria';
+
+  @override
+  String get dayFieldLabel => 'Giorno';
+
+  @override
+  String get dailyLimitLabel => 'Limite giornaliero';
+
+  @override
+  String get constraintTypeLabel => 'Tipo di vincolo';
+
+  @override
+  String get allDaysOption => 'Tutti i giorni';
+
+  @override
+  String get anyDayOption => 'Qualsiasi giorno';
+
+  @override
+  String get anyClassroomOption => 'Qualsiasi aula';
+
+  @override
+  String get noMaximumFullDay => 'Nessun massimo (fino a un giorno intero)';
+
+  @override
+  String get hardDailyLimitTag => 'HARD · LIMITE GIORNALIERO';
+
+  @override
+  String get constraintSetsTitle => 'Set di vincoli';
+
+  @override
+  String get saveCurrentEllipsis => 'Salva quelli attuali…';
+
+  @override
+  String get saveCurrentConstraints => 'Salva i vincoli attuali';
+
+  @override
+  String get updateWithCurrentConstraints => 'Aggiorna con i vincoli attuali';
+
+  @override
+  String get setNameHint => 'Nome del set';
+
+  @override
+  String get switchAction => 'Passa';
+
+  @override
+  String get deleteConstraintSet => 'Elimina set di vincoli';
+
+  @override
+  String get noSavedSetsYet => 'Nessun set salvato.';
+
+  @override
+  String switchToSetConfirm(String name) {
+    return 'Passare a \"$name\"?';
+  }
+
+  @override
+  String deleteSetConfirm(String name) {
+    return 'Eliminare \"$name\"? L\'azione è irreversibile.';
+  }
+
+  @override
+  String get noSchoolsYet => 'Nessuna scuola.';
+
+  @override
+  String get goToSchoolsTab =>
+      'Vai alla scheda Scuole per creare la tua prima scuola.';
+
+  @override
+  String get addFirstSchoolToStart =>
+      'Aggiungi la tua prima scuola per iniziare.';
+
+  @override
+  String get selectSchoolForConstraints => 'Seleziona una scuola per i vincoli';
+
+  @override
+  String get selectSchoolForSchedule => 'Seleziona una scuola per l\'orario';
+
+  @override
+  String get selectSchoolToSetUp => 'Seleziona una scuola da configurare';
+
+  @override
+  String get lastRunLabel => 'Ultima generazione';
+
+  @override
+  String get editSetup => 'Modifica configurazione';
+
+  @override
+  String get statusReady => 'Pronta';
+
+  @override
+  String get statusFixNeeded => 'Da sistemare';
+
+  @override
+  String get teacherLabel => 'Insegnante';
+
+  @override
+  String get classColumnLabel => 'Classe';
+
+  @override
+  String get timeColumnLabel => 'Orario';
+
+  @override
+  String get neededColumnLabel => 'Necessarie';
+
+  @override
+  String get availableColumnLabel => 'Disponibili';
+
+  @override
+  String notTaughtInClose(String classroom) {
+    return 'Non insegnata in $classroom — chiudi';
+  }
+
+  @override
+  String scheduleNameExists(String name) {
+    return 'Esiste già un orario con il nome \"$name\". Scegli un nome diverso.';
+  }
+
+  @override
+  String deleteClassroomConfirm(String name) {
+    return 'Eliminare \"$name\"?';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Errore: $message';
+  }
+
+  @override
+  String get appearanceSection => 'Aspetto';
+
+  @override
+  String get supportSection => 'Assistenza';
+
+  @override
+  String get contactSupport => 'Contatta l\'assistenza';
+
+  @override
+  String get selectLanguage => 'Seleziona la lingua';
+
+  @override
+  String get actionCannotBeUndone => 'Questa azione non può essere annullata.';
+
+  @override
+  String switchSetWarning(String name, int hard, int soft) {
+    return 'Sostituisce ogni vincolo attuale e i limiti giornalieri HARD con quanto salvato in \"$name\" ($hard hard · $soft soft). Ciò che non è salvato altrove andrà perso.';
+  }
 }

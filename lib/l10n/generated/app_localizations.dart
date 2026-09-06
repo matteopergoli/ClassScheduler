@@ -1010,7 +1010,7 @@ abstract class AppLocalizations {
   /// No description provided for @themeSystem.
   ///
   /// In en, this message translates to:
-  /// **'System default'**
+  /// **'System'**
   String get themeSystem;
 
   /// No description provided for @account.
@@ -1618,6 +1618,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Multiple schools per account'**
   String get featureMultipleSchools;
+
+  /// No description provided for @manage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get manage;
+
+  /// No description provided for @collapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get collapse;
+
+  /// No description provided for @switchedToSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to \"{name}\".'**
+  String switchedToSet(String name);
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @logOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logOut;
+
+  /// No description provided for @changeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get changeAction;
+
+  /// No description provided for @orSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get orSeparator;
+
+  /// No description provided for @templatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get templatesTitle;
+
+  /// No description provided for @builtInTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get builtInTemplates;
+
+  /// No description provided for @myTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'My templates'**
+  String get myTemplates;
+
+  /// No description provided for @saveAsTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get saveAsTemplate;
+
+  /// No description provided for @savePeriodsAsTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save periods as template'**
+  String get savePeriodsAsTemplate;
+
+  /// No description provided for @templateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get templateNameLabel;
+
+  /// No description provided for @templateNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. My School Schedule'**
+  String get templateNameHint;
+
+  /// No description provided for @renameTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename template'**
+  String get renameTemplate;
+
+  /// No description provided for @deleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get deleteTemplate;
+
+  /// No description provided for @templateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template saved.'**
+  String get templateSaved;
+
+  /// No description provided for @tapTimeFieldsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the time fields to use the time picker.'**
+  String get tapTimeFieldsHint;
+
+  /// No description provided for @breakNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Morning Break'**
+  String get breakNameHint;
+
+  /// No description provided for @priorityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get priorityLabel;
+
+  /// No description provided for @ruleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rule'**
+  String get ruleLabel;
+
+  /// No description provided for @slotLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get slotLabel;
+
+  /// No description provided for @dayFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get dayFieldLabel;
+
+  /// No description provided for @dailyLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily limit'**
+  String get dailyLimitLabel;
+
+  /// No description provided for @constraintTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Constraint type'**
+  String get constraintTypeLabel;
+
+  /// No description provided for @allDaysOption.
+  ///
+  /// In en, this message translates to:
+  /// **'All days'**
+  String get allDaysOption;
+
+  /// No description provided for @anyDayOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Any day'**
+  String get anyDayOption;
+
+  /// No description provided for @anyClassroomOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Any classroom'**
+  String get anyClassroomOption;
+
+  /// No description provided for @noMaximumFullDay.
+  ///
+  /// In en, this message translates to:
+  /// **'No maximum (up to a full day)'**
+  String get noMaximumFullDay;
+
+  /// No description provided for @hardDailyLimitTag.
+  ///
+  /// In en, this message translates to:
+  /// **'HARD · DAILY LIMIT'**
+  String get hardDailyLimitTag;
+
+  /// No description provided for @constraintSetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Constraint sets'**
+  String get constraintSetsTitle;
+
+  /// No description provided for @saveCurrentEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Save current…'**
+  String get saveCurrentEllipsis;
+
+  /// No description provided for @saveCurrentConstraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Save current constraints'**
+  String get saveCurrentConstraints;
+
+  /// No description provided for @updateWithCurrentConstraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Update with current constraints'**
+  String get updateWithCurrentConstraints;
+
+  /// No description provided for @setNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set name'**
+  String get setNameHint;
+
+  /// No description provided for @switchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get switchAction;
+
+  /// No description provided for @deleteConstraintSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete constraint set'**
+  String get deleteConstraintSet;
+
+  /// No description provided for @noSavedSetsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved sets yet.'**
+  String get noSavedSetsYet;
+
+  /// No description provided for @switchToSetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to \"{name}\"?'**
+  String switchToSetConfirm(String name);
+
+  /// No description provided for @deleteSetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This can\'\'t be undone.'**
+  String deleteSetConfirm(String name);
+
+  /// No description provided for @noSchoolsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No schools yet.'**
+  String get noSchoolsYet;
+
+  /// No description provided for @goToSchoolsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the Schools tab to create your first school.'**
+  String get goToSchoolsTab;
+
+  /// No description provided for @addFirstSchoolToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first school to get started.'**
+  String get addFirstSchoolToStart;
+
+  /// No description provided for @selectSchoolForConstraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a school for constraints'**
+  String get selectSchoolForConstraints;
+
+  /// No description provided for @selectSchoolForSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a school for the schedule'**
+  String get selectSchoolForSchedule;
+
+  /// No description provided for @selectSchoolToSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a school to set up'**
+  String get selectSchoolToSetUp;
+
+  /// No description provided for @lastRunLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last run'**
+  String get lastRunLabel;
+
+  /// No description provided for @editSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit setup'**
+  String get editSetup;
+
+  /// No description provided for @statusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get statusReady;
+
+  /// No description provided for @statusFixNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix needed'**
+  String get statusFixNeeded;
+
+  /// No description provided for @teacherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher'**
+  String get teacherLabel;
+
+  /// No description provided for @classColumnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Class'**
+  String get classColumnLabel;
+
+  /// No description provided for @timeColumnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get timeColumnLabel;
+
+  /// No description provided for @neededColumnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed'**
+  String get neededColumnLabel;
+
+  /// No description provided for @availableColumnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get availableColumnLabel;
+
+  /// No description provided for @notTaughtInClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Not taught in {classroom} — close'**
+  String notTaughtInClose(String classroom);
+
+  /// No description provided for @scheduleNameExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A schedule named \"{name}\" already exists. Please choose a unique name.'**
+  String scheduleNameExists(String name);
+
+  /// No description provided for @deleteClassroomConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String deleteClassroomConfirm(String name);
+
+  /// No description provided for @errorWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String errorWithMessage(String message);
+
+  /// No description provided for @appearanceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearanceSection;
+
+  /// No description provided for @supportSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get supportSection;
+
+  /// No description provided for @contactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get contactSupport;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select language'**
+  String get selectLanguage;
+
+  /// No description provided for @actionCannotBeUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get actionCannotBeUndone;
+
+  /// No description provided for @switchSetWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces every current constraint and HARD daily limit with what was saved in \"{name}\" ({hard} hard · {soft} soft). Anything not saved elsewhere will be lost.'**
+  String switchSetWarning(String name, int hard, int soft);
 }
 
 class _AppLocalizationsDelegate

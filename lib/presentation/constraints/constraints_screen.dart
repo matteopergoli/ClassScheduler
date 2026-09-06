@@ -161,7 +161,7 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                             onPressed: () => ref
                                 .read(constraintsActiveSchoolProvider.notifier)
                                 .state = null,
-                            child: Text('Change',
+                            child: Text(AppLocalizations.of(context).changeAction,
                                 style: AppTextStyles.labelSmall
                                     .copyWith(color: colors.primaryLight)),
                           ),
@@ -243,7 +243,7 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
             Expanded(
               child: constraintsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                 data: (all) {
                   final hard = all.where((c) => c.kind == 'HARD').toList();
                   final soft = all.where((c) => c.kind == 'SOFT').toList();
@@ -251,19 +251,19 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                   return subjectsAsync.when(
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
+                    error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                     data: (subjects) => classroomsAsync.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(child: Text('Error: $e')),
+                      error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                       data: (classrooms) => periodsAsync.when(
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Error: $e')),
+                        error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                         data: (periods) => classroomSubjectsAsync.when(
                           loading: () =>
                               const Center(child: CircularProgressIndicator()),
-                          error: (e, _) => Center(child: Text('Error: $e')),
+                          error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
                           data: (classroomSubjects) {
                             final builder = ConstraintLabelBuilder(
                               subjects: {for (final s in subjects) s.id: s},
@@ -667,7 +667,7 @@ class _DailyLimitAssignmentTile extends StatelessWidget {
                       color: colors.error.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('HARD · DAILY LIMIT',
+                    child: Text(AppLocalizations.of(context).hardDailyLimitTag,
                         style: AppTextStyles.overline.copyWith(color: colors.error)),
                   ),
                   const SizedBox(height: 6),
@@ -679,7 +679,7 @@ class _DailyLimitAssignmentTile extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.delete_outline_rounded,
                   color: colors.textMuted, size: 20),
-              tooltip: 'Delete',
+              tooltip: AppLocalizations.of(context).delete,
               onPressed: onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -785,7 +785,7 @@ class _ConstraintTile extends StatelessWidget {
               IconButton(
                 icon: Icon(Icons.delete_outline_rounded,
                     color: colors.textMuted, size: 20),
-                tooltip: 'Delete',
+                tooltip: AppLocalizations.of(context).delete,
                 onPressed: onDelete,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -923,11 +923,11 @@ class _NoSchoolPrompt extends StatelessWidget {
             children: [
               Icon(Icons.school_outlined, size: 64, color: colors.textMuted),
               const SizedBox(height: 16),
-              Text('No schools yet.',
+              Text(AppLocalizations.of(context).noSchoolsYet,
                   style: AppTextStyles.titleMedium
                       .copyWith(color: colors.textPrimary)),
               const SizedBox(height: 8),
-              Text('Go to the Schools tab to create your first school.',
+              Text(AppLocalizations.of(context).goToSchoolsTab,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium
                       .copyWith(color: colors.textMuted)),
@@ -954,7 +954,7 @@ class _SchoolPicker extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: Text('Select a school for constraints',
+            child: Text(AppLocalizations.of(context).selectSchoolForConstraints,
                 style: AppTextStyles.titleMedium
                     .copyWith(color: colors.textPrimary)),
           ),

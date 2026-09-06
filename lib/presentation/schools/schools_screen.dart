@@ -298,10 +298,6 @@ final _classroomSubjectsProvider =
       ref.watch(classroomSubjectRepositoryProvider(schoolId)).watchAll(),
 );
 
-final _dayCapacitiesProvider = StreamProvider.family<List<DayCapacityModel>, String>(
-  (ref, schoolId) => ref.watch(dayCapacityRepositoryProvider(schoolId)).watchAll(),
-);
-
 // ── SchoolCard ───────────────────────────────────────────────────────────────
 class SchoolCard extends ConsumerStatefulWidget {
   final SchoolModel school;
@@ -419,7 +415,7 @@ class _SchoolCardState extends ConsumerState<SchoolCard> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _StatCol(label: 'Last run',
+                        _StatCol(label: AppLocalizations.of(context).lastRunLabel,
                             value: widget.school.updatedAt
                                 .toLocal()
                                 .toString()
@@ -496,13 +492,14 @@ class _SetupStatusCard extends ConsumerWidget {
     final classrooms = ref.watch(_classroomsProvider(schoolId)).valueOrNull ?? const <ClassroomModel>[];
     final subjects = ref.watch(_subjectsProvider(schoolId)).valueOrNull ?? const <SubjectModel>[];
     final classroomSubjects = ref.watch(_classroomSubjectsProvider(schoolId)).valueOrNull ?? const <ClassroomSubjectModel>[];
-    final dayCapacities = ref.watch(_dayCapacitiesProvider(schoolId)).valueOrNull ?? const <DayCapacityModel>[];
 
+    // Step 3 (day capacities) is an optional refinement: with no records the
+    // scheduler falls back to a Mon–Fri week (see generation_service
+    // _deriveActiveDays), so a school is "ready" without them.
     final isComplete = periods.isNotEmpty &&
         classrooms.isNotEmpty &&
         subjects.isNotEmpty &&
-        classroomSubjects.isNotEmpty &&
-        dayCapacities.isNotEmpty;
+        classroomSubjects.isNotEmpty;
     final statusColor = isComplete ? colors.success : colors.error;
 
     return Material(
@@ -525,7 +522,7 @@ class _SetupStatusCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Edit setup',
+                AppLocalizations.of(context).editSetup,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -544,7 +541,9 @@ class _SetupStatusCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    isComplete ? 'Ready' : 'Fix needed',
+                    isComplete
+                        ? AppLocalizations.of(context).statusReady
+                        : AppLocalizations.of(context).statusFixNeeded,
                     style: AppTextStyles.labelSmall.copyWith(
                       color: statusColor,
                       fontWeight: FontWeight.w700,
@@ -897,7 +896,7 @@ class _EmptyState extends StatelessWidget {
                 style: AppTextStyles.titleMedium.copyWith(
                     color: colors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Add your first school to get started.',
+            Text(AppLocalizations.of(context).addFirstSchoolToStart,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMedium.copyWith(
                     color: colors.textMuted)),

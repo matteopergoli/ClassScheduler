@@ -215,7 +215,7 @@ class _ClassroomTile extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10n.classroomDeleted),
-        content: Text('Delete "${classroom.name}"?'),
+        content: Text(l10n.deleteClassroomConfirm(classroom.name)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),

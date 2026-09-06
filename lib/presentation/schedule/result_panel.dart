@@ -86,7 +86,7 @@ class ResultPanel extends StatelessWidget {
                 GestureDetector(
                   onTap: onCollapse,
                   child: Tooltip(
-                    message: 'Collapse',
+                    message: AppLocalizations.of(context).collapse,
                     child: Icon(Icons.expand_less_rounded,
                         size: 20, color: colors.textMuted),
                   ),
@@ -305,8 +305,7 @@ class _QualityGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-    message: 'Higher scores mean fewer teacher gaps '
-             'and fewer subject changes per day.',
+    message: AppLocalizations.of(context).qualityTooltip,
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [

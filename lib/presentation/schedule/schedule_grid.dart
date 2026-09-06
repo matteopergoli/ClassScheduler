@@ -449,12 +449,13 @@ class _GridBody extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DetailRow(label: 'Teacher', value: subject.teacherName),
+            _DetailRow(label: AppLocalizations.of(context).teacherLabel, value: subject.teacherName),
             if (classroom != null)
-              _DetailRow(label: 'Class', value: classroom.name),
-            _DetailRow(label: 'Day', value: _dayLabel(day)),
+              _DetailRow(label: AppLocalizations.of(context).classColumnLabel, value: classroom.name),
+            _DetailRow(label: AppLocalizations.of(context).dayFieldLabel, value: _dayLabel(day)),
             _DetailRow(
-                label: 'Time', value: '${period.startTime}–${period.endTime}'),
+                label: AppLocalizations.of(context).timeColumnLabel,
+                value: '${period.startTime}–${period.endTime}'),
             if (cell.isViolation && cell.violationDescription != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -466,7 +467,7 @@ class _GridBody extends ConsumerWidget {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close')),
+              child: Text(AppLocalizations.of(context).close)),
         ],
       ),
     );

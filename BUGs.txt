@@ -73,11 +73,15 @@ x	testare priorità dei soft constraints
 x	nei constraint soft avoid e prefer hanno una lista di selezioni diverse...
 x	aggiugere possibilità di salvare dataset di constraints
 x	provare gli slot orari di hard constraint
+x	creazione apk locale per testing locale su device vero
+x	chiedere prossimi passi per buildare app e per rilasciarla in development -> account/language/billing management in settings
+x	chiedere opinioni di commercializzazione e rilascio
+x	accesso tramite google
+x	scritte in inglese qua e là
+
 
 
 
 Open:
-O	creazione apk locale per testing locale su device vero
-O	condividere struttura del progetto (tree /f /a > struttura.txt) e chiedere cosa committare su repo
-O	chiedere prossimi passi per buildare app e per rilasciarla in development -> account/language/billing management in settings
-O	chiedere opinioni di commercializzazione e rilascio
+O	creazione account premium tra cui il mio
+O	fai screenshot per google e carica nuovo aab aggiornato

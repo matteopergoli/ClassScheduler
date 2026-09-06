@@ -13,7 +13,18 @@ class AuthException implements Exception {
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // OAuth *web* client ID of the Firebase project (from google-services.json,
+  // client_type 3). Required on Android to obtain an idToken for Firebase when
+  // the google-services Gradle plugin is not applied — without it Google
+  // sign-in returns a null idToken and signInWithCredential fails.
+  // A client ID is not a secret.
+  static const String _googleServerClientId =
+      '237070186843-dcff0lk2mikv6o2prk6fvlvlahbohhpk.apps.googleusercontent.com';
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: kIsWeb ? null : _googleServerClientId,
+  );
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 

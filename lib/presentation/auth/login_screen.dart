@@ -183,7 +183,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Expanded(child: Divider(color: colors.borderDefault)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('or',
+                    child: Text(AppLocalizations.of(context).orSeparator,
                         style: AppTextStyles.labelSmall.copyWith(
                             color: colors.textMuted)),
                   ),

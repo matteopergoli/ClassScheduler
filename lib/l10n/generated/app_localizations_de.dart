@@ -846,4 +846,216 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get featureMultipleSchools => 'Multiple schools';
+
+  @override
+  String get manage => 'Manage';
+
+  @override
+  String get collapse => 'Collapse';
+
+  @override
+  String switchedToSet(String name) {
+    return 'Switched to \"$name\".';
+  }
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get logOut => 'Log out';
+
+  @override
+  String get changeAction => 'Change';
+
+  @override
+  String get orSeparator => 'or';
+
+  @override
+  String get templatesTitle => 'Templates';
+
+  @override
+  String get builtInTemplates => 'Built-in';
+
+  @override
+  String get myTemplates => 'My templates';
+
+  @override
+  String get saveAsTemplate => 'Save as template';
+
+  @override
+  String get savePeriodsAsTemplate => 'Save periods as template';
+
+  @override
+  String get templateNameLabel => 'Template name';
+
+  @override
+  String get templateNameHint => 'e.g. My School Schedule';
+
+  @override
+  String get renameTemplate => 'Rename template';
+
+  @override
+  String get deleteTemplate => 'Delete template';
+
+  @override
+  String get templateSaved => 'Template saved.';
+
+  @override
+  String get tapTimeFieldsHint => 'Tap the time fields to use the time picker.';
+
+  @override
+  String get breakNameHint => 'e.g. Morning Break';
+
+  @override
+  String get priorityLabel => 'Priority';
+
+  @override
+  String get ruleLabel => 'Rule';
+
+  @override
+  String get slotLabel => 'Slot';
+
+  @override
+  String get dayFieldLabel => 'Day';
+
+  @override
+  String get dailyLimitLabel => 'Daily limit';
+
+  @override
+  String get constraintTypeLabel => 'Constraint type';
+
+  @override
+  String get allDaysOption => 'All days';
+
+  @override
+  String get anyDayOption => 'Any day';
+
+  @override
+  String get anyClassroomOption => 'Any classroom';
+
+  @override
+  String get noMaximumFullDay => 'No maximum (up to a full day)';
+
+  @override
+  String get hardDailyLimitTag => 'HARD · DAILY LIMIT';
+
+  @override
+  String get constraintSetsTitle => 'Constraint sets';
+
+  @override
+  String get saveCurrentEllipsis => 'Save current…';
+
+  @override
+  String get saveCurrentConstraints => 'Save current constraints';
+
+  @override
+  String get updateWithCurrentConstraints => 'Update with current constraints';
+
+  @override
+  String get setNameHint => 'Set name';
+
+  @override
+  String get switchAction => 'Switch';
+
+  @override
+  String get deleteConstraintSet => 'Delete constraint set';
+
+  @override
+  String get noSavedSetsYet => 'No saved sets yet.';
+
+  @override
+  String switchToSetConfirm(String name) {
+    return 'Switch to \"$name\"?';
+  }
+
+  @override
+  String deleteSetConfirm(String name) {
+    return 'Delete \"$name\"? This can\'t be undone.';
+  }
+
+  @override
+  String get noSchoolsYet => 'No schools yet.';
+
+  @override
+  String get goToSchoolsTab =>
+      'Go to the Schools tab to create your first school.';
+
+  @override
+  String get addFirstSchoolToStart => 'Add your first school to get started.';
+
+  @override
+  String get selectSchoolForConstraints => 'Select a school for constraints';
+
+  @override
+  String get selectSchoolForSchedule => 'Select a school for the schedule';
+
+  @override
+  String get selectSchoolToSetUp => 'Select a school to set up';
+
+  @override
+  String get lastRunLabel => 'Last run';
+
+  @override
+  String get editSetup => 'Edit setup';
+
+  @override
+  String get statusReady => 'Ready';
+
+  @override
+  String get statusFixNeeded => 'Fix needed';
+
+  @override
+  String get teacherLabel => 'Teacher';
+
+  @override
+  String get classColumnLabel => 'Class';
+
+  @override
+  String get timeColumnLabel => 'Time';
+
+  @override
+  String get neededColumnLabel => 'Needed';
+
+  @override
+  String get availableColumnLabel => 'Available';
+
+  @override
+  String notTaughtInClose(String classroom) {
+    return 'Not taught in $classroom — close';
+  }
+
+  @override
+  String scheduleNameExists(String name) {
+    return 'A schedule named \"$name\" already exists. Please choose a unique name.';
+  }
+
+  @override
+  String deleteClassroomConfirm(String name) {
+    return 'Delete \"$name\"?';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Error: $message';
+  }
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get supportSection => 'Support';
+
+  @override
+  String get contactSupport => 'Contact support';
+
+  @override
+  String get selectLanguage => 'Select language';
+
+  @override
+  String get actionCannotBeUndone => 'This action cannot be undone.';
+
+  @override
+  String switchSetWarning(String name, int hard, int soft) {
+    return 'This replaces every current constraint and HARD daily limit with what was saved in \"$name\" ($hard hard · $soft soft). Anything not saved elsewhere will be lost.';
+  }
 }

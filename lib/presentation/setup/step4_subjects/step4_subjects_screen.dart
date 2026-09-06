@@ -912,7 +912,7 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
             )
           else
             CsButton(
-              label: 'Not taught in ${widget.classroom.name} — close',
+              label: AppLocalizations.of(context).notTaughtInClose(widget.classroom.name),
               outline: true,
               onPressed: _saving ? null : () => Navigator.pop(context),
             ),
@@ -1126,17 +1126,17 @@ class _FeasibilityPanel extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 64,
-                  child: Text('Class',
+                  child: Text(AppLocalizations.of(context).classColumnLabel,
                       style: AppTextStyles.overline
                           .copyWith(color: colors.textDisabled)),
                 ),
                 Expanded(
-                  child: Text('Needed',
+                  child: Text(AppLocalizations.of(context).neededColumnLabel,
                       style: AppTextStyles.overline
                           .copyWith(color: colors.textDisabled)),
                 ),
                 Expanded(
-                  child: Text('Available',
+                  child: Text(AppLocalizations.of(context).availableColumnLabel,
                       style: AppTextStyles.overline
                           .copyWith(color: colors.textDisabled)),
                 ),

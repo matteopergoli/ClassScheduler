@@ -106,7 +106,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     onPressed: () => ref
                         .read(activeSchoolProvider.notifier)
                         .state = null,
-                    child: Text('Change',
+                    child: Text(l10n.changeAction,
                         style: AppTextStyles.labelMedium.copyWith(
                             color: colors.primaryLight)),
                   ),
@@ -289,11 +289,11 @@ class _NoSchoolPrompt extends StatelessWidget {
             children: [
               Icon(Icons.school_outlined, size: 64, color: colors.textMuted),
               const SizedBox(height: 16),
-              Text('No schools yet.',
+              Text(l10n.noSchoolsYet,
                   style: AppTextStyles.titleMedium.copyWith(
                       color: colors.textPrimary)),
               const SizedBox(height: 8),
-              Text('Go to the Schools tab to create your first school.',
+              Text(l10n.goToSchoolsTab,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium.copyWith(
                       color: colors.textMuted)),
@@ -322,7 +322,7 @@ class _SchoolPicker extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: Text('Select a school to set up',
+            child: Text(l10n.selectSchoolToSetUp,
                 style: AppTextStyles.titleMedium.copyWith(
                     color: colors.textPrimary)),
           ),

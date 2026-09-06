@@ -218,7 +218,7 @@ class _Step1PeriodsScreenState extends ConsumerState<Step1PeriodsScreen> {
                     icon: const Icon(
                         Icons.bookmark_add_outlined, size: 16),
                     label:
-                        const Text('Save periods as template'),
+                        Text(AppLocalizations.of(context).savePeriodsAsTemplate),
                   ),
                 ],
 
@@ -368,15 +368,15 @@ class _Step1PeriodsScreenState extends ConsumerState<Step1PeriodsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.cardBg,
-        title: Text('Save as template',
+        title: Text(AppLocalizations.of(ctx).saveAsTemplate,
             style: AppTextStyles.titleSmall
                 .copyWith(color: colors.textPrimary)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: 'Template name',
-            hintText:  'e.g. My School Schedule',
+            labelText: AppLocalizations.of(ctx).templateNameLabel,
+            hintText: AppLocalizations.of(ctx).templateNameHint,
             labelStyle: TextStyle(color: colors.textMuted),
           ),
           style: AppTextStyles.bodyLarge
@@ -385,11 +385,11 @@ class _Step1PeriodsScreenState extends ConsumerState<Step1PeriodsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(ctx).save),
           ),
         ],
       ),
@@ -418,7 +418,7 @@ class _Step1PeriodsScreenState extends ConsumerState<Step1PeriodsScreen> {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Template saved.')),
+        SnackBar(content: Text(AppLocalizations.of(context).templateSaved)),
       );
     }
   }
@@ -462,7 +462,7 @@ class _TemplateSheet extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Templates',
+              child: Text(AppLocalizations.of(context).templatesTitle,
                   style: AppTextStyles.titleSmall
                       .copyWith(color: colors.textPrimary)),
             ),
@@ -473,7 +473,7 @@ class _TemplateSheet extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               children: [
                 // Built-ins
-                _SheetLabel(label: 'Built-in', colors: colors),
+                _SheetLabel(label: AppLocalizations.of(context).builtInTemplates, colors: colors),
                 ..._builtIns.map((b) => _BuiltInTile(
                       builtIn: b,
                       colors: colors,
@@ -487,7 +487,7 @@ class _TemplateSheet extends ConsumerWidget {
 
                 // User templates
                 _SheetLabel(
-                    label: 'My templates', colors: colors),
+                    label: AppLocalizations.of(context).myTemplates, colors: colors),
                 templatesAsync.when(
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
@@ -547,14 +547,14 @@ class _TemplateSheet extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.cardBg,
-        title: Text('Rename template',
+        title: Text(AppLocalizations.of(ctx).renameTemplate,
             style: AppTextStyles.titleSmall
                 .copyWith(color: colors.textPrimary)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: 'Template name',
+            labelText: AppLocalizations.of(ctx).templateNameLabel,
             labelStyle: TextStyle(color: colors.textMuted),
           ),
           style: AppTextStyles.bodyLarge
@@ -563,11 +563,11 @@ class _TemplateSheet extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Rename'),
+            child: Text(AppLocalizations.of(ctx).rename),
           ),
         ],
       ),
@@ -589,7 +589,7 @@ class _TemplateSheet extends ConsumerWidget {
       context: sheetContext,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.cardBg,
-        title: Text('Delete template',
+        title: Text(AppLocalizations.of(ctx).deleteTemplate,
             style: AppTextStyles.titleSmall
                 .copyWith(color: colors.textPrimary)),
         content: Text(
@@ -600,11 +600,11 @@ class _TemplateSheet extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete',
+            child: Text(AppLocalizations.of(ctx).delete,
                 style: TextStyle(color: colors.error)),
           ),
         ],
@@ -669,7 +669,7 @@ class _BuiltInTile extends StatelessWidget {
               .copyWith(color: colors.textMuted),
         ),
         trailing: TextButton(
-            onPressed: onApply, child: const Text('Apply')),
+            onPressed: onApply, child: Text(AppLocalizations.of(context).apply)),
       ),
     );
   }
@@ -721,17 +721,17 @@ class _UserTemplateTile extends StatelessWidget {
                 icon: Icon(Icons.edit_outlined,
                     size: 18, color: colors.textMuted),
                 onPressed: onRename,
-                tooltip: 'Rename',
+                tooltip: AppLocalizations.of(context).rename,
               ),
               IconButton(
                 icon: Icon(Icons.delete_outline,
                     size: 18, color: colors.error),
                 onPressed: onDelete,
-                tooltip: 'Delete',
+                tooltip: AppLocalizations.of(context).delete,
               ),
               TextButton(
                   onPressed: onApply,
-                  child: const Text('Apply')),
+                  child: Text(AppLocalizations.of(context).apply)),
             ],
           ),
         ),
@@ -1194,7 +1194,7 @@ class _PeriodFormSheetState extends State<_PeriodFormSheet> {
                   .copyWith(color: colors.textPrimary),
             ),
             const SizedBox(height: 4),
-            Text('Tap the time fields to use the time picker.',
+            Text(AppLocalizations.of(context).tapTimeFieldsHint,
                 style: AppTextStyles.bodySmall
                     .copyWith(color: colors.textMuted)),
             const SizedBox(height: 16),
@@ -1229,7 +1229,7 @@ class _PeriodFormSheetState extends State<_PeriodFormSheet> {
                 controller: _nameCtrl,
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: 'e.g. Morning Break',
+                  hintText: AppLocalizations.of(context).breakNameHint,
                   hintStyle:
                       TextStyle(color: colors.textPlaceholder),
                 ),

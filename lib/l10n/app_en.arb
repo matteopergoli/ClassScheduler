@@ -595,5 +595,96 @@
   "featureMultipleSchools": "Multiple schools per account",
   "@featureMultipleSchools": {
     "description": "Feature list item"
+  },
+
+  "manage": "Manage",
+  "collapse": "Collapse",
+  "switchedToSet": "Switched to \"{name}\".",
+  "@switchedToSet": { "placeholders": { "name": {"type":"String"} } },
+  "apply": "Apply",
+  "logOut": "Log out",
+  "changeAction": "Change",
+  "orSeparator": "or",
+  "templatesTitle": "Templates",
+  "builtInTemplates": "Built-in",
+  "myTemplates": "My templates",
+  "saveAsTemplate": "Save as template",
+  "savePeriodsAsTemplate": "Save periods as template",
+  "templateNameLabel": "Template name",
+  "templateNameHint": "e.g. My School Schedule",
+  "renameTemplate": "Rename template",
+  "deleteTemplate": "Delete template",
+  "templateSaved": "Template saved.",
+  "tapTimeFieldsHint": "Tap the time fields to use the time picker.",
+  "breakNameHint": "e.g. Morning Break",
+  "priorityLabel": "Priority",
+  "ruleLabel": "Rule",
+  "slotLabel": "Slot",
+  "dayFieldLabel": "Day",
+  "dailyLimitLabel": "Daily limit",
+  "constraintTypeLabel": "Constraint type",
+  "allDaysOption": "All days",
+  "anyDayOption": "Any day",
+  "anyClassroomOption": "Any classroom",
+  "noMaximumFullDay": "No maximum (up to a full day)",
+  "hardDailyLimitTag": "HARD · DAILY LIMIT",
+  "constraintSetsTitle": "Constraint sets",
+  "saveCurrentEllipsis": "Save current…",
+  "saveCurrentConstraints": "Save current constraints",
+  "updateWithCurrentConstraints": "Update with current constraints",
+  "setNameHint": "Set name",
+  "switchAction": "Switch",
+  "deleteConstraintSet": "Delete constraint set",
+  "noSavedSetsYet": "No saved sets yet.",
+  "switchToSetConfirm": "Switch to \"{name}\"?",
+  "@switchToSetConfirm": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "deleteSetConfirm": "Delete \"{name}\"? This can''t be undone.",
+  "@deleteSetConfirm": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "noSchoolsYet": "No schools yet.",
+  "goToSchoolsTab": "Go to the Schools tab to create your first school.",
+  "addFirstSchoolToStart": "Add your first school to get started.",
+  "selectSchoolForConstraints": "Select a school for constraints",
+  "selectSchoolForSchedule": "Select a school for the schedule",
+  "selectSchoolToSetUp": "Select a school to set up",
+  "lastRunLabel": "Last run",
+  "editSetup": "Edit setup",
+  "statusReady": "Ready",
+  "statusFixNeeded": "Fix needed",
+  "teacherLabel": "Teacher",
+  "classColumnLabel": "Class",
+  "timeColumnLabel": "Time",
+  "neededColumnLabel": "Needed",
+  "availableColumnLabel": "Available",
+  "notTaughtInClose": "Not taught in {classroom} — close",
+  "@notTaughtInClose": {
+    "placeholders": { "classroom": { "type": "String" } }
+  },
+  "scheduleNameExists": "A schedule named \"{name}\" already exists. Please choose a unique name.",
+  "@scheduleNameExists": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "deleteClassroomConfirm": "Delete \"{name}\"?",
+  "@deleteClassroomConfirm": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "appearanceSection": "Appearance",
+  "supportSection": "Support",
+  "contactSupport": "Contact support",
+  "selectLanguage": "Select language",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "actionCannotBeUndone": "This action cannot be undone.",
+  "switchSetWarning": "This replaces every current constraint and HARD daily limit with what was saved in \"{name}\" ({hard} hard · {soft} soft). Anything not saved elsewhere will be lost.",
+  "@switchSetWarning": {
+    "placeholders": { "name": {"type":"String"}, "hard": {"type":"int"}, "soft": {"type":"int"} }
   }
 }

@@ -102,13 +102,13 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
             child: Row(children: [
               Expanded(
-                child: Text('Constraint Sets',
+                child: Text(l10n.constraintSetsTitle,
                     style: AppTextStyles.titleMedium
                         .copyWith(color: colors.textPrimary)),
               ),
               TextButton.icon(
                 icon: const Icon(Icons.save_outlined, size: 16),
-                label: const Text('Save current…'),
+                label: Text(l10n.saveCurrentEllipsis),
                 onPressed: _busy ? null : () => _saveNew(context),
               ),
             ]),
@@ -169,9 +169,9 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
                               }
                             },
                             itemBuilder: (ctx) => [
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'update',
-                                child: Text('Update with current constraints'),
+                                child: Text(AppLocalizations.of(context).updateWithCurrentConstraints),
                               ),
                               PopupMenuItem(
                                   value: 'rename', child: Text(l10n.rename)),
@@ -221,11 +221,11 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Save current constraints'),
+        title: Text(AppLocalizations.of(ctx).saveCurrentConstraints),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Set name'),
+          decoration: InputDecoration(hintText: AppLocalizations.of(ctx).setNameHint),
         ),
         actions: [
           TextButton(
@@ -283,11 +283,9 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Switch to "${s.name}"?'),
+        title: Text(AppLocalizations.of(ctx).switchToSetConfirm(s.name)),
         content: Text(
-          'This replaces every current constraint and HARD daily limit '
-          'with what was saved in "${s.name}" (${c.hard} hard · ${c.soft} '
-          'soft). Anything not saved elsewhere will be lost.',
+          AppLocalizations.of(ctx).switchSetWarning(s.name, c.hard, c.soft),
         ),
         actions: [
           TextButton(
@@ -295,7 +293,7 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
               child: Text(AppLocalizations.of(ctx).cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Switch'),
+            child: Text(AppLocalizations.of(ctx).switchAction),
           ),
         ],
       ),
@@ -323,7 +321,7 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
 
       if (!mounted) return;
       Navigator.pop(context);
-      _showMessage(context, 'Switched to "${s.name}".');
+      _showMessage(context, AppLocalizations.of(context).switchedToSet(s.name));
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -337,8 +335,8 @@ class _ConstraintSetSheetState extends ConsumerState<ConstraintSetSheet> {
       showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete constraint set'),
-          content: Text('Delete "$name"? This can\'t be undone.'),
+          title: Text(AppLocalizations.of(ctx).deleteConstraintSet),
+          content: Text(AppLocalizations.of(ctx).deleteSetConfirm(name)),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -415,7 +413,7 @@ class _EmptyState extends StatelessWidget {
             children: [
               Icon(Icons.layers_outlined, size: 48, color: colors.textMuted),
               const SizedBox(height: 16),
-              Text('No saved sets yet.',
+              Text(AppLocalizations.of(context).noSavedSetsYet,
                   style: AppTextStyles.titleSmall
                       .copyWith(color: colors.textPrimary)),
               const SizedBox(height: 8),

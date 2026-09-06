@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in release builds: Firebase Auth/Firestore, RevenueCat and
+         google_fonts all need network access. The debug/profile manifests add
+         this automatically for tooling, but the release build does not. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="ClassScheduler"
         android:name="${applicationName}"

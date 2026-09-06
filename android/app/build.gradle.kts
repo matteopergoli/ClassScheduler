@@ -61,6 +61,13 @@ android {
                 // No key.properties → fall back to debug keys (local dev / CI).
                 signingConfigs.getByName("debug")
             }
+            // Flutter enables R8 code shrinking for release by default, which was
+            // stripping the Firebase/plugin bridge classes referenced only from
+            // GeneratedPluginRegistrant → "Unable to establish connection on
+            // channel" at Firebase.initializeApp. Disabled until proper keep
+            // rules are in place; APK size cost is acceptable for this app.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

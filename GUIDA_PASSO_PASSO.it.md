@@ -357,10 +357,17 @@ voce. Le principali:
   scolastico rispettando i tuoi vincoli").
 - **Descrizione completa:** cosa fa, per chi, i limiti noti (max 10 aule / 20
   materie), che serve un account per la sincronizzazione.
-- **Icona:** PNG 512×512.
-- **Immagine in evidenza:** 1024×500.
-- **Screenshot telefono:** almeno 2 (meglio 4–8). Falli belli: schermata dati →
-  orario generato → export.
+- **Icona:** `store/play_icon_512.png` (512×512) — ✅ pronta.
+- **Immagine in evidenza:** `store/feature_graphic.png` (1024×500) — ✅ pronta.
+  (Se Play la rifiuta per il canale alpha: aprila in Paint e risalvala come PNG,
+  o come JPG.)
+- **Screenshot telefono:** almeno 2, meglio 4–8. **Devono essere schermate vere
+  dell'app** (Play le confronta col comportamento reale). Come farle:
+  installa la build dal test interno sul tuo telefono, crea una scuola di prova
+  con qualche materia, genera un orario, e cattura: (1) griglia orario generato,
+  (2) schermata vincoli, (3) pannello risultato/punteggio, (4) export.
+  Requisiti: PNG/JPG, lato 320–3840 px, formato ~9:16 (es. 1080×2400 va bene).
+  Se poi vuoi, mandami le catturate e le incornicio con didascalia + sfondo brand.
 
 ### 3.4 🟡 Paese e prezzo
 - **Distribuzione:** seleziona **solo Italia** per ora.

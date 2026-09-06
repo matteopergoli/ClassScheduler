@@ -1,7 +1,7 @@
 name: classscheduler
 description: AI-Powered Classroom Timetable Generator
 publish_to: "none"
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -79,6 +79,14 @@ dev_dependencies:
   #   dart run flutter_native_splash:create
   flutter_launcher_icons: ">=0.13.0 <0.15.0"
   flutter_native_splash: ">=2.3.0 <3.0.0"
+
+dependency_overrides:
+  # firebase_core 3.15.0 (native) uses the new Pigeon channel names, but
+  # firebase_core_platform_interface 5.4.2 reverted the Pigeon update and uses
+  # the old names → "Unable to establish connection on channel" at
+  # Firebase.initializeApp. 5.4.1 keeps the new names and matches the native
+  # side. Remove this once firebase_core >=3.16 / platform_interface realigns.
+  firebase_core_platform_interface: 5.4.1
 
 flutter:
   uses-material-design: true

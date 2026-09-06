@@ -163,5 +163,12 @@ stubs). Generated Dart lives in `lib/l10n/generated/` (excluded from analysis, r
   `purchases_flutter` is on 10.x (forced by Google Play's Billing Library 8 requirement), which
   dragged `share_plus` to 12.x and `web` to 1.x. `share_plus` 12 replaced `Share.shareXFiles(...)`
   with `SharePlus.instance.share(ShareParams(...))` — the only call site is `export_service.dart`.
+- `pubspec.yaml` has a `dependency_overrides` pinning `firebase_core_platform_interface: 5.4.1`:
+  `firebase_core` 3.15.0's native Pigeon channel names don't match the 5.4.2 platform-interface
+  (5.4.2 reverted the Pigeon update), which hangs `Firebase.initializeApp` on the splash screen.
+  Remove the override once `firebase_core` >= 3.16 realigns them.
+- Release Android build has `isMinifyEnabled = false` (see `android/app/build.gradle.kts`): Flutter's
+  default R8 shrinking was stripping the Firebase/plugin bridge classes referenced only from
+  `GeneratedPluginRegistrant`. Re-enable only with proper keep rules.
 - Keep this file updated when you make architecturally significant changes (new scheduler phases,
   changed data model shape, new top-level routes/tabs, changed SA tuning defaults, etc.).

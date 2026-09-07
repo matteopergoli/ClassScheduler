@@ -13,6 +13,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../domain/export/export_service.dart';
+import '../../domain/export/export_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 class ExportSheet extends ConsumerStatefulWidget {
@@ -228,6 +229,10 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
   }
 
   Future<void> _export() async {
+    final labels = ExportLabels.from(
+      AppLocalizations.of(context),
+      Localizations.localeOf(context).languageCode,
+    );
     await ref
         .read(exportServiceProvider(widget.schoolId).notifier)
         .export(
@@ -236,6 +241,7 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
           schoolName:      widget.schoolName,
           format:          _format,
           includeOverview: _includeOverview,
+          labels:          labels,
         );
   }
 }

@@ -572,6 +572,12 @@ abstract class AppLocalizations {
   /// **'Teacher name'**
   String get teacherName;
 
+  /// No description provided for @teacherNameOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher name (optional)'**
+  String get teacherNameOptional;
+
   /// No description provided for @colour.
   ///
   /// In en, this message translates to:
@@ -2002,6 +2008,551 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This action cannot be undone.'**
   String get actionCannotBeUndone;
+
+  /// No description provided for @scheduleCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{schedule} other{schedules}}'**
+  String scheduleCountLabel(int count);
+
+  /// No description provided for @viewPerClassroom.
+  ///
+  /// In en, this message translates to:
+  /// **'Per Classroom'**
+  String get viewPerClassroom;
+
+  /// No description provided for @lessonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson'**
+  String get lessonLabel;
+
+  /// No description provided for @breakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Break'**
+  String get breakLabel;
+
+  /// No description provided for @overlapsWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlaps with {name}'**
+  String overlapsWith(String name);
+
+  /// No description provided for @weeklyTargetHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of lesson slots per week. Must be at least 1.'**
+  String get weeklyTargetHelp;
+
+  /// No description provided for @dayShortMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get dayShortMon;
+
+  /// No description provided for @dayShortTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get dayShortTue;
+
+  /// No description provided for @dayShortWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get dayShortWed;
+
+  /// No description provided for @dayShortThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get dayShortThu;
+
+  /// No description provided for @dayShortFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get dayShortFri;
+
+  /// No description provided for @dayShortSat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get dayShortSat;
+
+  /// No description provided for @dayShortSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get dayShortSun;
+
+  /// No description provided for @dayLongMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get dayLongMon;
+
+  /// No description provided for @dayLongTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tuesday'**
+  String get dayLongTue;
+
+  /// No description provided for @dayLongWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wednesday'**
+  String get dayLongWed;
+
+  /// No description provided for @dayLongThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thursday'**
+  String get dayLongThu;
+
+  /// No description provided for @dayLongFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Friday'**
+  String get dayLongFri;
+
+  /// No description provided for @dayLongSat.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get dayLongSat;
+
+  /// No description provided for @dayLongSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get dayLongSun;
+
+  /// No description provided for @exportSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get exportSummary;
+
+  /// No description provided for @exportCombinedOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined Overview'**
+  String get exportCombinedOverview;
+
+  /// No description provided for @exportGeneratedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated'**
+  String get exportGeneratedLabel;
+
+  /// No description provided for @exportTimeHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get exportTimeHeader;
+
+  /// No description provided for @exportStatusHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get exportStatusHeader;
+
+  /// No description provided for @exportViolationsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Violations'**
+  String get exportViolationsHeader;
+
+  /// No description provided for @exportTeacherWeeklyHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher weekly hours'**
+  String get exportTeacherWeeklyHours;
+
+  /// No description provided for @exportSlotsAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} slots assigned'**
+  String exportSlotsAssigned(int count);
+
+  /// No description provided for @exportViolationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 violation} other{{count} violations}}'**
+  String exportViolationsCount(int count);
+
+  /// No description provided for @exportStatusPerfect.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfect'**
+  String get exportStatusPerfect;
+
+  /// No description provided for @exportStatusSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft violations'**
+  String get exportStatusSoft;
+
+  /// No description provided for @exportStatusHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard violations'**
+  String get exportStatusHard;
+
+  /// No description provided for @clAnyDay.
+  ///
+  /// In en, this message translates to:
+  /// **'any day'**
+  String get clAnyDay;
+
+  /// No description provided for @clInClassroom.
+  ///
+  /// In en, this message translates to:
+  /// **' in {classroom}'**
+  String clInClassroom(String classroom);
+
+  /// No description provided for @clMustAssign.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} must be scheduled in {classroom} — {day}, {time}.'**
+  String clMustAssign(
+      Object subject, Object classroom, Object day, Object time);
+
+  /// No description provided for @clMustNotAssign.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} must NOT be scheduled in {classroom} — {day}, {time}.'**
+  String clMustNotAssign(
+      Object subject, Object classroom, Object day, Object time);
+
+  /// No description provided for @clAvoidTimeslotDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject}{scope} should be avoided on {day} between {start} and {end}.'**
+  String clAvoidTimeslotDay(
+      Object subject, Object scope, Object day, Object start, Object end);
+
+  /// No description provided for @clAvoidTimeslotNoDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject}{scope} should be avoided between {start} and {end}.'**
+  String clAvoidTimeslotNoDay(
+      Object subject, Object scope, Object start, Object end);
+
+  /// No description provided for @clPreferBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject}{scope} should be scheduled in consecutive slots when possible{detail}.'**
+  String clPreferBlock(Object subject, Object scope, Object detail);
+
+  /// No description provided for @clDailyLimitRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} in {classroom} should stay within {min}–{max} hours/day.'**
+  String clDailyLimitRange(
+      Object subject, Object classroom, Object min, Object max);
+
+  /// No description provided for @clDailyLimitMax.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} in {classroom} should stay under {max} hours/day.'**
+  String clDailyLimitMax(Object subject, Object classroom, Object max);
+
+  /// No description provided for @clDailyLimitMin.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} in {classroom} should reach at least {min} hours on days it is scheduled.'**
+  String clDailyLimitMin(Object subject, Object classroom, Object min);
+
+  /// No description provided for @clDailyLimitGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'{subject} in {classroom} has a daily-hours preference.'**
+  String clDailyLimitGeneric(Object subject, Object classroom);
+
+  /// No description provided for @clSubtitleSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft · Priority: {weight}'**
+  String clSubtitleSoft(String weight);
+
+  /// No description provided for @clSubtitleHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard constraint'**
+  String get clSubtitleHard;
+
+  /// No description provided for @clUnknownType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown constraint type: {type}'**
+  String clUnknownType(String type);
+
+  /// No description provided for @unknownSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown subject'**
+  String get unknownSubject;
+
+  /// No description provided for @unknownClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown class'**
+  String get unknownClass;
+
+  /// No description provided for @assignSubjectEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the weekly lesson count for this classroom. To remove the subject from this classroom, tap \"Unassign\" below.'**
+  String get assignSubjectEditHint;
+
+  /// No description provided for @assignSubjectNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only assign if this subject is actually taught in {classroom}. If it is not taught here, just close this sheet — leaving it unassigned is correct.'**
+  String assignSubjectNewHint(String classroom);
+
+  /// No description provided for @builtInTemplate5NoBreak.
+  ///
+  /// In en, this message translates to:
+  /// **'5 × 1h (no breaks)'**
+  String get builtInTemplate5NoBreak;
+
+  /// No description provided for @builtInTemplate5MorningBreak.
+  ///
+  /// In en, this message translates to:
+  /// **'5 × 1h + morning break'**
+  String get builtInTemplate5MorningBreak;
+
+  /// No description provided for @builtInTemplate8.
+  ///
+  /// In en, this message translates to:
+  /// **'8 × 1h + morning break + lunch break'**
+  String get builtInTemplate8;
+
+  /// No description provided for @breakMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning break'**
+  String get breakMorning;
+
+  /// No description provided for @breakLunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch break'**
+  String get breakLunch;
+
+  /// No description provided for @noHardConstraintsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No hard constraints yet.'**
+  String get noHardConstraintsYet;
+
+  /// No description provided for @noPreferencesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No preferences set yet.'**
+  String get noPreferencesYet;
+
+  /// No description provided for @hardConstraintsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard constraints force or block\nspecific slot assignments.'**
+  String get hardConstraintsEmptyHint;
+
+  /// No description provided for @preferencesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences guide the scheduler\nbut never block a solution.'**
+  String get preferencesEmptyHint;
+
+  /// No description provided for @selectSubjectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select subject'**
+  String get selectSubjectHint;
+
+  /// No description provided for @selectClassroomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select classroom'**
+  String get selectClassroomHint;
+
+  /// No description provided for @selectSubjectFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a subject first'**
+  String get selectSubjectFirst;
+
+  /// No description provided for @notAssignedToClassroomYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not assigned to any classroom yet'**
+  String get notAssignedToClassroomYet;
+
+  /// No description provided for @notAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get notAvailable;
+
+  /// No description provided for @clearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearAction;
+
+  /// No description provided for @moveNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Move not allowed'**
+  String get moveNotAllowed;
+
+  /// No description provided for @noOptionsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No options available'**
+  String get noOptionsAvailable;
+
+  /// No description provided for @errSelectSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a subject.'**
+  String get errSelectSubject;
+
+  /// No description provided for @errSelectClassroom.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a classroom.'**
+  String get errSelectClassroom;
+
+  /// No description provided for @errSelectDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a day.'**
+  String get errSelectDay;
+
+  /// No description provided for @errSelectSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a slot.'**
+  String get errSelectSlot;
+
+  /// No description provided for @errSelectStartSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a start slot.'**
+  String get errSelectStartSlot;
+
+  /// No description provided for @errSelectEndSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an end slot.'**
+  String get errSelectEndSlot;
+
+  /// No description provided for @errMinGtMaxDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum daily hours cannot be greater than maximum.'**
+  String get errMinGtMaxDaily;
+
+  /// No description provided for @slotUnavailableForClassroomDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for this classroom on this day.'**
+  String get slotUnavailableForClassroomDay;
+
+  /// No description provided for @slotTeacherBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher already assigned elsewhere at this time.'**
+  String get slotTeacherBusy;
+
+  /// No description provided for @slotPickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a slot to select it, tap another to select a range.'**
+  String get slotPickerHint;
+
+  /// No description provided for @subjectNotAssignedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'This subject isn\'\'t assigned to any classroom yet.'**
+  String get subjectNotAssignedYet;
+
+  /// No description provided for @subjectNotAssignedYetLong.
+  ///
+  /// In en, this message translates to:
+  /// **'This subject isn\'\'t assigned to any classroom yet. Assign it first in Setup → Subjects.'**
+  String get subjectNotAssignedYetLong;
+
+  /// No description provided for @minDailyHoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies only on days this subject is actually scheduled — a day with no lesson at all is still allowed. 0 disables the minimum.'**
+  String get minDailyHoursHint;
+
+  /// No description provided for @ruleMust.
+  ///
+  /// In en, this message translates to:
+  /// **'Must'**
+  String get ruleMust;
+
+  /// No description provided for @rulePrefer.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer'**
+  String get rulePrefer;
+
+  /// No description provided for @ruleMustNot.
+  ///
+  /// In en, this message translates to:
+  /// **'Must not'**
+  String get ruleMustNot;
+
+  /// No description provided for @ruleAvoid.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid'**
+  String get ruleAvoid;
+
+  /// No description provided for @ruleMustDescHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Force a subject into a specific classroom slot.'**
+  String get ruleMustDescHard;
+
+  /// No description provided for @ruleMustDescSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Encourage consecutive lessons for a subject, optionally limited to a day/time range.'**
+  String get ruleMustDescSoft;
+
+  /// No description provided for @ruleMustNotDescHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Block a subject from a specific classroom slot.'**
+  String get ruleMustNotDescHard;
+
+  /// No description provided for @ruleMustNotDescSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Discourage a subject during a time range.'**
+  String get ruleMustNotDescSoft;
+
+  /// No description provided for @dailyLimitDescHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Require a minimum and/or maximum number of daily hours for a subject — blocks generation if unmet.'**
+  String get dailyLimitDescHard;
+
+  /// No description provided for @dailyLimitDescSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer a minimum and/or maximum number of daily hours for a subject — a guideline, never blocks generation.'**
+  String get dailyLimitDescSoft;
 
   /// No description provided for @switchSetWarning.
   ///

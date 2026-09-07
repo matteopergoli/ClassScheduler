@@ -14,6 +14,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../data/models/app_models.dart';
+import 'export_labels.dart';
 
 class PdfExportService {
   static Future<Uint8List> generate({
@@ -27,6 +28,7 @@ class PdfExportService {
     required List<ScheduleCellModel> cells,
     ScheduleModel?                scheduleStats, // optional: quality/F1/F2
     bool includeOverview = true,
+    required ExportLabels labels,
   }) async {
     final subjectById   = {for (final s in subjects)   s.id: s};
     final classroomById = {for (final c in classrooms) c.id: c};
@@ -61,10 +63,7 @@ class PdfExportService {
     final cellStyle   = pw.TextStyle(font: ttf,     fontSize: 7);
     final boldCell    = pw.TextStyle(font: ttfBold, fontSize: 7);
 
-    final dayLabels = {
-      'MON': 'Mon', 'TUE': 'Tue', 'WED': 'Wed',
-      'THU': 'Thu', 'FRI': 'Fri', 'SAT': 'Sat', 'SUN': 'Sun',
-    };
+    final dayLabels = labels.dayShort;
 
     // ── Helper: build one grid for a classroom ──────────────────────────
     pw.Widget buildGrid(ClassroomModel classroom) {
@@ -132,7 +131,7 @@ class PdfExportService {
                         color: PdfColor.fromInt(0xFFDDDDDD)),
                     child: pw.Center(
                       child: pw.Text(
-                        period.name ?? 'Break',
+                        period.name ?? labels.breakLabel,
                         style: pw.TextStyle(
                             font: ttf, fontSize: 6,
                             color: const PdfColor.fromInt(0xFF777777)),
@@ -256,7 +255,7 @@ class PdfExportService {
               style: pw.TextStyle(
                   font: ttfBold, fontSize: 10,
                   color: const PdfColor.fromInt(0xFF1A1A2E))),
-          pw.Text('Generated: $generatedAt  ·  $scheduleName',
+          pw.Text('${labels.generatedLabel}: $generatedAt  ·  $scheduleName',
               style: pw.TextStyle(
                   font: ttf, fontSize: 7,
                   color: const PdfColor.fromInt(0xFF888888))),
@@ -288,7 +287,7 @@ class PdfExportService {
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(20),
         theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
-        header: (_) => buildPageHeader('Combined Overview'),
+        header: (_) => buildPageHeader(labels.combinedOverview),
         build: (_) => [
           pw.Text(
             'All classrooms — ${activeDayCodes.map((d) => dayLabels[d] ?? d).join(' · ')}',
@@ -315,31 +314,31 @@ class PdfExportService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   _StatBlock(
-                    label: 'QUALITY SCORE',
+                    label: labels.qualityScore.toUpperCase(),
                     value: '${scheduleStats.qualityScore}/100',
                     ttf: ttf, ttfBold: ttfBold,
                     color: _statusColor(scheduleStats.resultStatus),
                   ),
                   _StatBlock(
-                    label: 'STATUS',
-                    value: _statusLabel(scheduleStats.resultStatus),
+                    label: labels.statusHeader.toUpperCase(),
+                    value: _statusLabel(scheduleStats.resultStatus, labels),
                     ttf: ttf, ttfBold: ttfBold,
                     color: _statusColor(scheduleStats.resultStatus),
                   ),
                   _StatBlock(
-                    label: 'TEACHER FREE HOURS',
+                    label: labels.teacherFreeHours.toUpperCase(),
                     value: '${scheduleStats.teacherFreeHours}',
                     ttf: ttf, ttfBold: ttfBold,
                     color: const PdfColor.fromInt(0xFF1A1A2E),
                   ),
                   _StatBlock(
-                    label: 'SUBJECT CHANGES',
+                    label: labels.subjectChanges.toUpperCase(),
                     value: '${scheduleStats.subjectChanges}',
                     ttf: ttf, ttfBold: ttfBold,
                     color: const PdfColor.fromInt(0xFF1A1A2E),
                   ),
                   _StatBlock(
-                    label: 'VIOLATIONS',
+                    label: labels.violationsHeader.toUpperCase(),
                     value: '$totalViolations',
                     ttf: ttf, ttfBold: ttfBold,
                     color: totalViolations > 0
@@ -351,7 +350,7 @@ class PdfExportService {
             ),
 
           // ── Classroom cards ──────────────────────────────────────────
-          pw.Text('Classrooms',
+          pw.Text(labels.classrooms,
               style: pw.TextStyle(
                   font: ttfBold, fontSize: 10,
                   color: const PdfColor.fromInt(0xFF1A1A2E))),
@@ -387,12 +386,12 @@ class PdfExportService {
                           font: ttfBold, fontSize: 9,
                           color: const PdfColor.fromInt(0xFF1A1A2E))),
                   pw.SizedBox(height: 2),
-                  pw.Text('$assignedCount slots assigned',
+                  pw.Text(labels.slotsAssigned(assignedCount),
                       style: pw.TextStyle(
                           font: ttf, fontSize: 7,
                           color: const PdfColor.fromInt(0xFF888888))),
                   if (violations > 0)
-                    pw.Text('$violations violation(s)',
+                    pw.Text(labels.violationsCount(violations),
                         style: pw.TextStyle(
                             font: ttf, fontSize: 7,
                             color: PdfColors.red)),
@@ -404,7 +403,7 @@ class PdfExportService {
           // ── Per-teacher weekly hours ─────────────────────────────────
           if (sortedTeachers.isNotEmpty) ...[
             pw.SizedBox(height: 16),
-            pw.Text('Teacher weekly hours',
+            pw.Text(labels.teacherWeeklyHours,
                 style: pw.TextStyle(
                     font: ttfBold, fontSize: 10,
                     color: const PdfColor.fromInt(0xFF1A1A2E))),
@@ -424,7 +423,7 @@ class PdfExportService {
                     pw.Padding(
                       padding: const pw.EdgeInsets.symmetric(
                           horizontal: 6, vertical: 4),
-                      child: pw.Text('Teacher',
+                      child: pw.Text(labels.teacher,
                           style: pw.TextStyle(
                               font: ttfBold, fontSize: 8,
                               color: PdfColors.white)),
@@ -521,11 +520,11 @@ class PdfExportService {
     }
   }
 
-  static String _statusLabel(String resultStatus) {
+  static String _statusLabel(String resultStatus, ExportLabels labels) {
     switch (resultStatus) {
-      case 'PERFECT':         return 'Perfect';
-      case 'SOFT_VIOLATIONS': return 'Soft violations';
-      default:                return 'Hard violations';
+      case 'PERFECT':         return labels.statusPerfect;
+      case 'SOFT_VIOLATIONS': return labels.statusSoft;
+      default:                return labels.statusHard;
     }
   }
 }

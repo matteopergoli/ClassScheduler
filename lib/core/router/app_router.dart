@@ -5,6 +5,7 @@
 // Auth state is watched via authStateProvider (defined in auth_service.dart).
 
 import 'package:classscheduler/providers/auth_providers.dart';
+import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,10 +49,15 @@ class ConstraintFormRouteArgs {
   /// so they need their own way to open the form pre-filled for editing.
   final ClassroomSubjectModel? existingDailyLimit;
 
+  /// For a NEW constraint: which kind to pre-select ('HARD' | 'SOFT'), taken
+  /// from the tab the user is on. Ignored when editing.
+  final String? initialKind;
+
   const ConstraintFormRouteArgs({
     required this.schoolId,
     this.existing,
     this.existingDailyLimit,
+    this.initialKind,
   });
 
   static ConstraintFormRouteArgs? fromExtra(Object? extra) {
@@ -70,13 +76,24 @@ class ConstraintFormRouteArgs {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  // Build the GoRouter ONCE. Auth changes are fed to it via a
+  // refreshListenable so they only re-run `redirect` — recreating the whole
+  // GoRouter on every rebuild tears down the StatefulShellRoute and blanks
+  // the screen (e.g. after a locale/theme change).
+  final authNotifier = ValueNotifier<AsyncValue<User?>>(const AsyncLoading());
+  ref.onDispose(authNotifier.dispose);
+  ref.listen<AsyncValue<User?>>(
+    authStateProvider,
+    (_, next) => authNotifier.value = next,
+    fireImmediately: true,
+  );
 
   return GoRouter(
     initialLocation: AppRoutes.schools,
     debugLogDiagnostics: true,
+    refreshListenable: authNotifier,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn = authNotifier.value.valueOrNull != null;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.register ||
           state.matchedLocation == AppRoutes.forgotPassword;
@@ -128,6 +145,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               schoolId: schoolId,
               existing: existing,
               existingDailyLimit: existingDailyLimit,
+              initialKind: args?.initialKind,
             ),
           );
         },

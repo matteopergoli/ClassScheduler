@@ -13,6 +13,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
 class CsDropdown<T> extends StatelessWidget {
   final T? value;
   final String hint;
@@ -59,7 +61,7 @@ class CsDropdown<T> extends StatelessWidget {
           hint: Padding(
             padding: const EdgeInsets.only(left: 12),
             child: Text(
-              isEmpty ? 'No options available' : hint,
+              isEmpty ? AppLocalizations.of(context).noOptionsAvailable : hint,
               style: isEmpty
                   ? TextStyle(color: Theme.of(context).disabledColor)
                   : null,

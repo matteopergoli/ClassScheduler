@@ -38,14 +38,12 @@ class SettingsScreen extends ConsumerWidget {
             _SectionHeader(title: l10n.appearanceSection, colors: colors),
             _SettingTile(
               label: l10n.language,
-              value: _getLanguageName(locale?.languageCode ?? 'en'),
+              value: _getLanguageName(
+                  (locale ?? Localizations.localeOf(context)).languageCode),
               icon: Icons.translate_rounded,
               colors: colors,
-              onTap: () {
-                if (locale != null) {
-                  _showLanguagePicker(context, ref, locale);
-                }
-              },
+              onTap: () => _showLanguagePicker(
+                  context, ref, locale ?? Localizations.localeOf(context)),
             ),
             _SettingTile(
               label: l10n.theme,
@@ -100,13 +98,13 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Text(l10n.selectLanguage),
         content: _LanguageDialog(
           currentLocale: current,
           onSelect: (langCode) {
+            Navigator.pop(dialogCtx);
             ref.read(localeProvider.notifier).setLocale(Locale(langCode));
-            Navigator.pop(context);
           },
         ),
       ),

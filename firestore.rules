@@ -24,6 +24,14 @@ service cloud.firestore {
       return field is int && field >= minVal && field <= maxVal;
     }
 
+    // ── Complimentary-premium grants (founder / beta testers) ─────────────
+    // Written ONLY from the Firebase console / Admin SDK. Users may read their
+    // own grant so the app can unlock, but can never write one.
+    match /entitlements/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
     // ── User root + account ───────────────────────────────────────────────
     match /users/{uid} {
       allow read, write: if isOwner(uid);

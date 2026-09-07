@@ -433,6 +433,7 @@ class _SchoolCardState extends ConsumerState<SchoolCard> {
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: _SetupStatusCard(
                             schoolId: widget.school.id,
                             colors: colors,
@@ -445,6 +446,7 @@ class _SchoolCardState extends ConsumerState<SchoolCard> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
+                          flex: 2,
                           child: _ConstraintsCountCard(
                             schoolId: widget.school.id,
                             colors: colors,
@@ -523,6 +525,8 @@ class _SetupStatusCard extends ConsumerWidget {
             children: [
               Text(
                 AppLocalizations.of(context).editSetup,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -599,7 +603,9 @@ class _ConstraintsCountCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Constraints',
+                AppLocalizations.of(context).constraints,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -665,7 +671,7 @@ class _ScheduleCountBadge extends ConsumerWidget {
                 ),
               ),
               Text(
-                count == 1 ? 'schedule' : 'schedules',
+                AppLocalizations.of(context).scheduleCountLabel(count),
                 style: AppTextStyles.labelSmall.copyWith(
                   color: count > 0 ? colors.textMuted : colors.textDisabled,
                   fontSize: 8,

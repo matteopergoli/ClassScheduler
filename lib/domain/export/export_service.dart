@@ -12,6 +12,7 @@ import '../../data/models/app_models.dart';
 import '../../data/repositories/period_classroom_capacity_repositories.dart';
 import '../../data/repositories/schedule_repository.dart';
 import '../../data/repositories/subject_repositories.dart';
+import 'export_labels.dart';
 import 'pdf_export_service.dart';
 import 'excel_export_service.dart';
 
@@ -48,6 +49,7 @@ class ExportService extends StateNotifier<ExportState> {
     required String       scheduleName,
     required String       schoolName,
     required ExportFormat format,
+    required ExportLabels labels,
     bool                  includeOverview = true,
   }) async {
     state = const ExportState(phase: ExportPhase.loading);
@@ -62,7 +64,8 @@ class ExportService extends StateNotifier<ExportState> {
       final activeDayCodes = _deriveActiveDayCodes(cells);
       if (activeDayCodes.isEmpty) throw Exception('No scheduled lessons found.');
 
-      final generatedAt = DateFormat('d MMM yyyy, HH:mm').format(DateTime.now());
+      final generatedAt =
+          DateFormat('d MMM yyyy, HH:mm', labels.localeName).format(DateTime.now());
       final dateSuffix  = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final fileName    = _sanitise('$schoolName - $scheduleName - $dateSuffix');
 
@@ -77,6 +80,7 @@ class ExportService extends StateNotifier<ExportState> {
           subjects: subjects, cells: cells,
           scheduleStats: scheduleStats,
           includeOverview: includeOverview,
+          labels: labels,
         );
         file = await _write('$fileName.pdf', bytes);
       } else {
@@ -85,6 +89,7 @@ class ExportService extends StateNotifier<ExportState> {
           generatedAt: generatedAt, activeDayCodes: activeDayCodes,
           periods: periods, classrooms: classrooms,
           subjects: subjects, cells: cells,
+          labels: labels,
         );
         file = await _write('$fileName.xlsx', bytes);
       }

@@ -277,6 +277,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get teacherName => 'Name der Lehrkraft';
 
   @override
+  String get teacherNameOptional => 'Teacher name (optional)';
+
+  @override
   String get colour => 'Farbe';
 
   @override
@@ -1053,6 +1056,343 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get actionCannotBeUndone => 'This action cannot be undone.';
+
+  @override
+  String scheduleCountLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'schedules',
+      one: 'schedule',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get viewPerClassroom => 'Per Classroom';
+
+  @override
+  String get lessonLabel => 'Lesson';
+
+  @override
+  String get breakLabel => 'Break';
+
+  @override
+  String overlapsWith(String name) {
+    return 'Overlaps with $name';
+  }
+
+  @override
+  String get weeklyTargetHelp =>
+      'Number of lesson slots per week. Must be at least 1.';
+
+  @override
+  String get dayShortMon => 'Mon';
+
+  @override
+  String get dayShortTue => 'Tue';
+
+  @override
+  String get dayShortWed => 'Wed';
+
+  @override
+  String get dayShortThu => 'Thu';
+
+  @override
+  String get dayShortFri => 'Fri';
+
+  @override
+  String get dayShortSat => 'Sat';
+
+  @override
+  String get dayShortSun => 'Sun';
+
+  @override
+  String get dayLongMon => 'Monday';
+
+  @override
+  String get dayLongTue => 'Tuesday';
+
+  @override
+  String get dayLongWed => 'Wednesday';
+
+  @override
+  String get dayLongThu => 'Thursday';
+
+  @override
+  String get dayLongFri => 'Friday';
+
+  @override
+  String get dayLongSat => 'Saturday';
+
+  @override
+  String get dayLongSun => 'Sunday';
+
+  @override
+  String get exportSummary => 'Summary';
+
+  @override
+  String get exportCombinedOverview => 'Combined Overview';
+
+  @override
+  String get exportGeneratedLabel => 'Generated';
+
+  @override
+  String get exportTimeHeader => 'Time';
+
+  @override
+  String get exportStatusHeader => 'Status';
+
+  @override
+  String get exportViolationsHeader => 'Violations';
+
+  @override
+  String get exportTeacherWeeklyHours => 'Teacher weekly hours';
+
+  @override
+  String exportSlotsAssigned(int count) {
+    return '$count slots assigned';
+  }
+
+  @override
+  String exportViolationsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count violations',
+      one: '1 violation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get exportStatusPerfect => 'Perfect';
+
+  @override
+  String get exportStatusSoft => 'Soft violations';
+
+  @override
+  String get exportStatusHard => 'Hard violations';
+
+  @override
+  String get clAnyDay => 'any day';
+
+  @override
+  String clInClassroom(String classroom) {
+    return ' in $classroom';
+  }
+
+  @override
+  String clMustAssign(
+      Object subject, Object classroom, Object day, Object time) {
+    return '$subject must be scheduled in $classroom — $day, $time.';
+  }
+
+  @override
+  String clMustNotAssign(
+      Object subject, Object classroom, Object day, Object time) {
+    return '$subject must NOT be scheduled in $classroom — $day, $time.';
+  }
+
+  @override
+  String clAvoidTimeslotDay(
+      Object subject, Object scope, Object day, Object start, Object end) {
+    return '$subject$scope should be avoided on $day between $start and $end.';
+  }
+
+  @override
+  String clAvoidTimeslotNoDay(
+      Object subject, Object scope, Object start, Object end) {
+    return '$subject$scope should be avoided between $start and $end.';
+  }
+
+  @override
+  String clPreferBlock(Object subject, Object scope, Object detail) {
+    return '$subject$scope should be scheduled in consecutive slots when possible$detail.';
+  }
+
+  @override
+  String clDailyLimitRange(
+      Object subject, Object classroom, Object min, Object max) {
+    return '$subject in $classroom should stay within $min–$max hours/day.';
+  }
+
+  @override
+  String clDailyLimitMax(Object subject, Object classroom, Object max) {
+    return '$subject in $classroom should stay under $max hours/day.';
+  }
+
+  @override
+  String clDailyLimitMin(Object subject, Object classroom, Object min) {
+    return '$subject in $classroom should reach at least $min hours on days it is scheduled.';
+  }
+
+  @override
+  String clDailyLimitGeneric(Object subject, Object classroom) {
+    return '$subject in $classroom has a daily-hours preference.';
+  }
+
+  @override
+  String clSubtitleSoft(String weight) {
+    return 'Soft · Priority: $weight';
+  }
+
+  @override
+  String get clSubtitleHard => 'Hard constraint';
+
+  @override
+  String clUnknownType(String type) {
+    return 'Unknown constraint type: $type';
+  }
+
+  @override
+  String get unknownSubject => 'Unknown subject';
+
+  @override
+  String get unknownClass => 'Unknown class';
+
+  @override
+  String get assignSubjectEditHint =>
+      'Set the weekly lesson count for this classroom. To remove the subject from this classroom, tap \"Unassign\" below.';
+
+  @override
+  String assignSubjectNewHint(String classroom) {
+    return 'Only assign if this subject is actually taught in $classroom. If it is not taught here, just close this sheet — leaving it unassigned is correct.';
+  }
+
+  @override
+  String get builtInTemplate5NoBreak => '5 × 1h (no breaks)';
+
+  @override
+  String get builtInTemplate5MorningBreak => '5 × 1h + morning break';
+
+  @override
+  String get builtInTemplate8 => '8 × 1h + morning break + lunch break';
+
+  @override
+  String get breakMorning => 'Morning break';
+
+  @override
+  String get breakLunch => 'Lunch break';
+
+  @override
+  String get noHardConstraintsYet => 'No hard constraints yet.';
+
+  @override
+  String get noPreferencesYet => 'No preferences set yet.';
+
+  @override
+  String get hardConstraintsEmptyHint =>
+      'Hard constraints force or block\nspecific slot assignments.';
+
+  @override
+  String get preferencesEmptyHint =>
+      'Preferences guide the scheduler\nbut never block a solution.';
+
+  @override
+  String get selectSubjectHint => 'Select subject';
+
+  @override
+  String get selectClassroomHint => 'Select classroom';
+
+  @override
+  String get selectSubjectFirst => 'Select a subject first';
+
+  @override
+  String get notAssignedToClassroomYet => 'Not assigned to any classroom yet';
+
+  @override
+  String get notAvailable => 'Not available';
+
+  @override
+  String get clearAction => 'Clear';
+
+  @override
+  String get moveNotAllowed => 'Move not allowed';
+
+  @override
+  String get noOptionsAvailable => 'No options available';
+
+  @override
+  String get errSelectSubject => 'Please select a subject.';
+
+  @override
+  String get errSelectClassroom => 'Please select a classroom.';
+
+  @override
+  String get errSelectDay => 'Please select a day.';
+
+  @override
+  String get errSelectSlot => 'Please select a slot.';
+
+  @override
+  String get errSelectStartSlot => 'Please select a start slot.';
+
+  @override
+  String get errSelectEndSlot => 'Please select an end slot.';
+
+  @override
+  String get errMinGtMaxDaily =>
+      'Minimum daily hours cannot be greater than maximum.';
+
+  @override
+  String get slotUnavailableForClassroomDay =>
+      'Not available for this classroom on this day.';
+
+  @override
+  String get slotTeacherBusy =>
+      'Teacher already assigned elsewhere at this time.';
+
+  @override
+  String get slotPickerHint =>
+      'Tap a slot to select it, tap another to select a range.';
+
+  @override
+  String get subjectNotAssignedYet =>
+      'This subject isn\'t assigned to any classroom yet.';
+
+  @override
+  String get subjectNotAssignedYetLong =>
+      'This subject isn\'t assigned to any classroom yet. Assign it first in Setup → Subjects.';
+
+  @override
+  String get minDailyHoursHint =>
+      'Applies only on days this subject is actually scheduled — a day with no lesson at all is still allowed. 0 disables the minimum.';
+
+  @override
+  String get ruleMust => 'Must';
+
+  @override
+  String get rulePrefer => 'Prefer';
+
+  @override
+  String get ruleMustNot => 'Must not';
+
+  @override
+  String get ruleAvoid => 'Avoid';
+
+  @override
+  String get ruleMustDescHard =>
+      'Force a subject into a specific classroom slot.';
+
+  @override
+  String get ruleMustDescSoft =>
+      'Encourage consecutive lessons for a subject, optionally limited to a day/time range.';
+
+  @override
+  String get ruleMustNotDescHard =>
+      'Block a subject from a specific classroom slot.';
+
+  @override
+  String get ruleMustNotDescSoft => 'Discourage a subject during a time range.';
+
+  @override
+  String get dailyLimitDescHard =>
+      'Require a minimum and/or maximum number of daily hours for a subject — blocks generation if unmet.';
+
+  @override
+  String get dailyLimitDescSoft =>
+      'Prefer a minimum and/or maximum number of daily hours for a subject — a guideline, never blocks generation.';
 
   @override
   String switchSetWarning(String name, int hard, int soft) {

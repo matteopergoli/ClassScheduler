@@ -39,9 +39,10 @@ class _TrialBannerState extends ConsumerState<TrialBanner> {
     final trialUsed = ref.watch(trialUsedProvider);
     final subAsync  = ref.watch(subscriptionServiceProvider);
     final isActive  = subAsync.valueOrNull?.isActive ?? false;
+    final hasComp   = ref.watch(complimentaryPremiumProvider);
 
-    // Subscribed users see no banner
-    if (isActive) return const SizedBox.shrink();
+    // Subscribed / comped users see no banner
+    if (isActive || hasComp) return const SizedBox.shrink();
 
     // Trial unused and dismissed by user → hide until next session
     if (!trialUsed && _dismissed) return const SizedBox.shrink();

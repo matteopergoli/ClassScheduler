@@ -650,7 +650,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
           const SizedBox(height: 14),
           CsTextField(
             controller: _teacherCtrl,
-            label: l10n.teacherName,
+            label: l10n.teacherNameOptional,
           ),
           const SizedBox(height: 18),
 
@@ -696,10 +696,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
           CsButton(
             label: l10n.save,
             loading: _saving,
-            onPressed: _nameCtrl.text.trim().isEmpty ||
-                    _teacherCtrl.text.trim().isEmpty
-                ? null
-                : _save,
+            onPressed: _nameCtrl.text.trim().isEmpty ? null : _save,
           ),
         ],
       ),
@@ -842,13 +839,9 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
                 Expanded(
                   child: Text(
                     isEdit
-                        ? 'Set the weekly lesson count for this classroom. '
-                            'To remove the subject from this classroom, '
-                            'tap "Unassign" below.'
-                        : 'Only assign if this subject is actually taught in '
-                            '${widget.classroom.name}. '
-                            'If it is not taught here, just close this sheet — '
-                            'leaving it unassigned is correct.',
+                        ? AppLocalizations.of(context).assignSubjectEditHint
+                        : AppLocalizations.of(context)
+                            .assignSubjectNewHint(widget.classroom.name),
                     style:
                         AppTextStyles.bodySmall.copyWith(color: colors.primary),
                   ),
@@ -868,7 +861,7 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Number of lesson slots per week. Must be ≥ 1.',
+            AppLocalizations.of(context).weeklyTargetHelp,
             style: AppTextStyles.bodySmall.copyWith(color: colors.textDisabled),
           ),
           const SizedBox(height: 14),
@@ -934,7 +927,11 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
       subjectId: widget.subject.id,
       weeklyTargetHours: _weekly,
       minDailyHours: widget.existing?.minDailyHours ?? 0,
-      maxDailyHours: widget.existing?.maxDailyHours ?? 2,
+      // No artificial per-day cap by default — a subject can be scheduled up to
+      // its whole weekly quota on one day. A real daily limit is added
+      // explicitly from the Constraints tab.
+      maxDailyHours:
+          widget.existing?.maxDailyHours ?? (_weekly > 0 ? _weekly : 1),
     );
     await repo.save(cs);
     if (mounted) {

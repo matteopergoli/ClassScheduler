@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../data/models/app_models.dart';
 
 class SlotRangePicker extends StatelessWidget {
@@ -141,7 +142,7 @@ class SlotRangePicker extends StatelessWidget {
                 padding: EdgeInsets.only(right: isLast ? 0 : 3),
                 child: Tooltip(
                   message: disabled
-                      ? (disabledReasons[myIndex] ?? 'Not available')
+                      ? (disabledReasons[myIndex] ?? AppLocalizations.of(context).notAvailable)
                       : '${period.startTime}–${period.endTime}',
                   waitDuration: const Duration(milliseconds: 500),
                   child: _SlotCell(
@@ -170,7 +171,7 @@ class SlotRangePicker extends StatelessWidget {
               GestureDetector(
                 onTap: () => onRangeChanged(null, null),
                 child: Text(
-                  'Clear',
+                  AppLocalizations.of(context).clearAction,
                   style: AppTextStyles.labelSmall.copyWith(
                     color: colors.textMuted,
                     decoration: TextDecoration.underline,

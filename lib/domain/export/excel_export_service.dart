@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import 'package:excel/excel.dart';
 
 import '../../data/models/app_models.dart';
+import 'export_labels.dart';
 
 class ExcelExportService {
   /// Builds an Excel workbook and returns its bytes.
@@ -24,6 +25,7 @@ class ExcelExportService {
     required List<ClassroomModel> classrooms,
     required List<SubjectModel>   subjects,
     required List<ScheduleCellModel> cells,
+    required ExportLabels labels,
   }) {
     final excel = Excel.createExcel();
 
@@ -43,11 +45,7 @@ class ExcelExportService {
     final allPeriods = List<PeriodModel>.from(periods)
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
-    final dayLabels = {
-      'MON': 'Monday', 'TUE': 'Tuesday', 'WED': 'Wednesday',
-      'THU': 'Thursday', 'FRI': 'Friday',
-      'SAT': 'Saturday', 'SUN': 'Sunday',
-    };
+    final dayLabels = labels.dayLong;
 
     // Shared cell styles
     final headerFill = ExcelColor.fromHexString('FF1E2030');
@@ -79,7 +77,7 @@ class ExcelExportService {
     );
 
     // ── Summary sheet ────────────────────────────────────────────────────
-    final summarySheet = excel['Summary'];
+    final summarySheet = excel[labels.summary];
     summarySheet.setColumnWidth(0, 22);
     // Title row
     final titleCell = summarySheet.cell(
@@ -115,13 +113,13 @@ class ExcelExportService {
       summarySheet
           .cell(CellIndex.indexByColumnRow(
               columnIndex: 1, rowIndex: summaryRow))
-          .value = TextCellValue('$assigned slots assigned');
+          .value = TextCellValue(labels.slotsAssigned(assigned));
       if (violations > 0) {
         final vc = summarySheet.cell(
             CellIndex.indexByColumnRow(
                 columnIndex: 2, rowIndex: summaryRow));
         vc.value =
-            TextCellValue('$violations violation(s)');
+            TextCellValue(labels.violationsCount(violations));
         vc.cellStyle = CellStyle(
             fontColorHex: ExcelColor.fromHexString('FFEF4444'));
       }
@@ -155,7 +153,7 @@ class ExcelExportService {
       // ── Row 1: day headers ───────────────────────────────────────
       final timeHeader = sheet.cell(
           CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1));
-      timeHeader.value = TextCellValue('Time');
+      timeHeader.value = TextCellValue(labels.timeHeader);
       timeHeader.cellStyle = headerStyle();
 
       for (var d = 0; d < activeDayCodes.length; d++) {
@@ -188,7 +186,7 @@ class ExcelExportService {
 
           if (isBreak) {
             dataCell.value = TextCellValue(
-                period.name ?? 'Break');
+                period.name ?? labels.breakLabel);
             dataCell.cellStyle = breakStyle();
             continue;
           }

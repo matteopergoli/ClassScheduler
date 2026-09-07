@@ -182,7 +182,10 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                 ),
                 const SizedBox(width: 8),
                 _AddButton(
-                    schoolId: schoolId, colors: colors, l10n: l10n),
+                    schoolId: schoolId,
+                    colors: colors,
+                    l10n: l10n,
+                    tabs: _tabs),
               ]),
             ),
             const SizedBox(height: 16),
@@ -269,6 +272,7 @@ class _ConstraintsScreenState extends ConsumerState<ConstraintsScreen>
                               subjects: {for (final s in subjects) s.id: s},
                               classrooms: {for (final c in classrooms) c.id: c},
                               periods: {for (final p in periods) p.id: p},
+                              l10n: AppLocalizations.of(context),
                             );
                             // Hard daily limits aren't ConstraintModel
                             // documents (see class doc in
@@ -821,15 +825,15 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              isHard ? 'No hard constraints yet.' : 'No preferences set yet.',
+              isHard ? l10n.noHardConstraintsYet : l10n.noPreferencesYet,
               style:
                   AppTextStyles.titleMedium.copyWith(color: colors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               isHard
-                  ? 'Hard constraints force or block\nspecific slot assignments.'
-                  : 'Preferences guide the scheduler\nbut never block a solution.',
+                  ? l10n.hardConstraintsEmptyHint
+                  : l10n.preferencesEmptyHint,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
             ),
@@ -876,18 +880,25 @@ class _AddButton extends StatelessWidget {
   final String schoolId;
   final AppColors colors;
   final AppLocalizations l10n;
+  final TabController tabs;
 
   const _AddButton({
     required this.schoolId,
     required this.colors,
     required this.l10n,
+    required this.tabs,
   });
 
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () => context.push(
           AppRoutes.constraintForm('new'),
-          extra: ConstraintFormRouteArgs(schoolId: schoolId),
+          extra: ConstraintFormRouteArgs(
+            schoolId: schoolId,
+            // Tab 0 = Hard, tab 1 = Soft — pre-select that kind for the new
+            // constraint.
+            initialKind: tabs.index == 1 ? 'SOFT' : 'HARD',
+          ),
         ),
         child: Container(
           width: 40,

@@ -88,11 +88,16 @@ class ConstraintFormScreen extends ConsumerStatefulWidget {
 
   final String schoolId;
 
+  /// For a NEW constraint: pre-select 'HARD' or 'SOFT' based on the tab the
+  /// user opened the form from. Ignored when editing.
+  final String? initialKind;
+
   const ConstraintFormScreen({
     super.key,
     required this.schoolId,
     this.existing,
     this.existingDailyLimit,
+    this.initialKind,
   });
 
   @override
@@ -159,7 +164,10 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     }
 
     final e = widget.existing;
-    _kind   = e?.kind ?? 'HARD';
+    _kind   = e?.kind ??
+        (widget.initialKind == 'SOFT' || widget.initialKind == 'HARD'
+            ? widget.initialKind!
+            : 'HARD');
     final type = e?.type ?? 'MUST_ASSIGN';
     _weight = e?.weight ?? 'MEDIUM';
 
@@ -358,15 +366,15 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
   }
 
   String? _validateRule() {
-    if (_subjectId == null) return 'Please select a subject.';
+    if (_subjectId == null) return AppLocalizations.of(context).errSelectSubject;
     final type = _type;
     if (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN') {
-      if (_classroomId == null) return 'Please select a classroom.';
-      if (_dayOfWeek == null) return 'Please select a day.';
-      if (_periodId == null) return 'Please select a slot.';
+      if (_classroomId == null) return AppLocalizations.of(context).errSelectClassroom;
+      if (_dayOfWeek == null) return AppLocalizations.of(context).errSelectDay;
+      if (_periodId == null) return AppLocalizations.of(context).errSelectSlot;
     } else if (type == 'AVOID_TIMESLOT') {
-      if (_periodId == null) return 'Please select a start slot.';
-      if (_endPeriodId == null) return 'Please select an end slot.';
+      if (_periodId == null) return AppLocalizations.of(context).errSelectStartSlot;
+      if (_endPeriodId == null) return AppLocalizations.of(context).errSelectEndSlot;
     }
     // PREFER_BLOCK: only subject is required (checked above) — its
     // day/start/end slot fields are an optional scope, unlike AVOID_TIMESLOT
@@ -414,7 +422,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     if (_kind == 'SOFT') {
       setState(() {
         _dlErrors = (!_dlNoMax && _dlMin > 0 && _dlMin > _dlMax)
-            ? ['Minimum daily hours cannot be greater than maximum.']
+            ? [AppLocalizations.of(context).errMinGtMaxDaily]
             : [];
       });
       return;
@@ -778,7 +786,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       if (cap != null) {
         for (var i = 0; i < lessonPeriods.length; i++) {
           if (!cap.activeSlots.contains(i)) {
-            disabledReasons[i] = 'Not available for this classroom on this day.';
+            disabledReasons[i] = AppLocalizations.of(context).slotUnavailableForClassroomDay;
           }
         }
       }
@@ -797,7 +805,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       );
       for (var i = 0; i < lessonPeriods.length; i++) {
         if (busyPeriodIds.contains(lessonPeriods[i].id)) {
-          disabledReasons[i] = 'Teacher already assigned elsewhere at this time.';
+          disabledReasons[i] = AppLocalizations.of(context).slotTeacherBusy;
         }
       }
     }
@@ -812,7 +820,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       CsDropdown<String>(
         key: const ValueKey('subject'),
         value: _subjectId,
-        hint: 'Select subject',
+        hint: AppLocalizations.of(context).selectSubjectHint,
         items: subjects.map((s) => DropdownMenuItem(
           value: s.id,
           child: Text(s.name),
@@ -870,7 +878,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       ),
       const SizedBox(height: 4),
       Text(
-        'Tap a slot to select it, tap another to select a range.',
+        AppLocalizations.of(context).slotPickerHint,
         style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
       ),
       const SizedBox(height: 16),
@@ -913,7 +921,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       CsDropdown<String>(
         key: const ValueKey('dl-subject'),
         value: _dlSubjectId,
-        hint: 'Select subject',
+        hint: AppLocalizations.of(context).selectSubjectHint,
         items: subjects.map((s) => DropdownMenuItem(
           value: s.id,
           child: Text(s.name),
@@ -932,10 +940,10 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         key: const ValueKey('dl-classroom'),
         value: _dlClassroomId,
         hint: _dlSubjectId == null
-            ? 'Select a subject first'
+            ? AppLocalizations.of(context).selectSubjectFirst
             : (availableClassrooms.isEmpty
-                ? 'Not assigned to any classroom yet'
-                : 'Select classroom'),
+                ? AppLocalizations.of(context).notAssignedToClassroomYet
+                : AppLocalizations.of(context).selectClassroomHint),
         items: [
           if (!_isEditing && availableClassrooms.length > 1)
             DropdownMenuItem(
@@ -991,8 +999,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Applies only on days this subject is actually scheduled — a day '
-          'with no lesson at all is still allowed. 0 disables the minimum.',
+          AppLocalizations.of(context).minDailyHoursHint,
           style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
         ),
         const SizedBox(height: 12),
@@ -1244,15 +1251,13 @@ class _RuleFamilySelector extends StatelessWidget {
     final colors = AppColors.of(context);
     final isHard = kind == 'HARD';
 
-    final positiveLabel = isHard ? 'Must' : 'Prefer';
-    final negativeLabel = isHard ? 'Must not' : 'Avoid';
+    final l = AppLocalizations.of(context);
+    final positiveLabel = isHard ? l.ruleMust : l.rulePrefer;
+    final negativeLabel = isHard ? l.ruleMustNot : l.ruleAvoid;
     final positiveDesc  = isHard
-        ? 'Force a subject into a specific classroom slot.'
-        : 'Encourage consecutive lessons for a subject, optionally '
-            'limited to a day/time range.';
-    final negativeDesc  = isHard
-        ? 'Block a subject from a specific classroom slot.'
-        : 'Discourage a subject during a time range.';
+        ? l.ruleMustDescHard
+        : l.ruleMustDescSoft;
+    final negativeDesc  = isHard ? l.ruleMustNotDescHard : l.ruleMustNotDescSoft;
 
     return Column(
       children: [
@@ -1274,11 +1279,7 @@ class _RuleFamilySelector extends StatelessWidget {
         const SizedBox(height: 8),
         _RuleCard(
           label: AppLocalizations.of(context).dailyLimitLabel,
-          description: isHard
-              ? 'Require a minimum and/or maximum number of daily hours '
-                  'for a subject — blocks generation if unmet.'
-              : 'Prefer a minimum and/or maximum number of daily hours '
-                  'for a subject — a guideline, never blocks generation.',
+          description: isHard ? l.dailyLimitDescHard : l.dailyLimitDescSoft,
           selected: family == _Family.dailyLimit,
           colors: colors,
           onTap: onSelectDailyLimit,

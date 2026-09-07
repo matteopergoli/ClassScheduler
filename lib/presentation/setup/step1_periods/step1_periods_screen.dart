@@ -70,33 +70,33 @@ class _BuiltIn {
   const _BuiltIn(this.name, this.slots);
 }
 
-const _builtIns = [
-  _BuiltIn('5 x 1h (no breaks)', [
+List<_BuiltIn> _buildBuiltIns(AppLocalizations l10n) => [
+  _BuiltIn(l10n.builtInTemplate5NoBreak, const [
     PeriodTemplateSlot(type: 'LESSON', startTime: '08:00', endTime: '09:00'),
     PeriodTemplateSlot(type: 'LESSON', startTime: '09:00', endTime: '10:00'),
     PeriodTemplateSlot(type: 'LESSON', startTime: '10:00', endTime: '11:00'),
     PeriodTemplateSlot(type: 'LESSON', startTime: '11:00', endTime: '12:00'),
     PeriodTemplateSlot(type: 'LESSON', startTime: '12:00', endTime: '13:00'),
   ]),
-  _BuiltIn('5 x 1h + Morning Break', [
-    PeriodTemplateSlot(type: 'LESSON', startTime: '08:00', endTime: '09:00'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '09:00', endTime: '10:00'),
-    PeriodTemplateSlot(type: 'BREAK',  name: 'Morning Break', startTime: '10:00', endTime: '10:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '10:15', endTime: '11:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '11:15', endTime: '12:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '12:15', endTime: '13:15'),
+  _BuiltIn(l10n.builtInTemplate5MorningBreak, [
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '08:00', endTime: '09:00'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '09:00', endTime: '10:00'),
+    PeriodTemplateSlot(type: 'BREAK',  name: l10n.breakMorning, startTime: '10:00', endTime: '10:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '10:15', endTime: '11:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '11:15', endTime: '12:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '12:15', endTime: '13:15'),
   ]),
-  _BuiltIn('8 x 1h + Morning Break + Lunch Break', [
-    PeriodTemplateSlot(type: 'LESSON', startTime: '08:00', endTime: '09:00'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '09:00', endTime: '10:00'),
-    PeriodTemplateSlot(type: 'BREAK',  name: 'Morning Break', startTime: '10:00', endTime: '10:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '10:15', endTime: '11:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '11:15', endTime: '12:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '12:15', endTime: '13:15'),
-    PeriodTemplateSlot(type: 'BREAK',  name: 'Lunch Break', startTime: '13:15', endTime: '14:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '14:15', endTime: '15:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '15:15', endTime: '16:15'),
-    PeriodTemplateSlot(type: 'LESSON', startTime: '16:15', endTime: '17:15'),
+  _BuiltIn(l10n.builtInTemplate8, [
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '08:00', endTime: '09:00'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '09:00', endTime: '10:00'),
+    PeriodTemplateSlot(type: 'BREAK',  name: l10n.breakMorning, startTime: '10:00', endTime: '10:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '10:15', endTime: '11:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '11:15', endTime: '12:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '12:15', endTime: '13:15'),
+    PeriodTemplateSlot(type: 'BREAK',  name: l10n.breakLunch, startTime: '13:15', endTime: '14:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '14:15', endTime: '15:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '15:15', endTime: '16:15'),
+    const PeriodTemplateSlot(type: 'LESSON', startTime: '16:15', endTime: '17:15'),
   ]),
 ];
 
@@ -474,7 +474,7 @@ class _TemplateSheet extends ConsumerWidget {
               children: [
                 // Built-ins
                 _SheetLabel(label: AppLocalizations.of(context).builtInTemplates, colors: colors),
-                ..._builtIns.map((b) => _BuiltInTile(
+                ..._buildBuiltIns(AppLocalizations.of(context)).map((b) => _BuiltInTile(
                       builtIn: b,
                       colors: colors,
                       onApply: () async {
@@ -871,7 +871,9 @@ class _PeriodTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isBreak ? (period.name ?? 'Break') : 'Lesson',
+                    isBreak
+                        ? (period.name ?? AppLocalizations.of(context).breakLabel)
+                        : AppLocalizations.of(context).lessonLabel,
                     style: AppTextStyles.labelLarge
                         .copyWith(color: colors.textPrimary),
                   ),
@@ -1146,8 +1148,8 @@ class _PeriodFormSheetState extends State<_PeriodFormSheet> {
         if (_overlaps(newPeriod, other)) {
           setState(() {
             _timeError =
-                'Overlaps with ${other.type == PeriodType.breakSlot ? other.name ?? "Break" : "Lesson"}'
-                ' at ${other.startTime}–${other.endTime}.';
+                AppLocalizations.of(context).overlapsWith(other.type == PeriodType.breakSlot ? (other.name ?? AppLocalizations.of(context).breakLabel) : AppLocalizations.of(context).lessonLabel)
+                + ' ${other.startTime}–${other.endTime}';
             _loading = false;
           });
           return;

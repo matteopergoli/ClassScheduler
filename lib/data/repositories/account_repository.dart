@@ -66,3 +66,31 @@ final trialUsedProvider = Provider<bool>((ref) {
       loading: () => false,
       error: (_, __) => false);
 });
+
+// ── Complimentary premium (founder / beta-tester comp) ───────────────────────
+//
+// A grant lives in the top-level `/entitlements/{uid}` document with a single
+// `premiumUntil` Timestamp field. It is written ONLY from the Firebase console
+// (or the Admin SDK) — Firestore rules deny client writes — so a user can't
+// grant it to themselves. `premiumUntil` far in the future (e.g. 2099) = a
+// lifetime grant; a date one year out = a one-year beta grant.
+
+final _entitlementProvider = StreamProvider<DateTime?>((ref) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  if (uid == null) return Stream<DateTime?>.value(null);
+  return FirebaseFirestore.instance
+      .collection('entitlements')
+      .doc(uid)
+      .snapshots()
+      .map((snap) {
+    final ts = snap.data()?['premiumUntil'];
+    return ts is Timestamp ? ts.toDate() : null;
+  }).handleError((_) => null);
+});
+
+/// True when an admin has granted this account a complimentary premium that
+/// has not expired. Treated exactly like an active paid subscription.
+final complimentaryPremiumProvider = Provider<bool>((ref) {
+  final until = ref.watch(_entitlementProvider).valueOrNull;
+  return until != null && until.isAfter(DateTime.now());
+});

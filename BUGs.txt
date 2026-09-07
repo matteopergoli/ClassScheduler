@@ -78,10 +78,18 @@ x	chiedere prossimi passi per buildare app e per rilasciarla in development -> a
 x	chiedere opinioni di commercializzazione e rilascio
 x	accesso tramite google
 x	scritte in inglese qua e là
+x	homepage "modifica configurazione" troppo lungo. Allarga quel box ed accorcia quello dei contraints
+x	homepage vedo ancora constraints e schedule
+x	in orario leggo classrom ed i nomi dei giorni in inglese
+x	in impostazioni vedo lingua selezionata inglese, ma in realtà è in italiano e non la posso cambiare.
+x	dopo il cambio lingua, lo schermo diventa tutto nero. Ma se chiudo e riapro l'app, effettivamente prende il cambio lingua
+x	commenti in inglese in modifica setup/subject, in Vincoli "no vincoli ecc", tutte le descrizioni dentro ai vincoli
+x	nome insegnante lascialo opzionale nella creazione della materia
+x	mette il vincolo min hour daily in automatico a 2
+x	creazione account premium tra cui il mio
 
 
 
 
 Open:
-O	creazione account premium tra cui il mio
 O	fai screenshot per google e carica nuovo aab aggiornato

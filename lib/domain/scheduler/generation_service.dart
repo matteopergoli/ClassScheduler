@@ -107,8 +107,12 @@ class GenerationService extends StateNotifier<GenerationState> {
       final trialAlreadyUsed = account?.trialUsed ?? false;
       final subStateValue = _ref.read(subscriptionServiceProvider);
       final hasSubscription = subStateValue.value?.isActive ?? false;
+      final hasComplimentary = _ref.read(complimentaryPremiumProvider);
 
-      if (trialAlreadyUsed && !hasSubscription && !kDebugMode) {
+      if (trialAlreadyUsed &&
+          !hasSubscription &&
+          !hasComplimentary &&
+          !kDebugMode) {
         state = state.copyWith(
           phase: GenerationPhase.error,
           errorMessage: 'Subscription required. Your free trial has been used. '
@@ -255,10 +259,13 @@ class GenerationService extends StateNotifier<GenerationState> {
       );
 
       // ── 7. Consume trial if applicable ───────────────────────────────────
+      // Don't burn the free trial for users who already have a subscription or
+      // a complimentary grant — keep it available if that ever lapses.
       final accountData =
           await _ref.read(accountRepositoryProvider).fetchAccount();
       final trialUsed = accountData?.trialUsed ?? false;
-      if (!trialUsed && !kDebugMode) {
+      final entitled = hasSubscription || hasComplimentary;
+      if (!trialUsed && !entitled && !kDebugMode) {
         await _ref.read(accountRepositoryProvider).consumeTrial();
       }
 

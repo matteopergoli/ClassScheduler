@@ -411,6 +411,31 @@ gestito da `pubspec.yaml`; per le release successive incrementalo, es. `1.0.1+2`
 - **Codici promozionali** (per regalare l'anno premium agli amici): li generi
   dalla pagina dell'abbonamento, sezione promozioni.
 
+### 4.6 🟢 Premium omaggio (te stesso + beta tester) — dalla console Firebase
+
+L'app riconosce un "premium omaggio" scritto **solo** dalla console Firebase
+(gli utenti non possono darselo da soli — lo impediscono le regole Firestore).
+Serve per il tuo account admin (a vita) e per i beta tester (un anno).
+
+1. **Trova l'UID dell'account.** Firebase Console → **Authentication → Users** →
+   cerca l'email → copia lo **User UID** (stringa tipo `a1B2c3...`).
+2. Firebase Console → **Firestore Database** → **Avvia raccolta** (se non
+   esiste) con ID collezione **`entitlements`**.
+3. **Aggiungi documento** → **ID documento = l'UID** dell'account.
+4. Aggiungi un campo:
+   - Nome: `premiumUntil`
+   - Tipo: **timestamp**
+   - Valore: la data di scadenza. Per **a vita** metti una data lontana, es.
+     `31/12/2099`. Per un **beta tester (1 anno)** metti oggi + 12 mesi.
+5. Salva. Entro pochi secondi l'app di quell'utente sblocca le generazioni
+   illimitate e nasconde il banner di prova. Alla scadenza torna al piano
+   gratuito da sola.
+
+Per revocare: elimina il documento (o metti `premiumUntil` a una data passata).
+
+> Questo canale è indipendente da RevenueCat/Play: funziona anche prima di aver
+> configurato l'abbonamento, ed è il modo più rapido per i beta tester.
+
 ### 4.5 🟡 Prova tu l'acquisto end-to-end
 Installa la build di test sul tuo telefono (dal link di opt-in del track
 interno), fai il flusso: prova gratuita → paywall → acquisto (da license

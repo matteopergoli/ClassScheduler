@@ -767,7 +767,7 @@ class _ViewModeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     // UPDATED: Only two options now
     final modes = [
-      (ScheduleViewMode.perClassroom, 'Per Classroom',
+      (ScheduleViewMode.perClassroom, l10n.viewPerClassroom,
           Icons.grid_view_rounded),
       (ScheduleViewMode.perTeacher, l10n.viewPerTeacher,
           Icons.person_outline_rounded),

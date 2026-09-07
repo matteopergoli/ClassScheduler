@@ -360,7 +360,7 @@ class _GridBody extends ConsumerWidget {
                 ...activeDays.map((day) => SizedBox(
                       width: colW,
                       child: Center(
-                        child: Text(_dayLabel(day),
+                        child: Text(_dayLabel(context, day),
                             style: AppTextStyles.labelSmall
                                 .copyWith(color: colors.textMuted),
                             overflow: TextOverflow.ellipsis),
@@ -452,7 +452,7 @@ class _GridBody extends ConsumerWidget {
             _DetailRow(label: AppLocalizations.of(context).teacherLabel, value: subject.teacherName),
             if (classroom != null)
               _DetailRow(label: AppLocalizations.of(context).classColumnLabel, value: classroom.name),
-            _DetailRow(label: AppLocalizations.of(context).dayFieldLabel, value: _dayLabel(day)),
+            _DetailRow(label: AppLocalizations.of(context).dayFieldLabel, value: _dayLabel(context, day)),
             _DetailRow(
                 label: AppLocalizations.of(context).timeColumnLabel,
                 value: '${period.startTime}–${period.endTime}'),
@@ -479,17 +479,18 @@ class _GridBody extends ConsumerWidget {
     return parts[parts.length - 2];
   }
 
-  String _dayLabel(String code) {
-    const labels = {
-      'MON': 'Mon',
-      'TUE': 'Tue',
-      'WED': 'Wed',
-      'THU': 'Thu',
-      'FRI': 'Fri',
-      'SAT': 'Sat',
-      'SUN': 'Sun',
-    };
-    return labels[code] ?? code;
+  String _dayLabel(BuildContext context, String code) {
+    final l = AppLocalizations.of(context);
+    switch (code) {
+      case 'MON': return l.dayShortMon;
+      case 'TUE': return l.dayShortTue;
+      case 'WED': return l.dayShortWed;
+      case 'THU': return l.dayShortThu;
+      case 'FRI': return l.dayShortFri;
+      case 'SAT': return l.dayShortSat;
+      case 'SUN': return l.dayShortSun;
+      default: return code;
+    }
   }
 
   Future<void> _handleDrop(
@@ -521,7 +522,7 @@ class _GridBody extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.violationMessage ?? 'Move not allowed'),
+            content: Text(result.violationMessage ?? AppLocalizations.of(context).moveNotAllowed),
             backgroundColor: Colors.red.shade700,
           ),
         );

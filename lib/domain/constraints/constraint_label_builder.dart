@@ -1,28 +1,23 @@
 // lib/domain/constraints/constraint_label_builder.dart
 //
-// Converts a ConstraintModel into a plain-English sentence for display
-// in the constraint list screen (FR-HC-04, FR-SC-03).
+// Converts a ConstraintModel into a localised, plain-language sentence for
+// display in the constraint list screen (FR-HC-04, FR-SC-03).
 // All algorithm terminology is hidden from the user (§5.3).
-//
-// Examples:
-//   MUST_ASSIGN   → "Maths must be scheduled in 1A on Monday at 09:00–10:00."
-//                   (or "...between 09:00 and 11:00." when it spans a range)
-//   MUST_NOT_ASSIGN → "Science must NOT be in 2B on Wednesday at 11:00–12:00."
-//   AVOID_TIMESLOT  → "English should be avoided in the 14:00–15:00 slot on Friday."
-//                     (classroom name prepended when scoped to one)
-//   PREFER_BLOCK    → "History should be scheduled in consecutive slots."
 
 import '../../data/models/app_models.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 class ConstraintLabelBuilder {
-  final Map<String, SubjectModel>  subjects;
+  final Map<String, SubjectModel> subjects;
   final Map<String, ClassroomModel> classrooms;
-  final Map<String, PeriodModel>   periods;
+  final Map<String, PeriodModel> periods;
+  final AppLocalizations l10n;
 
   const ConstraintLabelBuilder({
     required this.subjects,
     required this.classrooms,
     required this.periods,
+    required this.l10n,
   });
 
   /// Returns the primary human-readable sentence for [c].
@@ -39,90 +34,89 @@ class ConstraintLabelBuilder {
       case 'DAILY_LIMIT':
         return _dailyLimit(c);
       default:
-        return 'Unknown constraint type: ${c.type}';
+        return l10n.clUnknownType(c.type);
     }
   }
 
   /// Returns a shorter subtitle (e.g. for card secondary line).
   String subtitle(ConstraintModel c) {
     if (c.kind == 'SOFT') {
-      final w = _weightLabel(c.weight);
-      return 'Soft · Priority: $w';
+      return l10n.clSubtitleSoft(_weightLabel(c.weight));
     }
-    return 'Hard constraint';
+    return l10n.clSubtitleHard;
   }
 
   // ── Private builders ──────────────────────────────────────────────────────
 
-  String _mustAssign(ConstraintModel c) {
-    final subj = _subjectName(c.subjectId);
-    final cls  = _classroomName(c.classroomId);
-    final day  = _dayName(c.dayOfWeek);
-    final time = _rangeTime(c.periodId, c.endPeriodId);
-    return '$subj must be scheduled in $cls on $day at $time.';
-  }
+  String _mustAssign(ConstraintModel c) => l10n.clMustAssign(
+        _subjectName(c.subjectId),
+        _classroomName(c.classroomId),
+        _dayName(c.dayOfWeek),
+        _rangeTime(c.periodId, c.endPeriodId),
+      );
 
-  String _mustNotAssign(ConstraintModel c) {
-    final subj = _subjectName(c.subjectId);
-    final cls  = _classroomName(c.classroomId);
-    final day  = _dayName(c.dayOfWeek);
-    final time = _rangeTime(c.periodId, c.endPeriodId);
-    return '$subj must NOT be scheduled in $cls on $day at $time.';
-  }
+  String _mustNotAssign(ConstraintModel c) => l10n.clMustNotAssign(
+        _subjectName(c.subjectId),
+        _classroomName(c.classroomId),
+        _dayName(c.dayOfWeek),
+        _rangeTime(c.periodId, c.endPeriodId),
+      );
 
   String _avoidTimeslot(ConstraintModel c) {
-    final subj  = _subjectName(c.subjectId);
-    final cls   = c.classroomId != null ? ' in ${_classroomName(c.classroomId)}' : '';
-    final day   = _dayName(c.dayOfWeek);
+    final subj = _subjectName(c.subjectId);
+    final scope =
+        c.classroomId != null ? l10n.clInClassroom(_classroomName(c.classroomId)) : '';
     final start = _periodTime(c.periodId);
-    final end   = c.endPeriodId != null
-        ? _periodEndTime(c.endPeriodId)
-        : start;
+    final end = c.endPeriodId != null ? _periodEndTime(c.endPeriodId) : start;
     if (c.dayOfWeek != null) {
-      return '$subj$cls should be avoided on $day between $start and $end.';
+      return l10n.clAvoidTimeslotDay(subj, scope, _dayName(c.dayOfWeek), start, end);
     }
-    return '$subj$cls should be avoided between $start and $end.';
+    return l10n.clAvoidTimeslotNoDay(subj, scope, start, end);
   }
 
   String _preferBlock(ConstraintModel c) {
     final subj = _subjectName(c.subjectId);
-    final cls  = c.classroomId != null ? ' in ${_classroomName(c.classroomId)}' : '';
-    if (c.dayOfWeek == null && c.periodId == null) {
-      return '$subj$cls should be scheduled in consecutive slots when possible.';
+    final scope =
+        c.classroomId != null ? l10n.clInClassroom(_classroomName(c.classroomId)) : '';
+    var detail = '';
+    if (c.dayOfWeek != null || c.periodId != null) {
+      final parts = <String>[];
+      if (c.dayOfWeek != null) parts.add(_dayName(c.dayOfWeek));
+      if (c.periodId != null) {
+        final end = c.endPeriodId != null
+            ? _periodEndTime(c.endPeriodId)
+            : _periodTime(c.periodId);
+        parts.add('${_periodStartTime(c.periodId)}–$end');
+      }
+      detail = ' (${parts.join(', ')})';
     }
-    final scope = c.periodId != null
-        ? ' between ${_periodTime(c.periodId)} and '
-            '${c.endPeriodId != null ? _periodEndTime(c.endPeriodId) : _periodTime(c.periodId)}'
-        : '';
-    final day = c.dayOfWeek != null ? ' on ${_dayName(c.dayOfWeek)}' : '';
-    return '$subj$cls should be scheduled in consecutive slots when possible'
-        '$day$scope.';
+    return l10n.clPreferBlock(subj, scope, detail);
   }
 
   String _dailyLimit(ConstraintModel c) {
     final subj = _subjectName(c.subjectId);
-    final cls  = _classroomName(c.classroomId);
-    final min  = c.minHours;
-    final max  = c.maxHours;
+    final cls = _classroomName(c.classroomId);
+    final min = c.minHours;
+    final max = c.maxHours;
     if (min != null && min > 0 && max != null) {
-      return '$subj in $cls should stay within $min–$max hours/day.';
+      return l10n.clDailyLimitRange(subj, cls, min, max);
     }
     if (max != null) {
-      return '$subj in $cls should stay under $max hours/day.';
+      return l10n.clDailyLimitMax(subj, cls, max);
     }
     if (min != null && min > 0) {
-      return '$subj in $cls should reach at least $min hours on days it\'s scheduled.';
+      return l10n.clDailyLimitMin(subj, cls, min);
     }
-    return '$subj in $cls has a daily-hours preference.';
+    return l10n.clDailyLimitGeneric(subj, cls);
   }
 
   // ── Lookup helpers ────────────────────────────────────────────────────────
 
   String _subjectName(String? id) =>
-      id != null ? (subjects[id]?.name ?? id) : 'Unknown subject';
+      id != null ? (subjects[id]?.name ?? id) : l10n.unknownSubject;
 
   String _classroomName(String? id) =>
-      id != null ? (classrooms[id]?.name ?? id) : 'Unknown class';
+      id != null ? (classrooms[id]?.name ?? id) : l10n.unknownClass;
 
   String _periodTime(String? id) {
     if (id == null) return '?';
@@ -143,31 +137,30 @@ class ConstraintLabelBuilder {
   }
 
   /// Single-slot phrasing ("09:00–10:00") when [endId] is null or the same
-  /// slot as [startId]; range phrasing ("09:00 and 11:00") otherwise.
+  /// slot as [startId]; range phrasing ("09:00–11:00") otherwise.
   String _rangeTime(String? startId, String? endId) {
     if (endId == null || endId == startId) return _periodTime(startId);
-    return '${_periodStartTime(startId)} and ${_periodEndTime(endId)}';
+    return '${_periodStartTime(startId)}–${_periodEndTime(endId)}';
   }
 
   String _dayName(String? code) {
-    const map = {
-      'MON': 'Monday',
-      'TUE': 'Tuesday',
-      'WED': 'Wednesday',
-      'THU': 'Thursday',
-      'FRI': 'Friday',
-      'SAT': 'Saturday',
-      'SUN': 'Sunday',
-    };
-    return code != null ? (map[code] ?? code) : 'any day';
+    switch (code) {
+      case 'MON': return l10n.dayLongMon;
+      case 'TUE': return l10n.dayLongTue;
+      case 'WED': return l10n.dayLongWed;
+      case 'THU': return l10n.dayLongThu;
+      case 'FRI': return l10n.dayLongFri;
+      case 'SAT': return l10n.dayLongSat;
+      case 'SUN': return l10n.dayLongSun;
+      default: return code ?? l10n.clAnyDay;
+    }
   }
 
   String _weightLabel(String? weight) {
     switch (weight) {
-      case 'HIGH':   return 'High';
-      case 'MEDIUM': return 'Medium';
-      case 'LOW':    return 'Low';
-      default:       return 'Medium';
+      case 'HIGH': return l10n.weightHigh;
+      case 'LOW': return l10n.weightLow;
+      default: return l10n.weightMedium;
     }
   }
 }

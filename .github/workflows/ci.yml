@@ -22,13 +22,15 @@ jobs:
         run: flutter pub get
 
       - name: Static analysis (lib/ only — tool/ has known-broken scripts, see CLAUDE.md)
-        # `flutter analyze` treats warnings as fatal by default. This repo's
-        # accepted bar has always been "0 errors" (see CLAUDE.md /
-        # release-prep notes) — it has ~180 pre-existing info-level
-        # deprecation notices plus a handful of warning-level ones (unused
-        # imports/locals) that were never gated by CI before now. Match the
-        # existing bar instead of failing on pre-existing warnings.
-        run: flutter analyze lib --no-fatal-warnings
+        # `flutter analyze` treats both warning- and info-level issues as
+        # fatal by default. This repo's accepted bar has always been
+        # "0 errors" (see CLAUDE.md / release-prep notes) — it has ~180
+        # pre-existing info-level deprecation notices (mostly withOpacity)
+        # plus a handful of warning-level ones (unused imports/locals) that
+        # were never gated by CI before now. Match the existing bar instead
+        # of failing on pre-existing warnings/infos. Verified locally this
+        # exits 0 on the current 198 non-error issues.
+        run: flutter analyze lib --no-fatal-warnings --no-fatal-infos
 
       - name: Run tests
         # A few scheduler tests (e.g. ALG-T16, ALG-T06) run the simulated

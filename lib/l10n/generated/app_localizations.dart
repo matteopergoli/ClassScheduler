@@ -1025,6 +1025,24 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// Settings tile label for the not-yet-available premium plan (fake-door willingness-to-pay test)
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get premiumComingSoon;
+
+  /// Dialog title shown when tapping the Premium settings tile while subscriptions are disabled
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get premiumComingSoonTitle;
+
+  /// Dialog message shown when tapping the Premium settings tile while subscriptions are disabled
+  ///
+  /// In en, this message translates to:
+  /// **'ClassScheduler is free for now. We\'re gauging interest in a paid plan — thanks for letting us know you\'re interested!'**
+  String get premiumComingSoonMessage;
+
   /// No description provided for @signOut.
   ///
   /// In en, this message translates to:

@@ -536,6 +536,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get account => 'Account';
 
   @override
+  String get premiumComingSoon => 'Premium';
+
+  @override
+  String get premiumComingSoonTitle => 'Prossimamente';
+
+  @override
+  String get premiumComingSoonMessage =>
+      'ClassScheduler è gratis per ora. Stiamo valutando l\'interesse per un piano a pagamento — grazie per averci fatto sapere che ti interessa!';
+
+  @override
   String get signOut => 'Esci';
 
   @override

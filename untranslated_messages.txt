@@ -1,6 +1,9 @@
 {
   "de": [
     "teacherNameOptional",
+    "premiumComingSoon",
+    "premiumComingSoonTitle",
+    "premiumComingSoonMessage",
     "manage",
     "collapse",
     "switchedToSet",
@@ -160,6 +163,9 @@
 
   "es": [
     "teacherNameOptional",
+    "premiumComingSoon",
+    "premiumComingSoonTitle",
+    "premiumComingSoonMessage",
     "manage",
     "collapse",
     "switchedToSet",
@@ -319,6 +325,9 @@
 
   "fr": [
     "teacherNameOptional",
+    "premiumComingSoon",
+    "premiumComingSoonTitle",
+    "premiumComingSoonMessage",
     "manage",
     "collapse",
     "switchedToSet",

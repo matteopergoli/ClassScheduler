@@ -10,6 +10,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/repositories/account_repository.dart';
+import '../../data/services/analytics_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -59,18 +60,26 @@ class SettingsScreen extends ConsumerWidget {
             ),
 
             // Subscription entry point hidden during the free launch period —
-            // see AppConstants.subscriptionsEnabled.
-            if (AppConstants.subscriptionsEnabled) ...[
-              const SizedBox(height: 24),
-              _SectionHeader(title: l10n.account, colors: colors),
+            // see AppConstants.subscriptionsEnabled. In its place, a fake-door
+            // tile logs willingness-to-pay interest (KPI #5) without enabling
+            // any purchase flow.
+            const SizedBox(height: 24),
+            _SectionHeader(title: l10n.account, colors: colors),
+            if (AppConstants.subscriptionsEnabled)
               _SettingTile(
                 label: l10n.subscription,
                 value: l10n.manage,
                 icon: Icons.star_outline_rounded,
                 colors: colors,
                 onTap: () => context.push('/subscription'),
+              )
+            else
+              _SettingTile(
+                label: l10n.premiumComingSoon,
+                icon: Icons.star_outline_rounded,
+                colors: colors,
+                onTap: () => _showPremiumInterestDialog(context, ref),
               ),
-            ],
 
             const SizedBox(height: 24),
             _SectionHeader(title: l10n.supportSection, colors: colors),
@@ -162,6 +171,21 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  void _showPremiumInterestDialog(BuildContext context, WidgetRef ref) {
+    ref.read(analyticsServiceProvider).logPremiumInterest('settings_menu');
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.premiumComingSoonTitle),
+        content: Text(l10n.premiumComingSoonMessage),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
+        ],
+      ),
+    );
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {

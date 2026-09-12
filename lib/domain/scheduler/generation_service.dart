@@ -21,7 +21,9 @@ import '../../data/models/app_models.dart';
 import '../../data/repositories/account_repository.dart';
 import '../../data/repositories/constraint_repository.dart';
 import '../../data/repositories/period_classroom_capacity_repositories.dart';
+import '../../data/repositories/schedule_repository.dart';
 import '../../data/repositories/subject_repositories.dart';
+import '../../data/services/analytics_service.dart';
 import '../../data/services/subscription_service.dart';
 import '../../providers/auth_providers.dart';
 import '../constraints/constraint_conflict_detector.dart';
@@ -101,6 +103,11 @@ class GenerationService extends StateNotifier<GenerationState> {
   Future<void> generate({required String scheduleName}) async {
     state = const GenerationState(phase: GenerationPhase.loadingData);
 
+    // Schedules that already existed for this school before this attempt —
+    // used to tell activation (first success) apart from same-year
+    // regeneration (retention proxy) in the schedule_generated KPI event.
+    var priorScheduleCount = 0;
+
     try {
       // ── 0. Subscription / trial gate ────────────────────────────────────
       // Skipped entirely during the free launch period — see
@@ -141,6 +148,10 @@ class GenerationService extends StateNotifier<GenerationState> {
           await _ref.read(dayCapacityRepositoryProvider(_schoolId)).fetchAll();
       final constraints =
           await _ref.read(constraintRepositoryProvider(_schoolId)).fetchAll();
+      priorScheduleCount = (await _ref
+              .read(scheduleRepositoryProvider(_schoolId))
+              .fetchAll())
+          .length;
 
       // ── 2. Derive active days ─────────────────────────────────────────────
       // FIX: Derive active days from dayCapacity records first, then fall back
@@ -242,6 +253,12 @@ class GenerationService extends StateNotifier<GenerationState> {
       if (result.hardViolations.any((v) =>
           v.constraintId == 'INTERNAL' ||
           v.description.startsWith('[INTEGRITY'))) {
+        await _ref.read(analyticsServiceProvider).logScheduleGenerated(
+              schoolId: _schoolId,
+              success: false,
+              status: 'INTERNAL_ERROR',
+              priorScheduleCount: priorScheduleCount,
+            );
         state = state.copyWith(
           phase: GenerationPhase.error,
           result: result,
@@ -281,11 +298,26 @@ class GenerationService extends StateNotifier<GenerationState> {
         }
       }
 
+      final isUsable = result.status == sched.ResultStatus.perfect ||
+          result.status == sched.ResultStatus.softViolationsOnly;
+      await _ref.read(analyticsServiceProvider).logScheduleGenerated(
+            schoolId: _schoolId,
+            success: isUsable,
+            status: _statusString(result.status),
+            priorScheduleCount: priorScheduleCount,
+          );
+
       state = state.copyWith(
         phase: GenerationPhase.done,
         result: result,
       );
     } catch (e) {
+      await _ref.read(analyticsServiceProvider).logScheduleGenerated(
+            schoolId: _schoolId,
+            success: false,
+            status: 'EXCEPTION',
+            priorScheduleCount: priorScheduleCount,
+          );
       state = state.copyWith(
         phase: GenerationPhase.error,
         errorMessage: e.toString(),

@@ -21,6 +21,7 @@ import '../../presentation/schedule/schedule_screen.dart';
 import '../../presentation/settings/settings_screen.dart';
 import '../../presentation/shell/main_shell.dart';
 import '../../data/models/app_models.dart';
+import '../../data/services/analytics_service.dart';
 
 // ── Route names (use these constants for navigation) ────────────────────────
 abstract class AppRoutes {
@@ -92,6 +93,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.schools,
     debugLogDiagnostics: true,
     refreshListenable: authNotifier,
+    // Automatic screen_view events feed Firebase's built-in session /
+    // engagement / retention reports (KPI #3 — see AnalyticsService).
+    observers: [ref.read(analyticsServiceProvider).observer],
     redirect: (context, state) {
       final isLoggedIn = authNotifier.value.valueOrNull != null;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||

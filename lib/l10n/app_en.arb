@@ -321,6 +321,18 @@
   "themeLight": "Light",
   "themeSystem": "System default",
   "account": "Account",
+  "premiumComingSoon": "Premium",
+  "@premiumComingSoon": {
+    "description": "Settings tile label for the not-yet-available premium plan (fake-door willingness-to-pay test)"
+  },
+  "premiumComingSoonTitle": "Coming soon",
+  "@premiumComingSoonTitle": {
+    "description": "Dialog title shown when tapping the Premium settings tile while subscriptions are disabled"
+  },
+  "premiumComingSoonMessage": "ClassScheduler is free for now. We're gauging interest in a paid plan — thanks for letting us know you're interested!",
+  "@premiumComingSoonMessage": {
+    "description": "Dialog message shown when tapping the Premium settings tile while subscriptions are disabled"
+  },
   "signOut": "Sign out",
   "deleteAccount": "Delete account",
   "deleteAccountConfirm": "Are you sure? This will permanently delete your account and all data. This cannot be undone.",

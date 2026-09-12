@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:classscheduler/providers/auth_providers.dart';
 import '../models/app_models.dart';
+import '../services/analytics_service.dart';
 import 'base_repository.dart';
 
 final schoolRepositoryProvider = Provider<SchoolRepository>(
@@ -11,6 +12,7 @@ final schoolRepositoryProvider = Provider<SchoolRepository>(
 
 class SchoolRepository extends BaseRepository {
   final String uid;
+  final AnalyticsService _analytics = AnalyticsService();
   SchoolRepository({required this.uid});
 
   CollectionReference get _col => schoolsCol(uid);
@@ -43,6 +45,7 @@ class SchoolRepository extends BaseRepository {
       updatedAt: now,
     );
     await _col.doc(id).set(school.toJson());
+    await _analytics.logSchoolCreated(id);
     return school;
   }
 

@@ -533,6 +533,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get account => 'Konto';
 
   @override
+  String get premiumComingSoon => 'Premium';
+
+  @override
+  String get premiumComingSoonTitle => 'Coming soon';
+
+  @override
+  String get premiumComingSoonMessage =>
+      'ClassScheduler is free for now. Were gauging interest in a paid plan — thanks for letting us know youre interested!';
+
+  @override
   String get signOut => 'Abmelden';
 
   @override

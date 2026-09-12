@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -34,6 +35,10 @@ class _TrialBannerState extends ConsumerState<TrialBanner> {
 
   @override
   Widget build(BuildContext context) {
+    // No trial/subscription gate during the free launch period — see
+    // AppConstants.subscriptionsEnabled.
+    if (!AppConstants.subscriptionsEnabled) return const SizedBox.shrink();
+
     final l10n     = AppLocalizations.of(context);
     final colors   = AppColors.of(context);
     final trialUsed = ref.watch(trialUsedProvider);

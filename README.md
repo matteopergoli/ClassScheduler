@@ -131,6 +131,12 @@ Add the SHA-1 in Firebase Console → Project Settings → Your Android app.
 
 ### 2 — RevenueCat (IAP)
 
+> **Optional while the app is in its free-launch period.**
+> `AppConstants.subscriptionsEnabled` is currently `false` — the app ships
+> fully unlocked and never calls `Purchases.configure(...)`, so this whole
+> section can be skipped for local development. See
+> `REATTIVAZIONE_ABBONAMENTI.it.md` for the reactivation runbook.
+
 1. Create project at https://app.revenuecat.com
 2. Add Android + iOS apps
 3. Create subscription product IDs:

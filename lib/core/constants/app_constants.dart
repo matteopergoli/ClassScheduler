@@ -36,6 +36,25 @@ abstract class AppConstants {
   static const String rcEntitlementId = 'classscheduler_annual';
   static const String rcProductId     = 'classscheduler_annual_1490';
 
+  // ── Monetisation toggle ──────────────────────────────────────────────────
+  // Free-launch decision (2026-09): the app ships fully unlocked, no paid
+  // subscription, for its first year on the market — see
+  // REATTIVAZIONE_ABBONAMENTI.it.md for the full rationale and the runbook to
+  // flip this back on.
+  //
+  // Set to `true` to re-enable the trial/paywall gate. Everything needed is
+  // already built and untouched behind this flag:
+  //   - GenerationService's trial/subscription check (generation_service.dart)
+  //   - TrialBanner visibility (trial_banner.dart)
+  //   - Settings → "Subscription" entry point + SubscriptionScreen
+  //   - RevenueCat init (subscription_service.dart) — never runs while this
+  //     is false, since nothing reads subscriptionServiceProvider, so no
+  //     store products need to be live for the free period.
+  // No Firestore schema or rules change is needed either way: trialUsed is
+  // simply never written while this is false, so it stays available for the
+  // first real trial once subscriptions come back.
+  static const bool subscriptionsEnabled = false;
+
   // ── Business rules ────────────────────────────────────────────────────────
   static const int maxClassroomsPerSchool = 10;
   static const int maxSubjectsPerSchool   = 20;  // practical UI limit

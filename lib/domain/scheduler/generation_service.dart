@@ -103,22 +103,26 @@ class GenerationService extends StateNotifier<GenerationState> {
 
     try {
       // ── 0. Subscription / trial gate ────────────────────────────────────
-      final account = await _ref.read(accountRepositoryProvider).fetchAccount();
-      final trialAlreadyUsed = account?.trialUsed ?? false;
-      final subStateValue = _ref.read(subscriptionServiceProvider);
-      final hasSubscription = subStateValue.value?.isActive ?? false;
-      final hasComplimentary = _ref.read(complimentaryPremiumProvider);
+      // Skipped entirely during the free launch period — see
+      // AppConstants.subscriptionsEnabled.
+      if (AppConstants.subscriptionsEnabled) {
+        final account = await _ref.read(accountRepositoryProvider).fetchAccount();
+        final trialAlreadyUsed = account?.trialUsed ?? false;
+        final subStateValue = _ref.read(subscriptionServiceProvider);
+        final hasSubscription = subStateValue.value?.isActive ?? false;
+        final hasComplimentary = _ref.read(complimentaryPremiumProvider);
 
-      if (trialAlreadyUsed &&
-          !hasSubscription &&
-          !hasComplimentary &&
-          !kDebugMode) {
-        state = state.copyWith(
-          phase: GenerationPhase.error,
-          errorMessage: 'Subscription required. Your free trial has been used. '
-              'Subscribe to generate new schedules.',
-        );
-        return;
+        if (trialAlreadyUsed &&
+            !hasSubscription &&
+            !hasComplimentary &&
+            !kDebugMode) {
+          state = state.copyWith(
+            phase: GenerationPhase.error,
+            errorMessage: 'Subscription required. Your free trial has been used. '
+                'Subscribe to generate new schedules.',
+          );
+          return;
+        }
       }
 
       // ── 1. Load all data ────────────────────────────────────────────────
@@ -259,14 +263,22 @@ class GenerationService extends StateNotifier<GenerationState> {
       );
 
       // ── 7. Consume trial if applicable ───────────────────────────────────
-      // Don't burn the free trial for users who already have a subscription or
-      // a complimentary grant — keep it available if that ever lapses.
-      final accountData =
-          await _ref.read(accountRepositoryProvider).fetchAccount();
-      final trialUsed = accountData?.trialUsed ?? false;
-      final entitled = hasSubscription || hasComplimentary;
-      if (!trialUsed && !entitled && !kDebugMode) {
-        await _ref.read(accountRepositoryProvider).consumeTrial();
+      // Skipped entirely during the free launch period, so trialUsed stays
+      // false and is available for everyone's first real trial once
+      // subscriptions are reactivated — see AppConstants.subscriptionsEnabled.
+      if (AppConstants.subscriptionsEnabled) {
+        // Don't burn the free trial for users who already have a subscription
+        // or a complimentary grant — keep it available if that ever lapses.
+        final accountData =
+            await _ref.read(accountRepositoryProvider).fetchAccount();
+        final trialUsed = accountData?.trialUsed ?? false;
+        final hasSubscription =
+            _ref.read(subscriptionServiceProvider).value?.isActive ?? false;
+        final hasComplimentary = _ref.read(complimentaryPremiumProvider);
+        final entitled = hasSubscription || hasComplimentary;
+        if (!trialUsed && !entitled && !kDebugMode) {
+          await _ref.read(accountRepositoryProvider).consumeTrial();
+        }
       }
 
       state = state.copyWith(

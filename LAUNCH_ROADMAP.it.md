@@ -9,6 +9,16 @@ segnalate.
 - **Mercato**: Italia, Android per primo
 - **Versione**: 1.0.0+1
 
+> 📌 **Decisione (2026-09-12): lancio gratuito, senza abbonamento.** Niente
+> partita IVA aperta ancora: l'app esce completamente gratuita e sbloccata per
+> il primo anno, per validare il prodotto prima di affrontare la burocrazia
+> fiscale. L'abbonamento resta **congelato dietro un solo flag**
+> (`AppConstants.subscriptionsEnabled = false`), pronto a essere riacceso in
+> futuro — o sostituito da un accordo di publishing che copra anche iOS. Ogni
+> riferimento sotto a "Fase 1.d" / "RevenueCat" / "abbonamento" in questo
+> documento descrive lavoro **posticipato**, non bloccante per il lancio.
+> Il runbook di riattivazione è in `REATTIVAZIONE_ABBONAMENTI.it.md`.
+
 ---
 
 ## 1. Dove sei adesso
@@ -43,8 +53,12 @@ Ho controllato il progetto.
 
 ### Blocca il lancio
 - Chiave di firma release (keystore) — **ora predisposta**, va generata
-- Chiavi RevenueCat: ancora segnaposto → niente abbonamenti finché non le metti
 - Account Google Play Console (25 $ una tantum)
+
+### Non blocca più il lancio (posticipato dalla decisione di lanciare gratis)
+- Chiavi RevenueCat: restano segnaposto, non servono finché
+  `AppConstants.subscriptionsEnabled` è `false` — vedi
+  `REATTIVAZIONE_ABBONAMENTI.it.md`
 
 > **Strategia.** Per l'Italia, lancia **prima solo su Android**. iOS richiede un
 > Mac, 99 $/anno e più burocrazia. Con Google Play parti con 25 $ una tantum,
@@ -133,13 +147,12 @@ Verifica in console che `classscheduler-b2918` sia il progetto di produzione e
 che Authentication abbia attivi Email/Password e Google. Passa il progetto al
 piano **Blaze** (pay as you go) prima del lancio e imposta un **budget alert**.
 
-### d. RevenueCat + abbonamento Play
+### d. ~~RevenueCat + abbonamento Play~~ — POSTICIPATO
 
-1. Play Console → **Monetizzazione → Abbonamenti**: crea
-   `classscheduler_annual_1490`, €14,99/anno.
-2. RevenueCat: collega l'app Android, importa il prodotto, entitlement
-   `classscheduler_annual`.
-3. Copia la **Public SDK Key** Android.
+Non serve per questo lancio: l'app è gratuita, `AppConstants.subscriptionsEnabled`
+è `false`. I passi (crea l'abbonamento in Play Console, collega RevenueCat)
+restano validi per quando riattiverai i pagamenti — vedi
+`REATTIVAZIONE_ABBONAMENTI.it.md`.
 
 ### e. Build firmata
 
@@ -148,16 +161,16 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 flutter gen-l10n
 flutter test
-flutter build appbundle --release ^
-  --dart-define=RC_ANDROID_KEY=goog_LA_TUA_CHIAVE
+flutter build appbundle --release
 ```
 
-Risultato: `build/app/outputs/bundle/release/app-release.aab`.
+Risultato: `build/app/outputs/bundle/release/app-release.aab`. Nessun
+`--dart-define` RevenueCat necessario finché l'app resta gratuita.
 
 ### f. Play Console
 
-- Crea l'app: nome **ClassScheduler**, lingua predefinita italiano, gratuita con
-  acquisti in-app
+- Crea l'app: nome **ClassScheduler**, lingua predefinita italiano, **gratuita,
+  senza acquisti in-app**
 - Scheda Store: descrizione breve (80 caratteri) e lunga, icona 512×512, grafica
   in evidenza 1024×500, 2–8 screenshot telefono
 - *Contenuti dell'app*: URL privacy, modulo **Data safety** (raccogli e-mail e ID
@@ -172,6 +185,11 @@ Risultato: `build/app/outputs/bundle/release/app-release.aab`.
 ---
 
 ## 5. Fase 2 — Account e fatturazione dei clienti
+
+> Con il lancio gratuito questa fase **non è attiva**: nessun incasso, nessuna
+> fattura, nessuna partita IVA da aprire adesso. La tabella e le note sotto
+> restano come riferimento per quando riattiverai l'abbonamento (vedi
+> `REATTIVAZIONE_ABBONAMENTI.it.md`).
 
 ### Chi gestisce cosa
 
@@ -292,10 +310,12 @@ scuole di musica e di lingue) e si vende **tra giugno e settembre**.
   risparmiare un weekend"
 
 ### Prezzo e prova
-€14,99/anno è basso per un gestionale scolastico: vantaggio in adozione, ma
-valuta un piano "scuola" più avanti. La prova da 1 orario è il tuo miglior
-argomento di vendita: assicurati che il primo orario generato faccia dire "wow"
-— se serve, guida l'utente con un caso di esempio precaricato.
+Per il primo anno il prodotto è **gratuito senza limiti**: niente prova da 1
+orario da "vendere", l'obiettivo è che più insegnanti possibile lo usino
+davvero e ne parlino. Assicurati che il primo orario generato faccia dire "wow"
+— se serve, guida l'utente con un caso di esempio precaricato. Quando (e se)
+riattivi l'abbonamento, €14,99/anno resta un prezzo basso per un gestionale
+scolastico: vantaggio in adozione, valuta un piano "scuola" più avanti.
 
 > **Tempismo.** Se non arrivi in Produzione entro fine settembre, non perdere il
 > 2026: usa l'autunno-inverno per beta, contenuti e lista d'attesa, e fai il
@@ -337,7 +357,7 @@ argomento di vendita: assicurati che il primo orario generato faccia dire "wow"
 | Quando | Obiettivo |
 |---|---|
 | Settimana 1 | Commit di prep · account Play Console · keystore · pagine legali online · deploy regole Firestore · Firebase su Blaze |
-| Settimana 2 | Prodotto abbonamento in Play + RevenueCat · prima build firmata · app in Test interno · icona/splash definitive |
+| Settimana 2 | ~~Prodotto abbonamento in Play + RevenueCat~~ (posticipato) · prima build firmata · app in Test interno · icona/splash definitive |
 | Settimane 3–5 | Beta con gli amici · codici promo · canale feedback in app · itera sui problemi gravi |
 | Settimana 6 | Scheda store completa · landing page · video demo · account di test per revisore |
 | Settimana 7 | Promozione in Produzione · invio a revisione |

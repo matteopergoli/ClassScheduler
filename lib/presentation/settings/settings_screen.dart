@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:classscheduler/providers/auth_providers.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/repositories/account_repository.dart';
@@ -57,15 +58,19 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => _showThemePicker(context, ref, themeMode),
             ),
 
-            const SizedBox(height: 24),
-            _SectionHeader(title: l10n.account, colors: colors),
-            _SettingTile(
-              label: l10n.subscription,
-              value: l10n.manage,
-              icon: Icons.star_outline_rounded,
-              colors: colors,
-              onTap: () => context.push('/subscription'),
-            ),
+            // Subscription entry point hidden during the free launch period —
+            // see AppConstants.subscriptionsEnabled.
+            if (AppConstants.subscriptionsEnabled) ...[
+              const SizedBox(height: 24),
+              _SectionHeader(title: l10n.account, colors: colors),
+              _SettingTile(
+                label: l10n.subscription,
+                value: l10n.manage,
+                icon: Icons.star_outline_rounded,
+                colors: colors,
+                onTap: () => context.push('/subscription'),
+              ),
+            ],
 
             const SizedBox(height: 24),
             _SectionHeader(title: l10n.supportSection, colors: colors),

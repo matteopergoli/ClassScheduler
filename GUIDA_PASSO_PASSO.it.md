@@ -10,6 +10,15 @@ Questa guida è solo "cosa faccio, in che ordine".
 **Legenda:** 🟢 lo puoi fare adesso · 🟡 dipende da un passo precedente ·
 ⏳ ha un tempo di attesa, avvialo presto · 💶 costa · ⚠️ irreversibile / delicato
 
+> 📌 **Decisione (2026-09-12): lancio gratuito.** Il primo anno l'app esce
+> **completamente gratuita, senza abbonamento**, per validare il prodotto prima
+> di aprire la partita IVA. La TAPPA 4 (Abbonamento) è **posticipata** — non
+> serve per questo lancio, resta nella guida solo come riferimento per quando
+> riattiverai i pagamenti. Il codice è già pronto per entrambi gli stati dietro
+> un solo interruttore: `AppConstants.subscriptionsEnabled` (oggi `false`).
+> Il percorso completo per riattivare — cosa succede agli account esistenti,
+> cosa rifare su Play/App Store — è in **`REATTIVAZIONE_ABBONAMENTI.it.md`**.
+
 ---
 
 ## Mappa generale (7 tappe)
@@ -20,7 +29,7 @@ Questa guida è solo "cosa faccio, in che ordine".
 | 1 | Pagine legali online + Firebase in produzione | mezza giornata |
 | 2 | Chiave di firma + icona + prima build | mezza giornata |
 | 3 | App su Play Console (scheda + dichiarazioni) | 1 giornata |
-| 4 | Abbonamento (Play + RevenueCat) | mezza giornata |
+| 4 | ~~Abbonamento (Play + RevenueCat)~~ **POSTICIPATA** — lancio gratuito | — |
 | 5 | **Test chiuso con ≥ 12 tester per ≥ 14 giorni** (obbligatorio) | 2–3 settimane |
 | 6 | Richiesta accesso a Produzione + pubblicazione | 1–7 giorni di revisione |
 
@@ -76,11 +85,14 @@ campi tra `[parentesi quadre]` (nome, email, città) e falle leggere a qualcuno
 che se ne intende (avvocato, commercialista, o anche un collega esperto). Sono
 bozze ragionevoli ma la responsabilità legale è tua.
 
-### 0.5 🟢⏳ Parla con un commercialista
-Domanda precisa da fargli: *"Vendo un abbonamento ad app tramite Google Play,
-Google incassa e mi versa il netto mensile. Cosa mi serve in Italia — partita
-IVA, che regime, come dichiaro?"*. Non blocca i passi tecnici, ma va avviato
-ora perché serve **prima del primo incasso reale**.
+### 0.5 🟢 Parla con un commercialista (non urgente per questo lancio)
+Con il lancio gratuito **non incassi nulla**, quindi questo passo non blocca
+niente ora. Resta comunque da fare **prima di riattivare l'abbonamento** (vedi
+`REATTIVAZIONE_ABBONAMENTI.it.md`): quando arriverà quel giorno, la domanda da
+fare è *"Vendo un abbonamento ad app tramite Google Play, Google incassa e mi
+versa il netto mensile. Cosa mi serve in Italia — partita IVA, che regime, come
+dichiaro?"*. Se nel frattempo ricevi già qualche incasso da altre fonti legate
+all'app (es. royalty da un publisher), parlagliene prima.
 
 ### 0.6 🟢 Verifica veloce sul nome
 Cerca "ClassScheduler" su <https://euipo.europa.eu/eSearch/> (marchi UE) e sul
@@ -296,8 +308,9 @@ Per rigenerarla dopo una modifica dell'art: `dart run flutter_native_splash:crea
 ✅ *Risultato atteso:* l'app compare nella lista con stato "Bozza".
 
 ### 2.4 🟡 Prima build firmata e primo caricamento
-Anche senza le chiavi RevenueCat: la prova gratuita funziona lo stesso,
-mancherà solo l'acquisto (lo aggiungi alla Tappa 4).
+Non servono chiavi RevenueCat per questa build: l'app è completamente gratuita
+e sbloccata (`AppConstants.subscriptionsEnabled = false`), la Tappa 4 è
+posticipata.
 
 ```bash
 flutter pub get
@@ -371,11 +384,19 @@ voce. Le principali:
 
 ### 3.4 🟡 Paese e prezzo
 - **Distribuzione:** seleziona **solo Italia** per ora.
-- Gratuita (l'abbonamento è un acquisto in-app, si configura alla Tappa 4).
+- **Gratuita, senza acquisti in-app.** Con la TAPPA 4 posticipata, dichiara
+  l'app come gratuita e basta — **non** spuntare "contiene acquisti in-app".
+  Quando riattiverai l'abbonamento (vedi `REATTIVAZIONE_ABBONAMENTI.it.md`)
+  dovrai tornare qui e aggiornare questa dichiarazione.
 
 ---
 
 ## TAPPA 4 — Abbonamento (Play + RevenueCat)
+
+> ⏸️ **POSTICIPATA.** L'app lancia gratuita: non serve fare nulla di questa
+> tappa ora. È lasciata qui **come riferimento** per il giorno in cui
+> riattiverai l'abbonamento — a quel punto segui invece
+> `REATTIVAZIONE_ABBONAMENTI.it.md`, che rimanda ai passi giusti qui sotto.
 
 ### 4.1 🟡 Crea l'abbonamento in Play Console
 **Monetizza → Prodotti → Abbonamenti → Crea abbonamento.**
@@ -494,16 +515,16 @@ risponde di solito in **pochi giorni**.
       funziona su una build **scaricata dal Play Store** (non solo in locale).
 - [ ] **URL legali (passo 1.2):** `privacyPolicyUrl` e `termsUrl` in
       `app_constants.dart` puntano alle pagine vere e pubblicate.
-- [ ] **Chiavi RevenueCat di produzione** passate con `--dart-define` nella build
-      finale (passo 4.3).
+- [ ] **`AppConstants.subscriptionsEnabled` è `false`** (lancio gratuito —
+      niente chiavi RevenueCat da passare per questo lancio, vedi TAPPA 4).
 - [ ] **Icona e splash** non più quelli di default (passo 2.2).
 
 **Verifiche su un telefono reale** (punti critici di `QA_CHECKLIST.md`):
-AC-06 performance, AC-09 prova gratuita, AC-10 ripristino acquisti,
-AC-13 cancellazione account, AC-15 generazione offline.
-In più, per via del bump di `purchases_flutter` 8→10 e `share_plus` 9→12:
-riprova un **acquisto + ripristino** e un **export PDF/Excel con condivisione**
-su dispositivo reale.
+AC-06 performance, AC-13 cancellazione account, AC-15 generazione offline.
+(AC-09 prova gratuita e AC-10 ripristino acquisti non si applicano finché
+`subscriptionsEnabled` è `false` — l'app è sbloccata per tutti.)
+Per via del bump di `share_plus` 9→12: riprova un **export PDF/Excel con
+condivisione** su dispositivo reale.
 
 Assicurati infine che tutte le sezioni "Contenuti dell'app" e "Scheda" in Play
 Console siano ✅ verdi.

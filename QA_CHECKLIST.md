@@ -5,6 +5,11 @@
 Complete every item before submitting to App Store and Google Play.
 Sign off each item with your initials and date in the `[Sign-off]` column.
 
+> **2026-09-12: free launch.** `AppConstants.subscriptionsEnabled` is `false` —
+> the app ships fully unlocked. Skip AC-09/AC-10, the StoreKit/Play Billing
+> rows, and every RevenueCat/in-app-purchase item below for this submission;
+> they apply again only when reactivating per `REATTIVAZIONE_ABBONAMENTI.it.md`.
+
 ---
 
 ## 1 — Automated Test Suite

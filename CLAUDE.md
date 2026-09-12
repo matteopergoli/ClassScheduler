@@ -10,9 +10,13 @@ targets, min/max daily hours, must/must-not-assign, time-slot preferences); a tw
 algorithm (greedy construction + simulated annealing) then produces a timetable and reports a quality
 score and any hard/soft constraint violations.
 
-Backend is Firebase (Auth + Firestore); subscriptions via RevenueCat (`purchases_flutter`). All
-per-user data lives under `/users/{uid}/schools/{schoolId}/...` (see `lib/data/repositories/base_repository.dart`
-and `firestore.rules`).
+Backend is Firebase (Auth + Firestore); subscriptions via RevenueCat (`purchases_flutter`) — **currently
+disabled**: `AppConstants.subscriptionsEnabled = false` (2026-09 decision to launch free for a year before
+opening a VAT registration). The whole trial/paywall gate, `TrialBanner`, and the Settings → Subscription
+entry point are dead code paths while this is `false`; RevenueCat is never initialized. See
+`REATTIVAZIONE_ABBONAMENTI.it.md` for what flips when it's re-enabled and what happens to accounts that
+signed up during the free period. All per-user data lives under `/users/{uid}/schools/{schoolId}/...`
+(see `lib/data/repositories/base_repository.dart` and `firestore.rules`).
 
 Implementation follows an internal SRS document — code comments reference sections like `§8.2.2`,
 requirement IDs like `FR-SUB-IAP-03`, and hard-constraint IDs `HC-1`..`HC-7`. Treat these IDs as stable

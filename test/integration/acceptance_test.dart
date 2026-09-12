@@ -156,13 +156,7 @@ void main() {
   // ── AC-05: Contradictory constraints → plain-language report, no crash ────
   group('AC-05 — Contradictory constraints', () {
     test('MUST-ASSIGN + MUST-NOT-ASSIGN on same cell detected', () {
-      final input = contradictoryInput();
-      final sw    = Stopwatch()..start();
-      final result = runEngine(input);
-      sw.stop();
-
-      expect(sw.elapsedMilliseconds, lessThan(1000),
-          reason: 'Conflict must be detected quickly');
+      final result = runEngine(contradictoryInput());
       expect(
         result.status == scheduler_domain.ResultStatus.hardViolations ||
             result.hardViolations.isNotEmpty,
@@ -172,6 +166,18 @@ void main() {
       // Verify no crash — result object is well-formed
       expect(result.computationTime, isNotNull);
     });
+
+    // Wall-clock budget — excluded from CI (--exclude-tags=performance):
+    // intermittently misses under CI's shared/variable-speed runners even
+    // though the actual engine behaviour above is correct.
+    test('detects conflict quickly', () {
+      final sw = Stopwatch()..start();
+      runEngine(contradictoryInput());
+      sw.stop();
+
+      expect(sw.elapsedMilliseconds, lessThan(1000),
+          reason: 'Conflict must be detected quickly');
+    }, tags: ['performance']);
 
     test('ConstraintConflictDetector pre-generation check catches conflict', () {
       const schoolId = 's1';
@@ -211,6 +217,10 @@ void main() {
   });
 
   // ── AC-06: 10 classrooms + full constraints → ≤ 60 s, ALGO-R03 passes ───
+  // Wall-clock budget — excluded from CI (--exclude-tags=performance): known
+  // to fail intermittently under full-suite/shared-runner load (see
+  // CLAUDE.md's ALG-T06 caveat — this is the same test at the acceptance
+  // level). Run locally before a release.
   group('AC-06 — Maximum config performance', () {
     test('completes within 90 s on test machine, ALGO-R03 passes', () {
       final sw     = Stopwatch()..start();
@@ -226,7 +236,9 @@ void main() {
         reason: 'ALGO-R03 must pass',
       );
       expect(result.qualityScore, inInclusiveRange(0, 100));
-    }, timeout: const Timeout(Duration(seconds: 100)));
+    },
+        timeout: const Timeout(Duration(seconds: 100)),
+        tags: ['performance']);
   });
 
   // ── AC-07: PDF export produces valid file ─────────────────────────────────

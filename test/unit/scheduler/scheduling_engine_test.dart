@@ -537,7 +537,7 @@ void main() {
         result.hardViolations.where((v) => v.constraintId == 'HC-3'),
         isEmpty,
       );
-    });
+    }, tags: ['performance']);
 
     test('no day is stacked far above the preferred maximum', () {
       // A perfect 2-2-2-2-2 spread exists; allow a little SA slack but the
@@ -548,7 +548,7 @@ void main() {
           reason: 'Subject piled onto one day: perDay=${a.perDay}');
       expect(a.overLimitHours, lessThanOrEqualTo(2),
           reason: 'Too many hours over the soft cap: perDay=${a.perDay}');
-    });
+    }, tags: ['performance']);
 
     test('spreads across at least four days', () {
       final result = runEngine(dailyLimitSoftInput());
@@ -556,7 +556,7 @@ void main() {
       final daysUsed = a.perDay.where((c) => c > 0).length;
       expect(daysUsed, greaterThanOrEqualTo(4),
           reason: 'Subject should touch ≥ 4 days: perDay=${a.perDay}');
-    });
+    }, tags: ['performance']);
 
     test('Phase 1 already spreads (does not hand SA a piled state)', () {
       // Locks in the step-2 change: greedy construction is soft-max aware,
@@ -577,6 +577,6 @@ void main() {
           reason: 'Phase 1 piled the subject: perDay=$perDay');
       expect(daysUsed, greaterThanOrEqualTo(4),
           reason: 'Phase 1 should already spread: perDay=$perDay');
-    });
-  }, tags: ['performance']);
+    }, tags: ['performance']);
+  });
 }

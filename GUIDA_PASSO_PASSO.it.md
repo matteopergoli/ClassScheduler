@@ -483,6 +483,16 @@ Alpha"). Promuovi la release che hai già caricato.
 ✅ *Verifica:* Play Console mostra il conteggio dei tester "opted in". Deve
 arrivare **≥ 12** e restare tale.
 
+> ⚠️ **Mentre aspetti la lista, fai già questo** (è nel 6.2 ma non serve
+> aspettare): i tuoi tester installeranno l'app **dal Play Store**, quindi
+> useranno la build firmata con la **App signing key** di Google, non con la
+> tua upload key. Se non aggiungi ancora la sua impronta SHA a Firebase (passo
+> 1.5.b, terza riga della tabella), **il login Google si romperà per tutti
+> loro** dal primo giorno. Fallo ora: Play Console → il tuo app → Test e
+> release → Integrità dell'app (o "Impostazione dell'app" → "Firma dell'app")
+> → copia SHA-1 e SHA-256 del "Certificato della chiave di firma dell'app" →
+> aggiungili in Firebase Console come hai già fatto per la upload key.
+
 ### 5.3 🟡 Fai partire davvero l'uso
 - Dai a ognuno un **codice promo** per l'anno premium.
 - Chat unica del gruppo (WhatsApp/Telegram) per raccogliere segnalazioni.
@@ -546,7 +556,12 @@ Invia in revisione (1–7 giorni la prima volta).
 
 - ~~Preparare la cartella `docs/` con Privacy e Termini in HTML per GitHub Pages.~~ ✅ fatto
 - ~~Configurare icona (`flutter_launcher_icons`) e splash (`flutter_native_splash`).~~ ✅ fatto
-- Implementare la voce "Invia feedback" nelle Impostazioni.
-- Aggiungere una GitHub Action che lancia `flutter analyze` + `flutter test` a
-  ogni push.
-- Scrivere una bozza di descrizione breve/lunga per lo Store.
+- ~~Implementare la voce "Invia feedback" nelle Impostazioni.~~ ✅ fatto
+  (mailto precompilato con versione app + piattaforma, `store/listing.it.md`
+  ha anche il conteggio analytics dell'evento)
+- ~~Aggiungere una GitHub Action che lancia `flutter analyze` + `flutter test`
+  a ogni push.~~ ✅ fatto — `.github/workflows/ci.yml`. Nota: `ALG-T06`
+  (test di performance a tempo) può occasionalmente fallire da solo sotto
+  carico — non è un bug della CI, è intermittenza nota di quel test.
+- ~~Scrivere una bozza di descrizione breve/lunga per lo Store.~~ ✅ fatto —
+  `store/listing.it.md`, aggiornata per il lancio gratuito (niente prezzo).

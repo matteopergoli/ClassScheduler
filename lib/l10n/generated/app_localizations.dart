@@ -2015,6 +2015,24 @@ abstract class AppLocalizations {
   /// **'Contact support'**
   String get contactSupport;
 
+  /// No description provided for @sendFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Send feedback'**
+  String get sendFeedback;
+
+  /// No description provided for @feedbackEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'ClassScheduler feedback (v{version})'**
+  String feedbackEmailSubject(String version);
+
+  /// No description provided for @feedbackEmailBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the problem or suggestion here:\n\n\n---\nApp version: {version}\nPlatform: {platform}'**
+  String feedbackEmailBody(String version, String platform);
+
   /// No description provided for @selectLanguage.
   ///
   /// In en, this message translates to:

@@ -68,6 +68,13 @@ class AnalyticsService {
         ),
       );
 
+  /// Beta feedback channel (§5.3 of GUIDA_PASSO_PASSO.it.md) — lets us see
+  /// how often testers actually reach out, separate from support emails that
+  /// arrive without this event (e.g. replies, or emails sent outside the app).
+  Future<void> logFeedbackTapped() => _safeLog(
+        () => _analytics.logEvent(name: 'feedback_tapped'),
+      );
+
   /// Analytics is instrumentation, never allowed to break the feature it's
   /// observing — swallow any failure (e.g. no network) silently.
   Future<void> _safeLog(Future<void> Function() call) async {

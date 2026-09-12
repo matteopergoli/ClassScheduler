@@ -1082,6 +1082,19 @@ class AppLocalizationsIt extends AppLocalizations {
   String get contactSupport => 'Contatta l\'assistenza';
 
   @override
+  String get sendFeedback => 'Invia feedback';
+
+  @override
+  String feedbackEmailSubject(String version) {
+    return 'Feedback ClassScheduler (v$version)';
+  }
+
+  @override
+  String feedbackEmailBody(String version, String platform) {
+    return 'Descrivi qui il problema o il suggerimento:\n\n\n---\nVersione app: $version\nPiattaforma: $platform';
+  }
+
+  @override
   String get selectLanguage => 'Seleziona la lingua';
 
   @override

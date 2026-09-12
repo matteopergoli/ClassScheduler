@@ -1,5 +1,8 @@
 // lib/presentation/settings/settings_screen.dart
 
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -83,6 +86,12 @@ class SettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
             _SectionHeader(title: l10n.supportSection, colors: colors),
+            _SettingTile(
+              label: l10n.sendFeedback,
+              icon: Icons.feedback_outlined,
+              colors: colors,
+              onTap: () => _sendFeedback(context, ref),
+            ),
             _SettingTile(
               label: l10n.contactSupport,
               icon: Icons.help_outline_rounded,
@@ -170,6 +179,27 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Future<void> _sendFeedback(BuildContext context, WidgetRef ref) async {
+    ref.read(analyticsServiceProvider).logFeedbackTapped();
+    final l10n = AppLocalizations.of(context);
+    final platform = kIsWeb
+        ? 'web'
+        : Platform.isAndroid
+            ? 'Android'
+            : Platform.isIOS
+                ? 'iOS'
+                : Platform.operatingSystem;
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'pergolimatteo@gmail.com',
+      query: Uri(queryParameters: {
+        'subject': l10n.feedbackEmailSubject(AppConstants.appVersion),
+        'body': l10n.feedbackEmailBody(AppConstants.appVersion, platform),
+      }).query,
+    );
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 

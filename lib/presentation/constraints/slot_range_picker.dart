@@ -57,9 +57,12 @@ class SlotRangePicker extends StatelessWidget {
     required this.onRangeChanged,
   });
 
+  List<PeriodModel> get _orderedPeriods =>
+      [...allPeriods]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
   void _handleTap(int lessonIdx) {
     final start = startSlotIdx;
-    final end   = endSlotIdx;
+    final end = endSlotIdx ?? startSlotIdx;
     if (start == null) {
       onRangeChanged(lessonIdx, lessonIdx);
       return;
@@ -86,13 +89,13 @@ class SlotRangePicker extends StatelessWidget {
   /// since the cells alone don't show which hours they represent.
   String? get _selectionTimeLabel {
     final s = startSlotIdx;
-    final e = endSlotIdx;
+    final e = endSlotIdx ?? startSlotIdx;
     if (s == null || e == null) return null;
     final lessons =
-        allPeriods.where((p) => p.type != PeriodType.breakSlot).toList();
+        _orderedPeriods.where((p) => p.type != PeriodType.breakSlot).toList();
     if (s >= lessons.length || e >= lessons.length) return null;
     final start = lessons[s];
-    final end   = lessons[e];
+    final end = lessons[e];
     return start.id == end.id
         ? '${start.startTime}–${start.endTime}'
         : '${start.startTime}–${end.endTime}';
@@ -100,6 +103,8 @@ class SlotRangePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final orderedPeriods = _orderedPeriods;
+    final selectedEndSlotIdx = endSlotIdx ?? startSlotIdx;
     var lessonIndex = 0;
     final hasSelection = startSlotIdx != null;
 
@@ -107,10 +112,10 @@ class SlotRangePicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: allPeriods.asMap().entries.map((entry) {
-            final i      = entry.key;
+          children: orderedPeriods.asMap().entries.map((entry) {
+            final i = entry.key;
             final period = entry.value;
-            final isLast = i == allPeriods.length - 1;
+            final isLast = i == orderedPeriods.length - 1;
 
             if (period.type == PeriodType.breakSlot) {
               return Expanded(
@@ -118,17 +123,19 @@ class SlotRangePicker extends StatelessWidget {
                   padding: EdgeInsets.only(right: isLast ? 0 : 3),
                   child: _SlotCell(
                     isBreak: true,
-                    state:   _CellState.normal,
-                    colors:  colors,
-                    onTap:   null,
+                    state: _CellState.normal,
+                    colors: colors,
+                    onTap: null,
                   ),
                 ),
               );
             }
 
             final myIndex = lessonIndex++;
-            final inRange = startSlotIdx != null && endSlotIdx != null &&
-                myIndex >= startSlotIdx! && myIndex <= endSlotIdx!;
+            final inRange = startSlotIdx != null &&
+                selectedEndSlotIdx != null &&
+                myIndex >= startSlotIdx! &&
+                myIndex <= selectedEndSlotIdx;
             final disabled =
                 disabledLessonIndices.contains(myIndex) && !inRange;
             final state = inRange
@@ -142,14 +149,15 @@ class SlotRangePicker extends StatelessWidget {
                 padding: EdgeInsets.only(right: isLast ? 0 : 3),
                 child: Tooltip(
                   message: disabled
-                      ? (disabledReasons[myIndex] ?? AppLocalizations.of(context).notAvailable)
+                      ? (disabledReasons[myIndex] ??
+                          AppLocalizations.of(context).notAvailable)
                       : '${period.startTime}–${period.endTime}',
                   waitDuration: const Duration(milliseconds: 500),
                   child: _SlotCell(
                     isBreak: false,
-                    state:   state,
-                    colors:  colors,
-                    onTap:   disabled ? null : () => _handleTap(myIndex),
+                    state: state,
+                    colors: colors,
+                    onTap: disabled ? null : () => _handleTap(myIndex),
                   ),
                 ),
               ),
@@ -200,26 +208,32 @@ class _SlotCell extends StatelessWidget {
     required this.onTap,
   });
 
-  final bool          isBreak;
-  final _CellState    state;
-  final AppColors     colors;
+  final bool isBreak;
+  final _CellState state;
+  final AppColors colors;
   final VoidCallback? onTap;
 
   Color get _bg {
     if (isBreak) return colors.warning.withOpacity(0.22);
     switch (state) {
-      case _CellState.selected: return colors.primary.withOpacity(0.28);
-      case _CellState.disabled: return colors.textDisabled.withOpacity(0.15);
-      case _CellState.normal:   return colors.borderSubtle;
+      case _CellState.selected:
+        return colors.primary.withOpacity(0.28);
+      case _CellState.disabled:
+        return colors.textDisabled.withOpacity(0.15);
+      case _CellState.normal:
+        return colors.borderSubtle;
     }
   }
 
   Color get _border {
     if (isBreak) return colors.warning.withOpacity(0.35);
     switch (state) {
-      case _CellState.selected: return colors.primary.withOpacity(0.45);
-      case _CellState.disabled: return colors.textDisabled.withOpacity(0.35);
-      case _CellState.normal:   return colors.borderDefault;
+      case _CellState.selected:
+        return colors.primary.withOpacity(0.45);
+      case _CellState.disabled:
+        return colors.textDisabled.withOpacity(0.35);
+      case _CellState.normal:
+        return colors.borderDefault;
     }
   }
 
@@ -229,12 +243,12 @@ class _SlotCell extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 130),
-        curve:    Curves.easeOut,
-        height:   28,
+        curve: Curves.easeOut,
+        height: 28,
         decoration: BoxDecoration(
-          color:        _bg,
+          color: _bg,
           borderRadius: BorderRadius.circular(4),
-          border:       Border.all(color: _border, width: 0.5),
+          border: Border.all(color: _border, width: 0.5),
         ),
       ),
     );

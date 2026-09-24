@@ -278,23 +278,30 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get teacherNameOptional => 'Teacher name (optional)';
+
   @override
   String get maxDailyTeacherHours => 'Maximum quotidien de l\'enseignant';
+
   @override
   String get maxDailyTeacherHoursHelp =>
       '0 = aucune limite ; s\'applique à toutes les classes et matières de cet enseignant';
-    @override
-    String get minDailyTeacherHours => 'Minimum quotidien de l\'enseignant';
-    @override
-    String get dailyTeacherHoursHelp =>
+
+  @override
+  String get minDailyTeacherHours => 'Minimum quotidien de l\'enseignant';
+
+  @override
+  String get dailyTeacherHoursHelp =>
       'Valeurs globales pour toutes les classes ; 0/vide = aucune limite';
-      @override
-      String get minWeeklyTeacherHours => 'Minimum hebdomadaire de la matière';
-      @override
-      String get maxWeeklyTeacherHours => 'Maximum hebdomadaire de la matière';
-      @override
-      String get weeklyTeacherHoursHelp =>
-        'Limites globales de la matière ; 0/vide = aucune limite';
+
+  @override
+  String get minWeeklyTeacherHours => 'Minimum hebdomadaire de la matière';
+
+  @override
+  String get maxWeeklyTeacherHours => 'Maximum hebdomadaire de la matière';
+
+  @override
+  String get weeklyTeacherHoursHelp =>
+      'Limites globales de la matière ; 0/vide = aucune limite';
 
   @override
   String get colour => 'Couleur';

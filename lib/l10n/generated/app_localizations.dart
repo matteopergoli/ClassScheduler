@@ -577,12 +577,47 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Teacher name (optional)'**
   String get teacherNameOptional;
+
+  /// No description provided for @maxDailyTeacherHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher daily maximum'**
   String get maxDailyTeacherHours;
+
+  /// No description provided for @maxDailyTeacherHoursHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'0 = no limit; applies across all classrooms and subjects taught by this teacher'**
   String get maxDailyTeacherHoursHelp;
+
+  /// No description provided for @minDailyTeacherHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher daily minimum'**
   String get minDailyTeacherHours;
+
+  /// No description provided for @dailyTeacherHoursHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Global values across all classrooms; 0/blank = no limit'**
   String get dailyTeacherHoursHelp;
+
+  /// No description provided for @minWeeklyTeacherHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject weekly minimum'**
   String get minWeeklyTeacherHours;
+
+  /// No description provided for @maxWeeklyTeacherHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject weekly maximum'**
   String get maxWeeklyTeacherHours;
+
+  /// No description provided for @weeklyTeacherHoursHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Global subject limits; 0/blank = no limit'**
   String get weeklyTeacherHoursHelp;
 
   /// No description provided for @colour.

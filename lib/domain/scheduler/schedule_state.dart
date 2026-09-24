@@ -31,6 +31,9 @@ class ScheduleState {
   // Flat array indexed by c*D + d
   late final List<int> _dailyClassroomCount;
 
+  // Global teacher lessons per day, across all classrooms and subjects.
+  late final List<int> _dailyTeacherCount;
+
   // ── Remaining demand per (c, s) pair ──────────────────────────────────
   late final List<int> _remaining; // c*S + s
 
@@ -52,6 +55,7 @@ class ScheduleState {
 
     _dailySubjectCount = List.filled(_C * _S * _D, 0);
     _dailyClassroomCount = List.filled(_C * _D, 0);
+    _dailyTeacherCount = List.filled(input.teacherNames.length * _D, 0);
 
     _remaining = List.generate(
       _C * _S,
@@ -72,6 +76,7 @@ class ScheduleState {
     copy._teacherSlotMap.addAll(_teacherSlotMap);
     copy._dailySubjectCount.setAll(0, _dailySubjectCount);
     copy._dailyClassroomCount.setAll(0, _dailyClassroomCount);
+    copy._dailyTeacherCount.setAll(0, _dailyTeacherCount);
     copy._remaining.setAll(0, _remaining);
     return copy;
   }
@@ -88,6 +93,7 @@ class ScheduleState {
 
   int _dscIdx(int c, int s, int d) => c * _S * _D + s * _D + d;
   int _dccIdx(int c, int d)        => c * _D + d;
+  int _dtcIdx(int t, int d)        => t * _D + d;
   int _remIdx(int c, int s)        => c * _S + s;
 
   // ── Accessors ──────────────────────────────────────────────────────────
@@ -97,6 +103,8 @@ class ScheduleState {
 
   int dailyClassroomCount(int c, int d) =>
       _dailyClassroomCount[_dccIdx(c, d)];
+
+  int dailyTeacherCount(int t, int d) => _dailyTeacherCount[_dtcIdx(t, d)];
 
   int remaining(int c, int s) => _remaining[_remIdx(c, s)];
 
@@ -121,6 +129,7 @@ class ScheduleState {
 
     _dailySubjectCount[_dscIdx(c, s, d)]++;
     _dailyClassroomCount[_dccIdx(c, d)]++;
+    _dailyTeacherCount[_dtcIdx(t, d)]++;
     _remaining[_remIdx(c, s)]--;
   }
 
@@ -136,6 +145,7 @@ class ScheduleState {
 
     _dailySubjectCount[_dscIdx(c, s, d)]--;
     _dailyClassroomCount[_dccIdx(c, d)]--;
+    _dailyTeacherCount[_dtcIdx(t, d)]--;
     _remaining[_remIdx(c, s)]++;
   }
 
@@ -145,6 +155,29 @@ class ScheduleState {
   bool checkHC1(int s, int d, int l) {
     final t = input.teacherOf[s];
     return isTeacherFree(t, d, l);
+  }
+
+  /// Global maximum lessons for this teacher on day d.
+  bool checkTeacherDailyLimit(int s, int d) {
+    final t = input.teacherOf[s];
+    final max = input.maxDailyTeacher.isEmpty ? 0 : input.maxDailyTeacher[t];
+    return max == 0 || dailyTeacherCount(t, d) < max;
+  }
+
+  /// Global minimum lessons for this teacher on day d: zero or at least min.
+  bool satisfiesTeacherMinDaily(int t, int d) {
+    final min = input.minDailyTeacher.isEmpty ? 0 : input.minDailyTeacher[t];
+    final count = dailyTeacherCount(t, d);
+    return min == 0 || count == 0 || count >= min;
+  }
+
+  bool satisfiesAllTeacherMinDaily() {
+    for (var t = 0; t < input.teacherNames.length; t++) {
+      for (var d = 0; d < _D; d++) {
+        if (!satisfiesTeacherMinDaily(t, d)) return false;
+      }
+    }
+    return true;
   }
 
   /// HC-2: classroom c not over daily capacity after +1 on day d?
@@ -205,6 +238,7 @@ class ScheduleState {
     if (isBlocked(c, d, l))    return false; // slot blocked by user
     if (!checkHC8(c, d, l))    return false; // slot occupied
     if (!checkHC1(s, d, l))    return false; // teacher conflict
+    if (!checkTeacherDailyLimit(s, d)) return false; // global teacher daily cap
     if (!checkHC2(c, d))       return false; // daily capacity
     if (!checkHC4(c, s, d))    return false; // max daily
     if (!checkHC6(c, s, d, l)) return false; // must-assign

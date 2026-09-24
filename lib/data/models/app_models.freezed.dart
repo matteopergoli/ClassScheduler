@@ -1230,6 +1230,14 @@ mixin _$SubjectModel {
   String get teacherName => throw _privateConstructorUsedError;
   String? get teacherId =>
       throw _privateConstructorUsedError; // null in v1.0; FK to Teacher collection in v2.0
+    int get minWeeklyTeacherHours =>
+      throw _privateConstructorUsedError; // 0 = disabled
+    int get maxWeeklyTeacherHours =>
+      throw _privateConstructorUsedError; // 0 = disabled
+    int get minDailyTeacherHours =>
+      throw _privateConstructorUsedError; // 0 = disabled
+  int get maxDailyTeacherHours =>
+      throw _privateConstructorUsedError; // 0 = disabled
   String get colourHex => throw _privateConstructorUsedError;
 
   /// Serializes this SubjectModel to a JSON map.
@@ -1254,6 +1262,10 @@ abstract class $SubjectModelCopyWith<$Res> {
       String name,
       String teacherName,
       String? teacherId,
+      int minWeeklyTeacherHours,
+      int maxWeeklyTeacherHours,
+      int minDailyTeacherHours,
+      int maxDailyTeacherHours,
       String colourHex});
 }
 
@@ -1277,6 +1289,10 @@ class _$SubjectModelCopyWithImpl<$Res, $Val extends SubjectModel>
     Object? name = null,
     Object? teacherName = null,
     Object? teacherId = freezed,
+    Object? minWeeklyTeacherHours = null,
+    Object? maxWeeklyTeacherHours = null,
+    Object? minDailyTeacherHours = null,
+    Object? maxDailyTeacherHours = null,
     Object? colourHex = null,
   }) {
     return _then(_value.copyWith(
@@ -1300,6 +1316,22 @@ class _$SubjectModelCopyWithImpl<$Res, $Val extends SubjectModel>
           ? _value.teacherId
           : teacherId // ignore: cast_nullable_to_non_nullable
               as String?,
+              minWeeklyTeacherHours: null == minWeeklyTeacherHours
+                ? _value.minWeeklyTeacherHours
+                : minWeeklyTeacherHours // ignore: cast_nullable_to_non_nullable
+                  as int,
+              maxWeeklyTeacherHours: null == maxWeeklyTeacherHours
+                ? _value.maxWeeklyTeacherHours
+                : maxWeeklyTeacherHours // ignore: cast_nullable_to_non_nullable
+                  as int,
+              minDailyTeacherHours: null == minDailyTeacherHours
+              ? _value.minDailyTeacherHours
+              : minDailyTeacherHours // ignore: cast_nullable_to_non_nullable
+                as int,
+      maxDailyTeacherHours: null == maxDailyTeacherHours
+          ? _value.maxDailyTeacherHours
+          : maxDailyTeacherHours // ignore: cast_nullable_to_non_nullable
+              as int,
       colourHex: null == colourHex
           ? _value.colourHex
           : colourHex // ignore: cast_nullable_to_non_nullable
@@ -1322,6 +1354,10 @@ abstract class _$$SubjectModelImplCopyWith<$Res>
       String name,
       String teacherName,
       String? teacherId,
+      int minWeeklyTeacherHours,
+      int maxWeeklyTeacherHours,
+      int minDailyTeacherHours,
+      int maxDailyTeacherHours,
       String colourHex});
 }
 
@@ -1343,6 +1379,10 @@ class __$$SubjectModelImplCopyWithImpl<$Res>
     Object? name = null,
     Object? teacherName = null,
     Object? teacherId = freezed,
+    Object? minWeeklyTeacherHours = null,
+    Object? maxWeeklyTeacherHours = null,
+    Object? minDailyTeacherHours = null,
+    Object? maxDailyTeacherHours = null,
     Object? colourHex = null,
   }) {
     return _then(_$SubjectModelImpl(
@@ -1366,6 +1406,22 @@ class __$$SubjectModelImplCopyWithImpl<$Res>
           ? _value.teacherId
           : teacherId // ignore: cast_nullable_to_non_nullable
               as String?,
+              minWeeklyTeacherHours: null == minWeeklyTeacherHours
+                ? _value.minWeeklyTeacherHours
+                : minWeeklyTeacherHours // ignore: cast_nullable_to_non_nullable
+                  as int,
+              maxWeeklyTeacherHours: null == maxWeeklyTeacherHours
+                ? _value.maxWeeklyTeacherHours
+                : maxWeeklyTeacherHours // ignore: cast_nullable_to_non_nullable
+                  as int,
+              minDailyTeacherHours: null == minDailyTeacherHours
+              ? _value.minDailyTeacherHours
+              : minDailyTeacherHours // ignore: cast_nullable_to_non_nullable
+                as int,
+      maxDailyTeacherHours: null == maxDailyTeacherHours
+          ? _value.maxDailyTeacherHours
+          : maxDailyTeacherHours // ignore: cast_nullable_to_non_nullable
+              as int,
       colourHex: null == colourHex
           ? _value.colourHex
           : colourHex // ignore: cast_nullable_to_non_nullable
@@ -1383,6 +1439,10 @@ class _$SubjectModelImpl implements _SubjectModel {
       required this.name,
       required this.teacherName,
       this.teacherId,
+  this.minWeeklyTeacherHours = 0,
+  this.maxWeeklyTeacherHours = 0,
+      this.minDailyTeacherHours = 0,
+      this.maxDailyTeacherHours = 0,
       required this.colourHex});
 
   factory _$SubjectModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -1400,11 +1460,27 @@ class _$SubjectModelImpl implements _SubjectModel {
   final String? teacherId;
 // null in v1.0; FK to Teacher collection in v2.0
   @override
+  @JsonKey()
+  final int minWeeklyTeacherHours;
+// 0 = disabled
+  @override
+  @JsonKey()
+  final int maxWeeklyTeacherHours;
+// 0 = disabled
+  @override
+  @JsonKey()
+  final int minDailyTeacherHours;
+// 0 = disabled
+  @override
+  @JsonKey()
+  final int maxDailyTeacherHours;
+// 0 = disabled
+  @override
   final String colourHex;
 
   @override
   String toString() {
-    return 'SubjectModel(id: $id, schoolId: $schoolId, name: $name, teacherName: $teacherName, teacherId: $teacherId, colourHex: $colourHex)';
+    return 'SubjectModel(id: $id, schoolId: $schoolId, name: $name, teacherName: $teacherName, teacherId: $teacherId, minWeeklyTeacherHours: $minWeeklyTeacherHours, maxWeeklyTeacherHours: $maxWeeklyTeacherHours, minDailyTeacherHours: $minDailyTeacherHours, maxDailyTeacherHours: $maxDailyTeacherHours, colourHex: $colourHex)';
   }
 
   @override
@@ -1420,14 +1496,23 @@ class _$SubjectModelImpl implements _SubjectModel {
                 other.teacherName == teacherName) &&
             (identical(other.teacherId, teacherId) ||
                 other.teacherId == teacherId) &&
+            (identical(other.minWeeklyTeacherHours, minWeeklyTeacherHours) ||
+              other.minWeeklyTeacherHours == minWeeklyTeacherHours) &&
+            (identical(other.maxWeeklyTeacherHours, maxWeeklyTeacherHours) ||
+              other.maxWeeklyTeacherHours == maxWeeklyTeacherHours) &&
+            (identical(other.minDailyTeacherHours, minDailyTeacherHours) ||
+              other.minDailyTeacherHours == minDailyTeacherHours) &&
+            (identical(other.maxDailyTeacherHours, maxDailyTeacherHours) ||
+                other.maxDailyTeacherHours == maxDailyTeacherHours) &&
             (identical(other.colourHex, colourHex) ||
                 other.colourHex == colourHex));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, id, schoolId, name, teacherName, teacherId, colourHex);
+  int get hashCode => Object.hash(runtimeType, id, schoolId, name, teacherName,
+      teacherId, minWeeklyTeacherHours, maxWeeklyTeacherHours,
+      minDailyTeacherHours, maxDailyTeacherHours, colourHex);
 
   /// Create a copy of SubjectModel
   /// with the given fields replaced by the non-null parameter values.
@@ -1452,6 +1537,10 @@ abstract class _SubjectModel implements SubjectModel {
       required final String name,
       required final String teacherName,
       final String? teacherId,
+      final int minWeeklyTeacherHours,
+      final int maxWeeklyTeacherHours,
+      final int minDailyTeacherHours,
+      final int maxDailyTeacherHours,
       required final String colourHex}) = _$SubjectModelImpl;
 
   factory _SubjectModel.fromJson(Map<String, dynamic> json) =
@@ -1467,6 +1556,14 @@ abstract class _SubjectModel implements SubjectModel {
   String get teacherName;
   @override
   String? get teacherId; // null in v1.0; FK to Teacher collection in v2.0
+  @override
+  int get minWeeklyTeacherHours; // 0 = disabled
+  @override
+  int get maxWeeklyTeacherHours; // 0 = disabled
+  @override
+  int get minDailyTeacherHours; // 0 = disabled
+  @override
+  int get maxDailyTeacherHours; // 0 = disabled
   @override
   String get colourHex;
 

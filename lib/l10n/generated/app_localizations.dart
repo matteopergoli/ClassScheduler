@@ -577,6 +577,13 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Teacher name (optional)'**
   String get teacherNameOptional;
+  String get maxDailyTeacherHours;
+  String get maxDailyTeacherHoursHelp;
+  String get minDailyTeacherHours;
+  String get dailyTeacherHoursHelp;
+  String get minWeeklyTeacherHours;
+  String get maxWeeklyTeacherHours;
+  String get weeklyTeacherHoursHelp;
 
   /// No description provided for @colour.
   ///

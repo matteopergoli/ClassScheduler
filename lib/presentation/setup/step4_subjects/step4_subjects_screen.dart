@@ -579,6 +579,8 @@ class _SubjectFormSheet extends ConsumerStatefulWidget {
 class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
   late TextEditingController _nameCtrl;
   late TextEditingController _teacherCtrl;
+  late TextEditingController _minWeeklyTeacherCtrl;
+  late TextEditingController _maxWeeklyTeacherCtrl;
   late Color _selectedColor;
   bool _saving = false;
 
@@ -605,6 +607,10 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
     _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
     _teacherCtrl =
         TextEditingController(text: widget.existing?.teacherName ?? '');
+    _minWeeklyTeacherCtrl = TextEditingController(
+      text: '${widget.existing?.minWeeklyTeacherHours ?? 0}');
+    _maxWeeklyTeacherCtrl = TextEditingController(
+      text: '${widget.existing?.maxWeeklyTeacherHours ?? 0}');
     // Rebuild on every keystroke so the Save button enable-state stays in sync.
     _nameCtrl.addListener(_onTextChanged);
     _teacherCtrl.addListener(_onTextChanged);
@@ -626,11 +632,19 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
     _teacherCtrl.removeListener(_onTextChanged);
     _nameCtrl.dispose();
     _teacherCtrl.dispose();
+    _minWeeklyTeacherCtrl.dispose();
+    _maxWeeklyTeacherCtrl.dispose();
     super.dispose();
   }
 
   String get _colorHex =>
       '#${_selectedColor.value.toRadixString(16).substring(2).toUpperCase()}';
+
+  bool get _weeklyTeacherRangeInvalid {
+    final min = int.tryParse(_minWeeklyTeacherCtrl.text) ?? 0;
+    final max = int.tryParse(_maxWeeklyTeacherCtrl.text) ?? 0;
+    return max > 0 && min > max;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -652,6 +666,40 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
             controller: _teacherCtrl,
             label: l10n.teacherNameOptional,
           ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _NumericField(
+                  controller: _minWeeklyTeacherCtrl,
+                  label: l10n.minWeeklyTeacherHours,
+                  hint: '0',
+                  onChanged: (_) => setState(() {}),
+                  colors: colors,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _NumericField(
+                  controller: _maxWeeklyTeacherCtrl,
+                  label: l10n.maxWeeklyTeacherHours,
+                  hint: '0',
+                  onChanged: (_) => setState(() {}),
+                  colors: colors,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(l10n.weeklyTeacherHoursHelp,
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: colors.textDisabled)),
+            if (_weeklyTeacherRangeInvalid) ...[
+            const SizedBox(height: 6),
+            Text(l10n.validationMinGtMax,
+              style: AppTextStyles.bodySmall
+                .copyWith(color: colors.error)),
+            ],
           const SizedBox(height: 18),
 
           // Colour picker
@@ -705,6 +753,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
 
   Future<void> _save() async {
     if (_saving) return;
+    if (_weeklyTeacherRangeInvalid) return;
     setState(() => _saving = true);
     final uid = ref.read(currentUserProvider)!.uid;
     final subject = SubjectModel(
@@ -712,6 +761,10 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
       schoolId: widget.schoolId,
       name: _nameCtrl.text.trim(),
       teacherName: _teacherCtrl.text.trim(),
+      minWeeklyTeacherHours: int.tryParse(_minWeeklyTeacherCtrl.text) ?? 0,
+      maxWeeklyTeacherHours: int.tryParse(_maxWeeklyTeacherCtrl.text) ?? 0,
+      minDailyTeacherHours: widget.existing?.minDailyTeacherHours ?? 0,
+      maxDailyTeacherHours: widget.existing?.maxDailyTeacherHours ?? 0,
       colourHex: _colorHex,
     );
     await SubjectRepository(uid: uid, schoolId: widget.schoolId).save(subject);
@@ -725,7 +778,7 @@ class _SubjectFormSheetState extends ConsumerState<_SubjectFormSheet> {
 }
 
 // ── Assignment form sheet ─────────────────────────────────────────────────────
-// Lets the user set weeklyTarget only for one classroom–subject assignment.
+// Lets the user set the weekly target and the global teacher daily maximum.
 // Daily min/max limits are managed in the Constraints workflow instead.
 
 class _AssignmentFormSheet extends ConsumerStatefulWidget {
@@ -752,6 +805,8 @@ class _AssignmentFormSheet extends ConsumerStatefulWidget {
 
 class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
   late TextEditingController _weeklyCtrl;
+  late TextEditingController _minDailyTeacherCtrl;
+  late TextEditingController _maxDailyTeacherCtrl;
 
   List<String> _errors = [];
   bool _saving = false;
@@ -761,11 +816,17 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
     super.initState();
     _weeklyCtrl = TextEditingController(
         text: '${widget.existing?.weeklyTargetHours ?? 1}');
+    _minDailyTeacherCtrl = TextEditingController(
+      text: '${widget.subject.minDailyTeacherHours}');
+    _maxDailyTeacherCtrl = TextEditingController(
+      text: '${widget.subject.maxDailyTeacherHours}');
   }
 
   @override
   void dispose() {
     _weeklyCtrl.dispose();
+    _minDailyTeacherCtrl.dispose();
+    _maxDailyTeacherCtrl.dispose();
     super.dispose();
   }
 
@@ -780,6 +841,8 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
       activeDayCount: widget.activeDays.length,
       totalLessonSlots: widget.totalSlots,
     );
+    final minTeacher = int.tryParse(_minDailyTeacherCtrl.text) ?? 0;
+    final maxTeacher = int.tryParse(_maxDailyTeacherCtrl.text) ?? 0;
 
     setState(() {
       _errors = result.errors.map((e) {
@@ -799,6 +862,9 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
             return '';
         }
       }).toList();
+      if (maxTeacher > 0 && minTeacher > maxTeacher) {
+        _errors.add(l10n.validationMinGtMax);
+      }
     });
   }
 
@@ -866,7 +932,33 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
           ),
           const SizedBox(height: 14),
 
-          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _NumericField(
+                  controller: _minDailyTeacherCtrl,
+                  label: l10n.minDailyTeacherHours,
+                  hint: '0',
+                  onChanged: (_) => _validate(),
+                  colors: colors,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _NumericField(
+                  controller: _maxDailyTeacherCtrl,
+                  label: l10n.maxDailyTeacherHours,
+                  hint: '0',
+                  onChanged: (_) => _validate(),
+                  colors: colors,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(l10n.dailyTeacherHoursHelp,
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: colors.textDisabled)),
 
           // Validation errors
           if (_errors.isNotEmpty)
@@ -921,6 +1013,12 @@ class _AssignmentFormSheetState extends ConsumerState<_AssignmentFormSheet> {
     final uid = ref.read(currentUserProvider)!.uid;
     final repo =
         ClassroomSubjectRepository(uid: uid, schoolId: widget.school.id);
+    await SubjectRepository(uid: uid, schoolId: widget.school.id).save(
+      widget.subject.copyWith(
+        minDailyTeacherHours: int.tryParse(_minDailyTeacherCtrl.text) ?? 0,
+        maxDailyTeacherHours: int.tryParse(_maxDailyTeacherCtrl.text) ?? 0,
+      ),
+    );
     final cs = ClassroomSubjectModel(
       id: widget.existing?.id ?? const Uuid().v4(),
       classroomId: widget.classroom.id,

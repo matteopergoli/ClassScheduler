@@ -92,3 +92,5 @@ x	fai screenshot per google e carica nuovo aab aggiornato
 
 
 Open:
+O	quando editi a mano lo schedule, l'app deve aggiornare il check dei vincoli e dare i messaggi di violazione
+O	nei vincoli compaiono anche i giorni che sono disattivati (sabato e domenica)

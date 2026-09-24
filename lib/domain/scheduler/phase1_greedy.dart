@@ -430,6 +430,22 @@ class Phase1Greedy {
           }
         }
 
+        final teacher = _input.teacherOf[s];
+        final teacherMin = _input.minDailyTeacher.isEmpty
+            ? 0
+            : _input.minDailyTeacher[teacher];
+        if (teacherMin > 0) {
+          state.assign(c, s, d, l);
+          final countNow = state.dailyTeacherCount(teacher, d);
+          if (!state.satisfiesTeacherMinDaily(teacher, d)) {
+            final freeOnDay = _countRawTeacherFreeSlotsOnDay(state, teacher, d);
+            state.remove(c, d, l);
+            if (teacherMin - countNow > freeOnDay) continue;
+          } else {
+            state.remove(c, d, l);
+          }
+        }
+
         var score = 0.0;
         final dayCount = state.dailySubjectCount(c, s, d);
 
@@ -498,10 +514,27 @@ class Phase1Greedy {
       if (_input.isBlocked(c, d, l))   continue;
       if (!state.checkHC8(c, d, l))    continue; // slot must be free
       if (!state.checkHC1(s, d, l))    continue; // teacher must be free
+      if (!state.checkTeacherDailyLimit(s, d)) continue; // global teacher cap
       if (!state.checkHC2(c, d))       continue; // classroom daily capacity
       if (!state.checkHC4(c, s, d))    continue; // max daily
       if (!state.checkHC7(c, s, d, l)) continue; // must-not-assign
       count++;
+    }
+    return count;
+  }
+
+  int _countRawTeacherFreeSlotsOnDay(
+      ScheduleState state, int teacher, int d) {
+    var count = 0;
+    for (var c = 0; c < _input.numClassrooms; c++) {
+      for (var s = 0; s < _input.numSubjects; s++) {
+        if (_input.teacherOf[s] != teacher || !state.hasRemaining(c, s)) {
+          continue;
+        }
+        for (var l = 0; l < _input.numSlots; l++) {
+          if (state.canPlace(c, s, d, l)) count++;
+        }
+      }
     }
     return count;
   }

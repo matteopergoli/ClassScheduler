@@ -50,11 +50,15 @@ class IntegrityChecker {
 
     // weeklyCount[c][s] = total lessons assigned
     final weeklyCount = List.generate(C, (_) => List<int>.filled(S, 0));
+    final weeklySubjectCount = List<int>.filled(S, 0);
     // dailyCount[c][s][d] = lessons on that day
     final dailyCount  = List.generate(
         C, (_) => List.generate(S, (_) => List<int>.filled(D, 0)));
     // dailyTotal[c][d] = total lessons in classroom on that day
     final dailyTotal  = List.generate(C, (_) => List<int>.filled(D, 0));
+    // dailyTeacherCount[t][d] = lessons for a teacher across all classrooms
+    final dailyTeacherCount = List.generate(
+      _input.teacherNames.length, (_) => List<int>.filled(D, 0));
 
     for (var c = 0; c < C; c++) {
       for (var d = 0; d < D; d++) {
@@ -72,8 +76,10 @@ class IntegrityChecker {
           }
 
           weeklyCount[c][s]++;
+          weeklySubjectCount[s]++;
           dailyCount[c][s][d]++;
           dailyTotal[c][d]++;
+          dailyTeacherCount[_input.teacherOf[s]][d]++;
 
           // HC-1: teacher conflict
           final t   = _input.teacherOf[s];
@@ -104,6 +110,61 @@ class IntegrityChecker {
                   'but a MUST-NOT-ASSIGN constraint forbids it.',
             ));
           }
+        }
+      }
+    }
+
+    // ── Global weekly limits per subject ──────────────────────────────────
+    for (var s = 0; s < S; s++) {
+      final min = _input.minWeeklySubject.isEmpty
+          ? 0
+          : _input.minWeeklySubject[s];
+      final max = _input.maxWeeklySubject.isEmpty
+          ? 0
+          : _input.maxWeeklySubject[s];
+      if (min > 0 && weeklySubjectCount[s] < min) {
+        violations.add(IntegrityViolation(
+          rule: 'HC-11',
+          description:
+              'Subject "${_input.subjectNames[s]}" has '
+              '${weeklySubjectCount[s]} lessons per week, below the global '
+              'weekly minimum $min.',
+        ));
+      }
+      if (max > 0 && weeklySubjectCount[s] > max) {
+        violations.add(IntegrityViolation(
+          rule: 'HC-12',
+          description:
+              'Subject "${_input.subjectNames[s]}" has '
+              '${weeklySubjectCount[s]} lessons per week, exceeding the global '
+              'weekly maximum $max.',
+        ));
+      }
+    }
+
+    // ── Global teacher daily limits ───────────────────────────────────────
+    for (var t = 0; t < _input.teacherNames.length; t++) {
+      final min = _input.minDailyTeacher.isEmpty ? 0 : _input.minDailyTeacher[t];
+      final max = _input.maxDailyTeacher.isEmpty ? 0 : _input.maxDailyTeacher[t];
+      for (var d = 0; d < D; d++) {
+        if (min > 0 && dailyTeacherCount[t][d] > 0 &&
+            dailyTeacherCount[t][d] < min) {
+          violations.add(IntegrityViolation(
+            rule: 'HC-10',
+            description:
+                'Teacher "${_input.teacherNames[t]}" has '
+                '${dailyTeacherCount[t][d]} lessons on ${_input.dayNames[d]}, '
+                'below the global daily minimum $min.',
+          ));
+        }
+        if (max > 0 && dailyTeacherCount[t][d] > max) {
+          violations.add(IntegrityViolation(
+            rule: 'HC-9',
+            description:
+                'Teacher "${_input.teacherNames[t]}" has '
+                '${dailyTeacherCount[t][d]} lessons on ${_input.dayNames[d]}, '
+                'exceeding the global daily limit $max.',
+          ));
         }
       }
     }

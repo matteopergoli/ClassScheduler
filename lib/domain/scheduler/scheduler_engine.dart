@@ -129,10 +129,13 @@ class SchedulerEngine {
 
     // Only HC-1 (teacher conflict) and HC-7 (must-not-assign) are true
     // implementation bugs that must block saving.
-    // HC-2 (capacity), HC-3 (weekly target), HC-4 (max daily), HC-5 (min daily)
+    // HC-2 (capacity), HC-3 (weekly target), HC-4/5 (subject daily limits),
+    // HC-9/10 (teacher daily limits), HC-11/12 (subject weekly limits)
     // can all arise from partial solutions or over-constrained problems and are
     // surfaced to the user as regular hard violations in the result panel.
-    const _partialRules = {'HC-2', 'HC-3', 'HC-4', 'HC-5'};
+    const _partialRules = {
+      'HC-2', 'HC-3', 'HC-4', 'HC-5', 'HC-9', 'HC-10', 'HC-11', 'HC-12'
+    };
     final trueBugs = integrityResult.violations
         .where((v) => !_partialRules.contains(v.rule))
         .toList();

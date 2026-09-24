@@ -39,6 +39,16 @@ class SchedulerInput {
   // taught by the same person.
   final List<int> teacherOf; // length = numSubjects
 
+  // maxDailyTeacher[t] — global daily limit across all classrooms/subjects.
+  // 0 means disabled.
+  final List<int> minDailyTeacher;
+  final List<int> maxDailyTeacher;
+
+  // Global weekly limits for each subject entity across all classrooms.
+  // 0 means disabled. Indexed by subject.
+  final List<int> minWeeklySubject;
+  final List<int> maxWeeklySubject;
+
   // ── Weekly targets HC-3: weeklyTarget[c][s] ────────────────────────────
   // 0 means subject s is not assigned to classroom c.
   final List<List<int>> weeklyTarget;
@@ -87,6 +97,10 @@ class SchedulerInput {
     required this.subjectIds,
     required this.periodIds,
     required this.teacherOf,
+    this.minDailyTeacher = const [],
+    this.maxDailyTeacher = const [],
+    this.minWeeklySubject = const [],
+    this.maxWeeklySubject = const [],
     required this.weeklyTarget,
     required this.blockedSlots,
     required this.maxDaily,

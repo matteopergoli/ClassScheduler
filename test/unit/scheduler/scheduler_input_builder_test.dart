@@ -21,7 +21,8 @@ void main() {
   ];
   final subjects = [
     const SubjectModel(id: 'sub1', schoolId: 's', name: 'Maths',
-        teacherName: 'Alice', colourHex: '#000000'),
+      teacherName: 'Alice', minWeeklyTeacherHours: 2,
+      maxWeeklyTeacherHours: 6, colourHex: '#000000'),
   ];
   final classroomSubjects = [
     const ClassroomSubjectModel(id: 'cs1', classroomId: 'c1', subjectId: 'sub1',
@@ -51,6 +52,13 @@ void main() {
       );
 
   group('MUST_ASSIGN / MUST_NOT_ASSIGN slot ranges', () {
+    test('builds global weekly subject limits', () {
+      final input = build(const []);
+
+      expect(input.minWeeklySubject, [2]);
+      expect(input.maxWeeklySubject, [6]);
+    });
+
     test('a range pre-assigns every covered slot, not just the start', () {
       final input = build([
         const ConstraintModel(

@@ -183,6 +183,10 @@ class SubjectModel with _$SubjectModel {
     required String name,
     required String teacherName,
     String? teacherId,   // null in v1.0; FK to Teacher collection in v2.0
+    @Default(0) int minWeeklyTeacherHours, // 0 = disabled
+    @Default(0) int maxWeeklyTeacherHours, // 0 = disabled
+    @Default(0) int minDailyTeacherHours, // 0 = disabled
+    @Default(0) int maxDailyTeacherHours, // 0 = disabled
     required String colourHex, // e.g. '#6C63FF'
   }) = _SubjectModel;
 

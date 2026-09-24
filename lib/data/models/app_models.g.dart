@@ -110,6 +110,14 @@ _$SubjectModelImpl _$$SubjectModelImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       teacherName: json['teacherName'] as String,
       teacherId: json['teacherId'] as String?,
+        minWeeklyTeacherHours:
+          (json['minWeeklyTeacherHours'] as num?)?.toInt() ?? 0,
+        maxWeeklyTeacherHours:
+          (json['maxWeeklyTeacherHours'] as num?)?.toInt() ?? 0,
+        minDailyTeacherHours:
+          (json['minDailyTeacherHours'] as num?)?.toInt() ?? 0,
+      maxDailyTeacherHours:
+          (json['maxDailyTeacherHours'] as num?)?.toInt() ?? 0,
       colourHex: json['colourHex'] as String,
     );
 
@@ -120,6 +128,10 @@ Map<String, dynamic> _$$SubjectModelImplToJson(_$SubjectModelImpl instance) =>
       'name': instance.name,
       'teacherName': instance.teacherName,
       'teacherId': instance.teacherId,
+      'minWeeklyTeacherHours': instance.minWeeklyTeacherHours,
+      'maxWeeklyTeacherHours': instance.maxWeeklyTeacherHours,
+      'minDailyTeacherHours': instance.minDailyTeacherHours,
+      'maxDailyTeacherHours': instance.maxDailyTeacherHours,
       'colourHex': instance.colourHex,
     };
 

@@ -392,6 +392,10 @@ class ResultReporter {
       case 'HC-3': return 'Ensure the total weekly targets do not exceed available lesson slots. Check the feasibility estimator.';
       case 'HC-4': return 'Reduce the weekly target or increase MaxDaily for the affected subject.';
       case 'HC-5': return 'Ensure MinDaily ≤ available lessons per day for the subject. Consider setting MinDaily to 0.';
+      case 'HC-9': return 'Reduce the teacher daily maximum or adjust the classroom targets.';
+      case 'HC-10': return 'Set the teacher daily minimum to 0 or provide enough daily lessons to reach it.';
+      case 'HC-11': return 'Increase the subject targets across its classrooms or reduce the subject weekly minimum.';
+      case 'HC-12': return 'Reduce the subject targets across its classrooms or increase the subject weekly maximum.';
       case 'HC-6': return 'Check that MUST-ASSIGN slots are not blocked by other hard constraints.';
       case 'HC-7': return 'Remove conflicting MUST-NOT-ASSIGN constraints, or adjust the weekly target.';
       default:     return 'Review the constraint configuration in the Constraints screen.';

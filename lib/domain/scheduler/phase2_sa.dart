@@ -443,6 +443,7 @@ class Phase2SA {
     if (!candidate.satisfiesMinDaily(c, s2, d1)) return null;
     if (!candidate.satisfiesMinDaily(c, s2, d2)) return null;
 
+    if (!candidate.satisfiesAllTeacherMinDaily()) return null;
     return candidate;
   }
 
@@ -485,6 +486,7 @@ class Phase2SA {
     if (!candidate.satisfiesMinDaily(c, s, srcD)) return null;
     if (!candidate.satisfiesMinDaily(c, s, dstD)) return null;
 
+    if (!candidate.satisfiesAllTeacherMinDaily()) return null;
     return candidate;
   }
 
@@ -538,6 +540,7 @@ class Phase2SA {
     if (!candidate.satisfiesMinDaily(c2, s1, d)) return null;
     if (!candidate.satisfiesMinDaily(c2, s2, d)) return null;
 
+    if (!candidate.satisfiesAllTeacherMinDaily()) return null;
     return candidate;
   }
 
@@ -600,6 +603,7 @@ class Phase2SA {
     // HC-5: destination day after addition
     if (!candidate.satisfiesMinDaily(c, s, dstD)) return null;
 
+    if (!candidate.satisfiesAllTeacherMinDaily()) return null;
     return candidate;
   }
 
@@ -666,6 +670,7 @@ class Phase2SA {
     // the placement, otherwise we introduce a new hard violation.
     if (!candidate.satisfiesMinDaily(c, s, d)) return null;
 
+    if (!candidate.satisfiesAllTeacherMinDaily()) return null;
     return candidate;
   }
 }

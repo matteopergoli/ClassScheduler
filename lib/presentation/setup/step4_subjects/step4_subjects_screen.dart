@@ -374,6 +374,50 @@ class _SubjectCard extends ConsumerWidget {
             ),
           ),
 
+          // Global limits belong to the subject/teacher, not to a classroom
+          // assignment, so show them once in the subject card header.
+          if (subject.minDailyTeacherHours > 0 ||
+              subject.maxDailyTeacherHours > 0 ||
+              subject.minWeeklyTeacherHours > 0 ||
+              subject.maxWeeklyTeacherHours > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(38, 8, 16, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (subject.minDailyTeacherHours > 0)
+                    _GlobalLimitChip(
+                      icon: Icons.today_outlined,
+                      label:
+                          '${l10n.minDailyTeacherHours}: ${subject.minDailyTeacherHours}h',
+                      color: colors.primary,
+                    ),
+                  if (subject.maxDailyTeacherHours > 0)
+                    _GlobalLimitChip(
+                      icon: Icons.today_outlined,
+                      label:
+                          '${l10n.maxDailyTeacherHours}: ${subject.maxDailyTeacherHours}h',
+                      color: colors.primary,
+                    ),
+                  if (subject.minWeeklyTeacherHours > 0)
+                    _GlobalLimitChip(
+                      icon: Icons.date_range_outlined,
+                      label:
+                          '${l10n.minWeeklyTeacherHours}: ${subject.minWeeklyTeacherHours}h',
+                      color: colors.primary,
+                    ),
+                  if (subject.maxWeeklyTeacherHours > 0)
+                    _GlobalLimitChip(
+                      icon: Icons.date_range_outlined,
+                      label:
+                          '${l10n.maxWeeklyTeacherHours}: ${subject.maxWeeklyTeacherHours}h',
+                      color: colors.primary,
+                    ),
+                ],
+              ),
+            ),
+
           // ── Divider ───────────────────────────────────────────────────
           Divider(
               height: 16,
@@ -537,12 +581,10 @@ class _StatChip extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.color,
-    required this.colors,
   });
   final IconData icon;
   final String label;
   final Color color;
-  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -559,6 +601,47 @@ class _StatChip extends StatelessWidget {
           Icon(icon, size: 9, color: color),
           const SizedBox(width: 3),
           Text(label, style: AppTextStyles.labelSmall.copyWith(color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlobalLimitChip extends StatelessWidget {
+  const _GlobalLimitChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.colors,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        border: Border.all(color: color.withOpacity(0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelSmall.copyWith(color: color),
+            ),
+          ),
         ],
       ),
     );

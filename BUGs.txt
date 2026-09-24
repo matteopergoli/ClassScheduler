@@ -88,9 +88,11 @@ x	nome insegnante lascialo opzionale nella creazione della materia
 x	mette il vincolo min hour daily in automatico a 2
 x	creazione account premium tra cui il mio
 x	fai screenshot per google e carica nuovo aab aggiornato
+x	nei vincoli compaiono anche i giorni che sono disattivati (sabato e domenica)
 
 
 
 Open:
 O	quando editi a mano lo schedule, l'app deve aggiornare il check dei vincoli e dare i messaggi di violazione
-O	nei vincoli compaiono anche i giorni che sono disattivati (sabato e domenica)
+O	structural integrity
+O	spam email

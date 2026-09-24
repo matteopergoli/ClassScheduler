@@ -41,12 +41,14 @@ import '../../core/theme/app_text_styles.dart';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/constraint_repository.dart';
 import '../../data/repositories/school_repository.dart';
-import '../../data/repositories/subject_repositories.dart' show ClassroomSubjectRepository;
+import '../../data/repositories/subject_repositories.dart'
+    show ClassroomSubjectRepository;
 import '../../domain/constraints/constraint_conflict_detector.dart';
 import '../../domain/validation/subject_validator.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_providers.dart';
-import '../setup/step1_periods/step1_periods_screen.dart' show activeDaysProvider;
+import '../setup/step1_periods/step1_periods_screen.dart'
+    show activeDaysProvider;
 import '../widgets/cs_button.dart';
 import '../widgets/cs_dropdown.dart';
 import '../widgets/cs_text_field.dart';
@@ -106,7 +108,6 @@ class ConstraintFormScreen extends ConsumerStatefulWidget {
 }
 
 class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
-
   // ── Form state ─────────────────────────────────────────────────────────
 
   // Kind toggle: 'HARD' | 'SOFT'
@@ -151,20 +152,20 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     final dl = widget.existingDailyLimit;
     if (dl != null) {
       // Editing a HARD daily limit reached via its own tile — see class doc.
-      _kind          = 'HARD';
-      _family        = _Family.dailyLimit;
-      _positive      = true;
-      _weight        = 'MEDIUM';
-      _dlSubjectId   = dl.subjectId;
+      _kind = 'HARD';
+      _family = _Family.dailyLimit;
+      _positive = true;
+      _weight = 'MEDIUM';
+      _dlSubjectId = dl.subjectId;
       _dlClassroomId = dl.classroomId;
-      _minCtrl.text  = '${dl.minDailyHours}';
-      _maxCtrl.text  = '${dl.maxDailyHours}';
+      _minCtrl.text = '${dl.minDailyHours}';
+      _maxCtrl.text = '${dl.maxDailyHours}';
       // _dlNoMax is derived once periods load — see _buildForm.
       return;
     }
 
     final e = widget.existing;
-    _kind   = e?.kind ??
+    _kind = e?.kind ??
         (widget.initialKind == 'SOFT' || widget.initialKind == 'HARD'
             ? widget.initialKind!
             : 'HARD');
@@ -172,20 +173,20 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     _weight = e?.weight ?? 'MEDIUM';
 
     if (type == 'DAILY_LIMIT') {
-      _family        = _Family.dailyLimit;
-      _positive      = true;
-      _dlSubjectId   = e?.subjectId;
+      _family = _Family.dailyLimit;
+      _positive = true;
+      _dlSubjectId = e?.subjectId;
       _dlClassroomId = e?.classroomId;
-      _minCtrl.text  = '${e?.minHours ?? 0}';
-      _dlNoMax       = e != null && e.maxHours == null;
-      _maxCtrl.text  = '${e?.maxHours ?? 1}';
+      _minCtrl.text = '${e?.minHours ?? 0}';
+      _dlNoMax = e != null && e.maxHours == null;
+      _maxCtrl.text = '${e?.maxHours ?? 1}';
     } else {
-      _family      = _Family.rule;
-      _positive    = type == 'MUST_ASSIGN' || type == 'PREFER_BLOCK';
-      _subjectId   = e?.subjectId;
+      _family = _Family.rule;
+      _positive = type == 'MUST_ASSIGN' || type == 'PREFER_BLOCK';
+      _subjectId = e?.subjectId;
       _classroomId = e?.classroomId;
-      _dayOfWeek   = e?.dayOfWeek;
-      _periodId    = e?.periodId;
+      _dayOfWeek = e?.dayOfWeek;
+      _periodId = e?.periodId;
       _endPeriodId = e?.endPeriodId;
     }
   }
@@ -252,13 +253,17 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     List<ClassroomModel> classrooms,
     List<PeriodModel> periods,
     List<ClassroomSubjectModel> classroomSubjects,
+    List<DayCapacityModel> dayCaps,
   ) async {
     final validationError = _validateRule();
     if (validationError != null) {
       setState(() => _error = validationError);
       return;
     }
-    setState(() { _saving = true; _error = null; });
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
     try {
       final repo = ref.read(constraintRepositoryProvider(widget.schoolId));
       final type = _type;
@@ -270,16 +275,16 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         // same four fields regardless of type; the "any"/"all" sentinels
         // resolve to null via the getters above.
         final model = ConstraintModel(
-          id:          widget.existing!.id,
-          schoolId:    widget.schoolId,
-          kind:        _kind,
-          type:        type,
-          subjectId:   _subjectId,
+          id: widget.existing!.id,
+          schoolId: widget.schoolId,
+          kind: _kind,
+          type: type,
+          subjectId: _subjectId,
           classroomId: _resolvedClassroomId,
-          dayOfWeek:   _resolvedDayOfWeek,
-          periodId:    _periodId,
+          dayOfWeek: _resolvedDayOfWeek,
+          periodId: _periodId,
           endPeriodId: _endPeriodId,
-          weight:      _kind == 'SOFT' ? _weight : null,
+          weight: _kind == 'SOFT' ? _weight : null,
         );
         await repo.update(model);
       } else if (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN') {
@@ -287,7 +292,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
             ? _classroomIdsForSubject(classrooms, classroomSubjects)
             : [_classroomId!];
         final dayCodes = _dayOfWeek == _kAllDays
-            ? ref.read(activeDaysProvider)
+            ? _availableDaysForClassroom(
+                ref.read(activeDaysProvider), dayCaps, _classroomId)
             : [_dayOfWeek!];
 
         if (classroomIds.isEmpty) {
@@ -361,20 +367,26 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     final dl = widget.existingDailyLimit;
     if (dl == null) return;
     final uid = ref.read(currentUserProvider)!.uid;
-    final repo = ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
-    await repo.save(dl.copyWith(minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
+    final repo =
+        ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
+    await repo
+        .save(dl.copyWith(minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
   }
 
   String? _validateRule() {
-    if (_subjectId == null) return AppLocalizations.of(context).errSelectSubject;
+    if (_subjectId == null)
+      return AppLocalizations.of(context).errSelectSubject;
     final type = _type;
     if (type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN') {
-      if (_classroomId == null) return AppLocalizations.of(context).errSelectClassroom;
+      if (_classroomId == null)
+        return AppLocalizations.of(context).errSelectClassroom;
       if (_dayOfWeek == null) return AppLocalizations.of(context).errSelectDay;
       if (_periodId == null) return AppLocalizations.of(context).errSelectSlot;
     } else if (type == 'AVOID_TIMESLOT') {
-      if (_periodId == null) return AppLocalizations.of(context).errSelectStartSlot;
-      if (_endPeriodId == null) return AppLocalizations.of(context).errSelectEndSlot;
+      if (_periodId == null)
+        return AppLocalizations.of(context).errSelectStartSlot;
+      if (_endPeriodId == null)
+        return AppLocalizations.of(context).errSelectEndSlot;
     }
     // PREFER_BLOCK: only subject is required (checked above) — its
     // day/start/end slot fields are an optional scope, unlike AVOID_TIMESLOT
@@ -444,7 +456,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         activeDayCount: activeDayCount,
         totalLessonSlots: totalSlots,
       );
-      final prefix = multi ? '${classroomNames[cs.classroomId] ?? cs.classroomId}: ' : '';
+      final prefix =
+          multi ? '${classroomNames[cs.classroomId] ?? cs.classroomId}: ' : '';
       for (final e in result.errors) {
         final message = switch (e) {
           SubjectValidationError.weeklyMustBePositive =>
@@ -452,7 +465,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           SubjectValidationError.minGtMax => l10n.validationMinGtMax,
           SubjectValidationError.maxDaysInsufficient =>
             l10n.validationMaxDaysInsufficient(
-              effectiveMax * activeDayCount, cs.weeklyTargetHours),
+                effectiveMax * activeDayCount, cs.weeklyTargetHours),
           SubjectValidationError.weeklyExceedsSlots =>
             l10n.validationWeeklyExceedsSlots(cs.weeklyTargetHours, totalSlots),
           SubjectValidationError.minDailyInfeasible =>
@@ -471,11 +484,15 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     List<ClassroomSubjectModel> assignments,
     int lessonPeriodsCount,
   ) async {
-    setState(() { _saving = true; _error = null; });
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
     try {
       if (_kind == 'HARD') {
         final uid = ref.read(currentUserProvider)!.uid;
-        final csRepo = ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
+        final csRepo =
+            ClassroomSubjectRepository(uid: uid, schoolId: widget.schoolId);
         final effectiveMax = _dlNoMax ? lessonPeriodsCount : _dlMax;
         await csRepo.saveMany([
           for (final cs in assignments)
@@ -487,8 +504,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         // up as a stale duplicate.
         final dl = widget.existingDailyLimit;
         if (dl != null && !assignments.any((cs) => cs.id == dl.id)) {
-          await csRepo.save(dl.copyWith(
-              minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
+          await csRepo.save(
+              dl.copyWith(minDailyHours: 0, maxDailyHours: lessonPeriodsCount));
         }
         // Was previously a SOFT DAILY_LIMIT ConstraintModel — that document
         // has no relation to the classroom-subject fields just written, so
@@ -504,15 +521,15 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           // Editing an existing SOFT DAILY_LIMIT ConstraintModel always
           // targets exactly one document.
           final model = ConstraintModel(
-            id:          widget.existing!.id,
-            schoolId:    widget.schoolId,
-            kind:        'SOFT',
-            type:        'DAILY_LIMIT',
-            subjectId:   _dlSubjectId,
+            id: widget.existing!.id,
+            schoolId: widget.schoolId,
+            kind: 'SOFT',
+            type: 'DAILY_LIMIT',
+            subjectId: _dlSubjectId,
             classroomId: _dlClassroomId,
-            weight:      _weight,
-            minHours:    _dlMin > 0 ? _dlMin : null,
-            maxHours:    _dlNoMax ? null : _dlMax,
+            weight: _weight,
+            minHours: _dlMin > 0 ? _dlMin : null,
+            maxHours: _dlNoMax ? null : _dlMax,
           );
           await repo.update(model);
         } else {
@@ -547,25 +564,27 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n   = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
 
-    final subjectsAsync          = ref.watch(_subjectsProvider(widget.schoolId));
-    final classroomsAsync        = ref.watch(_classroomsProvider(widget.schoolId));
-    final periodsAsync           = ref.watch(_periodsProvider(widget.schoolId));
-    final classroomSubjectsAsync = ref.watch(_classroomSubjectsProvider(widget.schoolId));
-    final dayCapsAsync           = ref.watch(_dayCapacitiesProvider(widget.schoolId));
+    final subjectsAsync = ref.watch(_subjectsProvider(widget.schoolId));
+    final classroomsAsync = ref.watch(_classroomsProvider(widget.schoolId));
+    final periodsAsync = ref.watch(_periodsProvider(widget.schoolId));
+    final classroomSubjectsAsync =
+        ref.watch(_classroomSubjectsProvider(widget.schoolId));
+    final dayCapsAsync = ref.watch(_dayCapacitiesProvider(widget.schoolId));
     // Only used to grey out slots a MUST_ASSIGN would immediately conflict
     // on (see _buildRuleFields) — a nice-to-have, not core form data, so it
     // doesn't gate the rest of the form behind another loading state; while
     // still loading, disabling simply doesn't kick in yet.
-    final hardConstraints = (ref.watch(_constraintsProvider(widget.schoolId)).valueOrNull ?? const [])
-        .where((c) => c.kind == 'HARD')
-        .toList();
+    final hardConstraints =
+        (ref.watch(_constraintsProvider(widget.schoolId)).valueOrNull ??
+                const [])
+            .where((c) => c.kind == 'HARD')
+            .toList();
     final schoolName = ref.watch(schoolsStreamProvider).whenOrNull(
-          data: (schools) => schools
-              .firstWhereOrNull((s) => s.id == widget.schoolId)
-              ?.name,
+          data: (schools) =>
+              schools.firstWhereOrNull((s) => s.id == widget.schoolId)?.name,
         );
 
     return Scaffold(
@@ -576,13 +595,14 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           children: [
             Text(
               _isEditing ? l10n.edit : l10n.addConstraint,
-              style: AppTextStyles.titleMedium
-                  .copyWith(color: colors.textPrimary),
+              style:
+                  AppTextStyles.titleMedium.copyWith(color: colors.textPrimary),
             ),
             if (schoolName != null)
               Text(
                 schoolName,
-                style: AppTextStyles.titleSmall.copyWith(color: colors.textMuted),
+                style:
+                    AppTextStyles.titleSmall.copyWith(color: colors.textMuted),
               ),
           ],
         ),
@@ -593,22 +613,36 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       ),
       body: subjectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
+        error: (e, _) => Center(
+            child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
         data: (subjects) => classroomsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
+          error: (e, _) => Center(
+              child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
           data: (classrooms) => periodsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
+            error: (e, _) => Center(
+                child:
+                    Text(AppLocalizations.of(context).errorWithMessage('$e'))),
             data: (periods) => classroomSubjectsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
+              error: (e, _) => Center(
+                  child: Text(
+                      AppLocalizations.of(context).errorWithMessage('$e'))),
               data: (classroomSubjects) => dayCapsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error:   (e, _) => Center(child: Text(AppLocalizations.of(context).errorWithMessage('$e'))),
+                error: (e, _) => Center(
+                    child: Text(
+                        AppLocalizations.of(context).errorWithMessage('$e'))),
                 data: (dayCaps) => _buildForm(
-                  colors, l10n, subjects, classrooms, periods,
-                  classroomSubjects, dayCaps, hardConstraints,
+                  colors,
+                  l10n,
+                  subjects,
+                  classrooms,
+                  periods,
+                  classroomSubjects,
+                  dayCaps,
+                  hardConstraints,
                 ),
               ),
             ),
@@ -665,13 +699,16 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     // Daily-limit derived state
     final dlClassroomsForSubject = _dlSubjectId == null
         ? const <ClassroomModel>[]
-        : classrooms.where((c) => classroomSubjects.any(
-            (cs) => cs.classroomId == c.id && cs.subjectId == _dlSubjectId)).toList();
+        : classrooms
+            .where((c) => classroomSubjects.any(
+                (cs) => cs.classroomId == c.id && cs.subjectId == _dlSubjectId))
+            .toList();
     final dlAssignments = _dlAssignments(classroomSubjects);
     final dlClassroomNames = {for (final c in classrooms) c.id: c.name};
     final dlTotalSlotsByClassroom = {
       for (final cs in dlAssignments)
-        cs.classroomId: _totalSlotsFor(cs.classroomId, periods, dayCaps, activeDays),
+        cs.classroomId:
+            _totalSlotsFor(cs.classroomId, periods, dayCaps, activeDays),
     };
 
     return SingleChildScrollView(
@@ -680,7 +717,9 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Kind toggle: HARD | SOFT ────────────────────────────────
-          _SectionLabel(label: AppLocalizations.of(context).constraintTypeLabel, colors: colors),
+          _SectionLabel(
+              label: AppLocalizations.of(context).constraintTypeLabel,
+              colors: colors),
           const SizedBox(height: 8),
           _KindToggle(
             kind: _kind,
@@ -691,7 +730,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           const SizedBox(height: 20),
 
           // ── Family + polarity ────────────────────────────────────────
-          _SectionLabel(label: AppLocalizations.of(context).ruleLabel, colors: colors),
+          _SectionLabel(
+              label: AppLocalizations.of(context).ruleLabel, colors: colors),
           const SizedBox(height: 8),
           _RuleFamilySelector(
             kind: _kind,
@@ -711,12 +751,18 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 
           if (_family == _Family.rule)
             ..._buildRuleFields(colors, l10n, type, subjects, classrooms,
-                periods, lessonPeriods, dayCaps, hardConstraints)
+                periods, lessonPeriods, dayCaps, hardConstraints, activeDays)
           else
             ..._buildDailyLimitFields(
-              colors, l10n, subjects, dlClassroomsForSubject,
-              dlAssignments, dlTotalSlotsByClassroom, dlClassroomNames,
-              classroomSubjects, lessonPeriods.length,
+              colors,
+              l10n,
+              subjects,
+              dlClassroomsForSubject,
+              dlAssignments,
+              dlTotalSlotsByClassroom,
+              dlClassroomNames,
+              classroomSubjects,
+              lessonPeriods.length,
             ),
 
           // ── Error ───────────────────────────────────────────────────
@@ -739,7 +785,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
             label: l10n.save,
             loading: _saving,
             onPressed: _family == _Family.rule
-                ? () => _saveRule(subjects, classrooms, periods, classroomSubjects)
+                ? () => _saveRule(
+                    subjects, classrooms, periods, classroomSubjects, dayCaps)
                 : (dlAssignments.isNotEmpty && _dlErrors.isEmpty
                     ? () => _saveDailyLimit(dlAssignments, lessonPeriods.length)
                     : null),
@@ -767,12 +814,25 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     List<PeriodModel> lessonPeriods,
     List<DayCapacityModel> dayCaps,
     List<ConstraintModel> hardConstraints,
+    List<String> activeDays,
   ) {
     final classroomDayRequired =
         type == 'MUST_ASSIGN' || type == 'MUST_NOT_ASSIGN';
 
     final resolvedClassroomId = _resolvedClassroomId;
     final resolvedDay = _resolvedDayOfWeek;
+    final availableDays = _availableDaysForClassroom(
+      activeDays,
+      dayCaps,
+      resolvedClassroomId,
+    );
+    final dropdownDays = _isEditing &&
+            _dayOfWeek != null &&
+            _dayOfWeek != _kAnyDay &&
+            _dayOfWeek != _kAllDays &&
+            !availableDays.contains(_dayOfWeek)
+        ? [...availableDays, _dayOfWeek!]
+        : availableDays;
 
     // ── Dynamic slot disabling ──────────────────────────────────────────
     // Reason strings double as the cell's tooltip.
@@ -786,7 +846,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
       if (cap != null) {
         for (var i = 0; i < lessonPeriods.length; i++) {
           if (!cap.activeSlots.contains(i)) {
-            disabledReasons[i] = AppLocalizations.of(context).slotUnavailableForClassroomDay;
+            disabledReasons[i] =
+                AppLocalizations.of(context).slotUnavailableForClassroomDay;
           }
         }
       }
@@ -811,7 +872,7 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
     }
 
     final startIdx = _lessonIndexOf(_periodId, lessonPeriods);
-    final endIdx   = _lessonIndexOf(_endPeriodId, lessonPeriods);
+    final endIdx = _lessonIndexOf(_endPeriodId, lessonPeriods);
 
     return [
       // ── Subject (always required) ─────────────────────────────────
@@ -821,10 +882,12 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         key: const ValueKey('subject'),
         value: _subjectId,
         hint: AppLocalizations.of(context).selectSubjectHint,
-        items: subjects.map((s) => DropdownMenuItem(
-          value: s.id,
-          child: Text(s.name),
-        )).toList(),
+        items: subjects
+            .map((s) => DropdownMenuItem(
+                  value: s.id,
+                  child: Text(s.name),
+                ))
+            .toList(),
         onChanged: (v) => setState(() => _subjectId = v),
       ),
       const SizedBox(height: 16),
@@ -843,26 +906,38 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         items: classroomDayRequired
             ? _classroomItems(classrooms, colors)
             : _classroomItemsOptional(classrooms, colors),
-        onChanged: (v) => setState(() => _classroomId = v),
+        onChanged: (v) => setState(() {
+          _classroomId = v;
+          final nextDays = _availableDaysForClassroom(
+              activeDays, dayCaps, _resolvedClassroomId);
+          if (_dayOfWeek != null &&
+              _dayOfWeek != _kAnyDay &&
+              _dayOfWeek != _kAllDays &&
+              !nextDays.contains(_dayOfWeek)) {
+            _dayOfWeek = null;
+          }
+        }),
       ),
       const SizedBox(height: 16),
 
       // ── Day ──────────────────────────────────────────────────────
-      _SectionLabel(label: AppLocalizations.of(context).dayFieldLabel, colors: colors),
+      _SectionLabel(
+          label: AppLocalizations.of(context).dayFieldLabel, colors: colors),
       const SizedBox(height: 8),
       CsDropdown<String>(
         key: const ValueKey('day'),
         value: _dayOfWeek,
         hint: AppLocalizations.of(context).anyDayOption,
         items: classroomDayRequired
-            ? _dayItemsForRule(l10n, colors)
-            : _dayItemsOptional(l10n, colors),
+          ? _dayItemsForRule(l10n, colors, dropdownDays)
+          : _dayItemsOptional(l10n, colors, dropdownDays),
         onChanged: (v) => setState(() => _dayOfWeek = v),
       ),
       const SizedBox(height: 16),
 
       // ── Slot(s) — visual picker instead of dropdowns ────────────────
-      _SectionLabel(label: AppLocalizations.of(context).slotLabel, colors: colors),
+      _SectionLabel(
+          label: AppLocalizations.of(context).slotLabel, colors: colors),
       const SizedBox(height: 8),
       SlotRangePicker(
         allPeriods: allPeriods,
@@ -885,7 +960,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 
       // ── Weight (SOFT only) ──────────────────────────────────────
       if (_kind == 'SOFT') ...[
-        _SectionLabel(label: AppLocalizations.of(context).priorityLabel, colors: colors),
+        _SectionLabel(
+            label: AppLocalizations.of(context).priorityLabel, colors: colors),
         const SizedBox(height: 8),
         _WeightSelector(
           weight: _weight,
@@ -922,10 +998,12 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         key: const ValueKey('dl-subject'),
         value: _dlSubjectId,
         hint: AppLocalizations.of(context).selectSubjectHint,
-        items: subjects.map((s) => DropdownMenuItem(
-          value: s.id,
-          child: Text(s.name),
-        )).toList(),
+        items: subjects
+            .map((s) => DropdownMenuItem(
+                  value: s.id,
+                  child: Text(s.name),
+                ))
+            .toList(),
         onChanged: (v) => setState(() {
           _dlSubjectId = v;
           _dlClassroomId = null;
@@ -933,7 +1011,6 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         }),
       ),
       const SizedBox(height: 16),
-
       _SectionLabel(label: l10n.classrooms, colors: colors),
       const SizedBox(height: 8),
       CsDropdown<String>(
@@ -976,7 +1053,6 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
         }),
       ),
       const SizedBox(height: 16),
-
       if (_dlSubjectId != null && availableClassrooms.isEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -986,7 +1062,6 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
             style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted),
           ),
         ),
-
       if (assignments.isNotEmpty) ...[
         CsTextField(
           controller: _minCtrl,
@@ -1038,7 +1113,8 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
                 }),
               ),
               Text(AppLocalizations.of(context).noMaximumFullDay,
-                  style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted)),
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: colors.textMuted)),
             ],
           ),
         ),
@@ -1062,7 +1138,9 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
           ),
         const SizedBox(height: 12),
         if (_kind == 'SOFT') ...[
-          _SectionLabel(label: AppLocalizations.of(context).priorityLabel, colors: colors),
+          _SectionLabel(
+              label: AppLocalizations.of(context).priorityLabel,
+              colors: colors),
           const SizedBox(height: 8),
           _WeightSelector(
             weight: _weight,
@@ -1094,46 +1172,71 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
   }
 
   static List<DropdownMenuItem<String>> _dayItems(AppLocalizations l10n) => [
-    DropdownMenuItem(value: 'MON', child: Text(l10n.monday)),
-    DropdownMenuItem(value: 'TUE', child: Text(l10n.tuesday)),
-    DropdownMenuItem(value: 'WED', child: Text(l10n.wednesday)),
-    DropdownMenuItem(value: 'THU', child: Text(l10n.thursday)),
-    DropdownMenuItem(value: 'FRI', child: Text(l10n.friday)),
-    DropdownMenuItem(value: 'SAT', child: Text(l10n.saturday)),
-    DropdownMenuItem(value: 'SUN', child: Text(l10n.sunday)),
-  ];
+        DropdownMenuItem(value: 'MON', child: Text(l10n.monday)),
+        DropdownMenuItem(value: 'TUE', child: Text(l10n.tuesday)),
+        DropdownMenuItem(value: 'WED', child: Text(l10n.wednesday)),
+        DropdownMenuItem(value: 'THU', child: Text(l10n.thursday)),
+        DropdownMenuItem(value: 'FRI', child: Text(l10n.friday)),
+        DropdownMenuItem(value: 'SAT', child: Text(l10n.saturday)),
+        DropdownMenuItem(value: 'SUN', child: Text(l10n.sunday)),
+      ];
+
+  List<String> _availableDaysForClassroom(
+    List<String> activeDays,
+    List<DayCapacityModel> dayCaps,
+    String? classroomId,
+  ) {
+    if (classroomId == null ||
+        classroomId == _kAnyClassroom ||
+        classroomId == _kAllClassrooms) {
+      return activeDays;
+    }
+
+    final capacities = {
+      for (final cap in dayCaps.where((c) => c.classroomId == classroomId))
+        cap.dayOfWeek: cap,
+    };
+    return activeDays
+        .where((day) =>
+            capacities[day] == null || capacities[day]!.activeSlots.isNotEmpty)
+        .toList();
+  }
 
   /// Day items with an "All days" option prepended — only when creating,
   /// since editing always targets the one day the existing document has.
   List<DropdownMenuItem<String>> _dayItemsForRule(
     AppLocalizations l10n,
     AppColors colors,
-  ) => [
-    if (!_isEditing)
-      DropdownMenuItem(
-        value: _kAllDays,
-        child: Text(AppLocalizations.of(context).allDaysOption,
-            style: TextStyle(
-                color: colors.primary, fontWeight: FontWeight.w600)),
-      ),
-    ..._dayItems(l10n),
-  ];
+    List<String> availableDays,
+  ) =>
+      [
+        if (!_isEditing)
+          DropdownMenuItem(
+            value: _kAllDays,
+            child: Text(AppLocalizations.of(context).allDaysOption,
+                style: TextStyle(
+                    color: colors.primary, fontWeight: FontWeight.w600)),
+          ),
+        ..._dayItems(l10n).where((item) => availableDays.contains(item.value)),
+      ];
 
   /// Classroom items with an "All classrooms" option prepended — only when
   /// creating, for the same reason as _dayItemsForRule.
   List<DropdownMenuItem<String>> _classroomItems(
     List<ClassroomModel> classrooms,
     AppColors colors,
-  ) => [
-    if (!_isEditing)
-      DropdownMenuItem(
-        value: _kAllClassrooms,
-        child: Text(AppLocalizations.of(context).allClassrooms,
-            style: TextStyle(
-                color: colors.primary, fontWeight: FontWeight.w600)),
-      ),
-    ...classrooms.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-  ];
+  ) =>
+      [
+        if (!_isEditing)
+          DropdownMenuItem(
+            value: _kAllClassrooms,
+            child: Text(AppLocalizations.of(context).allClassrooms,
+                style: TextStyle(
+                    color: colors.primary, fontWeight: FontWeight.w600)),
+          ),
+        ...classrooms
+            .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+      ];
 
   /// Day items for AVOID_TIMESLOT/PREFER_BLOCK — an "Any day" item is always
   /// offered (create or edit), unlike _dayItemsForRule's create-only "All
@@ -1143,29 +1246,33 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
   List<DropdownMenuItem<String>> _dayItemsOptional(
     AppLocalizations l10n,
     AppColors colors,
-  ) => [
-    DropdownMenuItem(
-      value: _kAnyDay,
-      child: Text(AppLocalizations.of(context).anyDayOption,
-          style: TextStyle(
-              color: colors.primary, fontWeight: FontWeight.w600)),
-    ),
-    ..._dayItems(l10n),
-  ];
+    List<String> availableDays,
+  ) =>
+      [
+        DropdownMenuItem(
+          value: _kAnyDay,
+          child: Text(AppLocalizations.of(context).anyDayOption,
+              style: TextStyle(
+                  color: colors.primary, fontWeight: FontWeight.w600)),
+        ),
+        ..._dayItems(l10n).where((item) => availableDays.contains(item.value)),
+      ];
 
   /// Classroom items for AVOID_TIMESLOT/PREFER_BLOCK — see _dayItemsOptional.
   List<DropdownMenuItem<String>> _classroomItemsOptional(
     List<ClassroomModel> classrooms,
     AppColors colors,
-  ) => [
-    DropdownMenuItem(
-      value: _kAnyClassroom,
-      child: Text(AppLocalizations.of(context).anyClassroomOption,
-          style: TextStyle(
-              color: colors.primary, fontWeight: FontWeight.w600)),
-    ),
-    ...classrooms.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-  ];
+  ) =>
+      [
+        DropdownMenuItem(
+          value: _kAnyClassroom,
+          child: Text(AppLocalizations.of(context).anyClassroomOption,
+              style: TextStyle(
+                  color: colors.primary, fontWeight: FontWeight.w600)),
+        ),
+        ...classrooms
+            .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+      ];
 }
 
 // ── Kind toggle ────────────────────────────────────────────────────────────
@@ -1173,10 +1280,13 @@ class _ConstraintFormScreenState extends ConsumerState<ConstraintFormScreen> {
 class _KindToggle extends StatelessWidget {
   final String kind;
   final ValueChanged<String> onChanged;
-  final AppColors colors; final AppLocalizations l10n;
+  final AppColors colors;
+  final AppLocalizations l10n;
   const _KindToggle({
-    required this.kind, required this.onChanged,
-    required this.colors, required this.l10n,
+    required this.kind,
+    required this.onChanged,
+    required this.colors,
+    required this.l10n,
   });
 
   @override
@@ -1202,31 +1312,35 @@ class _KindToggle extends StatelessWidget {
 }
 
 class _KindChip extends StatelessWidget {
-  final String label; final bool selected;
-  final Color color; final AppColors colors;
+  final String label;
+  final bool selected;
+  final Color color;
+  final AppColors colors;
   final VoidCallback onTap;
   const _KindChip({
-    required this.label, required this.selected,
-    required this.color, required this.colors,
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.colors,
     required this.onTap,
   });
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: selected ? color.withOpacity(0.15) : colors.surfaceVariant,
-        border: Border.all(
-            color: selected ? color : colors.borderDefault, width: 1.5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(label,
-          style: AppTextStyles.labelMedium.copyWith(
-              color: selected ? color : colors.textMuted)),
-    ),
-  );
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.15) : colors.surfaceVariant,
+            border: Border.all(
+                color: selected ? color : colors.borderDefault, width: 1.5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(label,
+              style: AppTextStyles.labelMedium
+                  .copyWith(color: selected ? color : colors.textMuted)),
+        ),
+      );
 }
 
 // ── Rule family + polarity selector ─────────────────────────────────────────
@@ -1254,10 +1368,8 @@ class _RuleFamilySelector extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final positiveLabel = isHard ? l.ruleMust : l.rulePrefer;
     final negativeLabel = isHard ? l.ruleMustNot : l.ruleAvoid;
-    final positiveDesc  = isHard
-        ? l.ruleMustDescHard
-        : l.ruleMustDescSoft;
-    final negativeDesc  = isHard ? l.ruleMustNotDescHard : l.ruleMustNotDescSoft;
+    final positiveDesc = isHard ? l.ruleMustDescHard : l.ruleMustDescSoft;
+    final negativeDesc = isHard ? l.ruleMustNotDescHard : l.ruleMustNotDescSoft;
 
     return Column(
       children: [
@@ -1306,43 +1418,45 @@ class _RuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: selected ? colors.primary.withOpacity(0.1) : colors.cardBg,
-        border: Border.all(
-          color: selected ? colors.primary : colors.borderDefault,
-          width: selected ? 1.5 : 1,
-        ),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-      ),
-      child: Row(children: [
-        Radio<bool>(
-          value: true,
-          groupValue: selected,
-          toggleable: true,
-          activeColor: colors.primary,
-          onChanged: (_) => onTap(),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: AppTextStyles.labelMedium.copyWith(
-                      color: selected ? colors.primary : colors.textPrimary)),
-              const SizedBox(height: 2),
-              Text(description,
-                  style: AppTextStyles.bodySmall.copyWith(color: colors.textMuted)),
-            ],
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? colors.primary.withOpacity(0.1) : colors.cardBg,
+            border: Border.all(
+              color: selected ? colors.primary : colors.borderDefault,
+              width: selected ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
           ),
+          child: Row(children: [
+            Radio<bool>(
+              value: true,
+              groupValue: selected,
+              toggleable: true,
+              activeColor: colors.primary,
+              onChanged: (_) => onTap(),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: AppTextStyles.labelMedium.copyWith(
+                          color:
+                              selected ? colors.primary : colors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(description,
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: colors.textMuted)),
+                ],
+              ),
+            ),
+          ]),
         ),
-      ]),
-    ),
-  );
+      );
 }
 
 // ── Weight selector ────────────────────────────────────────────────────────
@@ -1350,57 +1464,63 @@ class _RuleCard extends StatelessWidget {
 class _WeightSelector extends StatelessWidget {
   final String? weight;
   final ValueChanged<String> onChanged;
-  final AppColors colors; final AppLocalizations l10n;
+  final AppColors colors;
+  final AppLocalizations l10n;
   const _WeightSelector({
-    required this.weight, required this.onChanged,
-    required this.colors, required this.l10n,
+    required this.weight,
+    required this.onChanged,
+    required this.colors,
+    required this.l10n,
   });
 
   @override
   Widget build(BuildContext context) => Row(
-    children: ['LOW', 'MEDIUM', 'HIGH'].map((w) {
-      final selected = weight == w;
-      final label    = w == 'LOW' ? l10n.weightLow
-                     : w == 'HIGH' ? l10n.weightHigh
-                     : l10n.weightMedium;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => onChanged(w),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: selected
-                  ? colors.warning.withOpacity(0.15)
-                  : colors.surfaceVariant,
-              border: Border.all(
-                  color: selected ? colors.warning : colors.borderDefault,
-                  width: 1.5),
-              borderRadius: BorderRadius.circular(10),
+        children: ['LOW', 'MEDIUM', 'HIGH'].map((w) {
+          final selected = weight == w;
+          final label = w == 'LOW'
+              ? l10n.weightLow
+              : w == 'HIGH'
+                  ? l10n.weightHigh
+                  : l10n.weightMedium;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(w),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colors.warning.withOpacity(0.15)
+                      : colors.surfaceVariant,
+                  border: Border.all(
+                      color: selected ? colors.warning : colors.borderDefault,
+                      width: 1.5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(label,
+                      style: AppTextStyles.labelMedium.copyWith(
+                          color: selected ? colors.warning : colors.textMuted)),
+                ),
+              ),
             ),
-            child: Center(
-              child: Text(label,
-                  style: AppTextStyles.labelMedium.copyWith(
-                      color: selected ? colors.warning : colors.textMuted)),
-            ),
-          ),
-        ),
+          );
+        }).toList(),
       );
-    }).toList(),
-  );
 }
 
 // ── Section label ──────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
-  final String label; final AppColors colors;
+  final String label;
+  final AppColors colors;
   const _SectionLabel({required this.label, required this.colors});
   @override
   Widget build(BuildContext context) => Text(
-    label.toUpperCase(),
-    style: AppTextStyles.overline.copyWith(color: colors.textMuted),
-  );
+        label.toUpperCase(),
+        style: AppTextStyles.overline.copyWith(color: colors.textMuted),
+      );
 }
 
 // ── Local providers ────────────────────────────────────────────────────────

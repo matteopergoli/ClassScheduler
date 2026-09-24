@@ -140,6 +140,25 @@ class _ScheduleScreenState extends ConsumerState<_ScheduleScreenBody> {
     ));
   }
 
+  Future<void> _onEditingChanged(bool value) async {
+    if (value) {
+      setState(() => _isEditing = true);
+      return;
+    }
+
+    setState(() {
+      _isEditing = false;
+      _resultPanelDismissed = false;
+      _resultPanelExpanded = true;
+    });
+
+    final scheduleId = _selectedScheduleId;
+    if (scheduleId == null) return;
+    await ref
+        .read(generationServiceProvider(widget.schoolId).notifier)
+        .validateManualEdit(scheduleId: scheduleId);
+  }
+
   Future<void> _showVersionSheet(List<ScheduleModel> schedules) async {
     final selected =
         schedules.where((s) => s.id == _selectedScheduleId).firstOrNull;
@@ -382,8 +401,7 @@ class _ScheduleScreenState extends ConsumerState<_ScheduleScreenBody> {
                     }
                   }),
               isEditing: _isEditing,
-              onEditingChanged: (value) =>
-                  setState(() => _isEditing = value),
+                onEditingChanged: _onEditingChanged,
               onExport: _selectedScheduleId != null ? _showExport : null,
             ),
             const TrialBanner(),
@@ -506,7 +524,7 @@ class _ScheduleHeader extends StatelessWidget {
   final void Function(List<ScheduleModel>) onGenerate;
   final void Function(ScheduleViewMode) onViewModeChanged;
   final bool isEditing;
-  final ValueChanged<bool> onEditingChanged;
+  final Future<void> Function(bool) onEditingChanged;
   final VoidCallback? onExport;
 
   const _ScheduleHeader({

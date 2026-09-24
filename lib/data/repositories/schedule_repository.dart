@@ -14,6 +14,7 @@ import 'package:classscheduler/providers/auth_providers.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../data/models/app_models.dart';
+import '../../domain/scheduler/scheduler_input.dart' as scheduler;
 import 'base_repository.dart';
 
 // ── Provider ─────────────────────────────────────────────────────────────────
@@ -133,6 +134,51 @@ class ScheduleRepository extends BaseRepository {
     batch.update(_schedules.doc(scheduleId), {'isManuallyEdited': true});
 
     await batch.commit();
+  }
+
+  Future<void> saveManualValidation({
+    required String scheduleId,
+    required scheduler.ScheduleResult result,
+    required List<ScheduleCellModel> cells,
+  }) async {
+    final scheduleData = {
+      'isManuallyEdited': true,
+      'resultStatus': _statusString(result.status),
+      'hardViolationCount': result.hardViolations.length,
+      'softViolationCount': result.softViolations.length,
+      'qualityScore': result.qualityScore,
+      'teacherFreeHours': result.teacherFreeHours,
+      'subjectChanges': result.subjectChanges,
+    };
+
+    final cellsRef = _cells(scheduleId);
+    const batchSize = 499;
+    for (var start = 0; start < cells.length; start += batchSize) {
+      final end = (start + batchSize).clamp(0, cells.length);
+      final batch = db.batch();
+      if (start == 0) {
+        batch.update(_schedules.doc(scheduleId), scheduleData);
+      }
+      for (var i = start; i < end; i++) {
+        final cell = cells[i];
+        batch.update(cellsRef.doc(cell.id), {
+          'isViolation': cell.isViolation,
+          'violationDescription': cell.violationDescription,
+        });
+      }
+      await batch.commit();
+    }
+  }
+
+  String _statusString(scheduler.ResultStatus status) {
+    switch (status) {
+      case scheduler.ResultStatus.perfect:
+        return 'PERFECT';
+      case scheduler.ResultStatus.softViolationsOnly:
+        return 'SOFT_VIOLATIONS';
+      case scheduler.ResultStatus.hardViolations:
+        return 'HARD_VIOLATIONS';
+    }
   }
 
   // ── Rename / delete ──────────────────────────────────────────────────────

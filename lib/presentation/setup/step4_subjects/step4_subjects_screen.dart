@@ -392,6 +392,7 @@ class _SubjectCard extends ConsumerWidget {
                       label:
                           '${l10n.minDailyTeacherHours}: ${subject.minDailyTeacherHours}h',
                       color: colors.primary,
+                      colors: colors,
                     ),
                   if (subject.maxDailyTeacherHours > 0)
                     _GlobalLimitChip(
@@ -399,6 +400,7 @@ class _SubjectCard extends ConsumerWidget {
                       label:
                           '${l10n.maxDailyTeacherHours}: ${subject.maxDailyTeacherHours}h',
                       color: colors.primary,
+                      colors: colors,
                     ),
                   if (subject.minWeeklyTeacherHours > 0)
                     _GlobalLimitChip(
@@ -406,6 +408,7 @@ class _SubjectCard extends ConsumerWidget {
                       label:
                           '${l10n.minWeeklyTeacherHours}: ${subject.minWeeklyTeacherHours}h',
                       color: colors.primary,
+                      colors: colors,
                     ),
                   if (subject.maxWeeklyTeacherHours > 0)
                     _GlobalLimitChip(
@@ -413,6 +416,7 @@ class _SubjectCard extends ConsumerWidget {
                       label:
                           '${l10n.maxWeeklyTeacherHours}: ${subject.maxWeeklyTeacherHours}h',
                       color: colors.primary,
+                      colors: colors,
                     ),
                 ],
               ),
@@ -556,7 +560,6 @@ class _ClassroomAssignmentRow extends StatelessWidget {
                 icon: Icons.calendar_today_outlined,
                 label: '${cs!.weeklyTargetHours}h/wk',
                 color: colors.primary,
-                colors: colors,
               ),
               const Spacer(),
               Icon(Icons.edit_outlined, size: 14, color: colors.textDisabled),

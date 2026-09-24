@@ -30,6 +30,11 @@ import '../constraints/constraint_conflict_detector.dart';
 import 'scheduler_input.dart' as sched;
 import 'scheduler_input_builder.dart';
 import 'scheduler_isolate.dart';
+import 'integrity_checker.dart';
+import 'phase1_greedy.dart';
+import 'phase2_sa.dart';
+import 'result_reporter.dart';
+import 'schedule_state.dart';
 
 // ── Generation state (drives the UI progress bar) ─────────────────────────
 
@@ -97,6 +102,144 @@ class GenerationService extends StateNotifier<GenerationState> {
   // ── Cancel ───────────────────────────────────────────────────────────────
 
   void cancel() => _runner?.cancel();
+
+  Future<void> validateManualEdit({required String scheduleId}) async {
+    state = const GenerationState(phase: GenerationPhase.validating);
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final periods =
+          await _ref.read(periodRepositoryProvider(_schoolId)).fetchAll();
+      final classrooms =
+          await _ref.read(classroomRepositoryProvider(_schoolId)).fetchAll();
+      final subjects =
+          await _ref.read(subjectRepositoryProvider(_schoolId)).fetchAll();
+      final classroomSubjects = await _ref
+          .read(classroomSubjectRepositoryProvider(_schoolId))
+          .fetchAll();
+      final dayCapacities = await _ref
+          .read(dayCapacityRepositoryProvider(_schoolId))
+          .fetchAll();
+      final constraints =
+          await _ref.read(constraintRepositoryProvider(_schoolId)).fetchAll();
+      final cells = await _ref
+          .read(scheduleRepositoryProvider(_schoolId))
+          .fetchCells(scheduleId);
+
+      final activeDays = _deriveActiveDays(classrooms, dayCapacities, periods);
+      final lessonPeriods = periods.where((p) => p.type == 'LESSON').toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      final input = SchedulerInputBuilder.build(
+        activeDayCodes: activeDays,
+        lessonPeriods: lessonPeriods,
+        classrooms: classrooms,
+        subjects: subjects,
+        classroomSubjects: classroomSubjects,
+        dayCapacities: dayCapacities,
+        constraints: constraints,
+      );
+
+      final checkedState = ScheduleState(input);
+      final classroomIdx = {
+        for (var i = 0; i < input.classroomIds.length; i++)
+          input.classroomIds[i]: i,
+      };
+      final subjectIdx = {
+        for (var i = 0; i < input.subjectIds.length; i++)
+          input.subjectIds[i]: i,
+      };
+      final periodIdx = {
+        for (var i = 0; i < input.periodIds.length; i++) input.periodIds[i]: i,
+      };
+
+      for (final cell in cells) {
+        final c = classroomIdx[cell.classroomId];
+        final s = cell.subjectId == null ? null : subjectIdx[cell.subjectId];
+        final l = periodIdx[cell.periodId];
+        final d = _dayIndexFromCellId(cell.id, activeDays);
+        if (c == null || s == null || l == null || d == null) continue;
+        checkedState.assign(c, s, d, l);
+      }
+
+      final integrity = IntegrityChecker(input).check(checkedState);
+      final partialViolations = <PartialViolation>[];
+      for (var c = 0; c < input.numClassrooms; c++) {
+        for (var s = 0; s < input.numSubjects; s++) {
+          final target = input.weeklyTarget[c][s];
+          var count = 0;
+          for (var d = 0; d < input.numDays; d++) {
+            for (var l = 0; l < input.numSlots; l++) {
+              if (checkedState.schedule[c][d][l] == s) count++;
+            }
+          }
+          if (target > count) {
+            partialViolations.add(PartialViolation(
+              classroomIdx: c,
+              subjectIdx: s,
+              shortfall: target - count,
+            ));
+          }
+        }
+      }
+
+      final sa = Phase2SA(
+        input: input,
+        isCancelled: () => false,
+        onProgress: (_, __) {},
+      );
+      final result = ResultReporter(input: input, sa: sa).buildResult(
+        finalState: checkedState,
+        integrityResult: integrity,
+        partialViolations: partialViolations,
+        isCancelled: false,
+        computationTime: stopwatch.elapsed,
+        iterationsCompleted: 0,
+        restartsUsed: 0,
+      );
+
+      final updatedCells = cells.map((cell) {
+        final c = classroomIdx[cell.classroomId];
+        final d = _dayIndexFromCellId(cell.id, activeDays);
+        if (c == null || d == null) return cell;
+        final descriptions = result.hardViolations
+            .where((violation) {
+              if (!violation.description.contains(input.classroomNames[c])) {
+                return false;
+              }
+              if (violation.constraintId == 'HC-3') {
+                return cell.subjectId == null;
+              }
+              return violation.description.contains(input.dayNames[d]);
+            })
+            .map((violation) => violation.description)
+            .toList();
+        return cell.copyWith(
+          isViolation: descriptions.isNotEmpty,
+          violationDescription:
+              descriptions.isEmpty ? null : descriptions.join('; '),
+        );
+      }).toList();
+
+      await _ref.read(scheduleRepositoryProvider(_schoolId)).saveManualValidation(
+            scheduleId: scheduleId,
+            result: result,
+            cells: updatedCells,
+          );
+      state = GenerationState(phase: GenerationPhase.idle, result: result);
+    } catch (e) {
+      state = GenerationState(
+        phase: GenerationPhase.error,
+        errorMessage: 'Unable to validate the edited schedule: $e',
+      );
+    }
+  }
+
+  int? _dayIndexFromCellId(String cellId, List<String> activeDays) {
+    for (var i = 0; i < activeDays.length; i++) {
+      if (cellId.contains('_${activeDays[i]}_')) return i;
+    }
+    return null;
+  }
 
   // ── Main entry point ──────────────────────────────────────────────────────
 

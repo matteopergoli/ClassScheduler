@@ -396,6 +396,11 @@ class GenerationService extends StateNotifier<GenerationState> {
       if (result.hardViolations.any((v) =>
           v.constraintId == 'INTERNAL' ||
           v.description.startsWith('[INTEGRITY'))) {
+        final failure = result.hardViolations.firstWhere(
+          (v) => v.constraintId == 'INTERNAL' ||
+              v.description.startsWith('[INTEGRITY'),
+          orElse: () => result.hardViolations.first,
+        );
         await _ref.read(analyticsServiceProvider).logScheduleGenerated(
               schoolId: _schoolId,
               success: false,
@@ -405,7 +410,8 @@ class GenerationService extends StateNotifier<GenerationState> {
         state = state.copyWith(
           phase: GenerationPhase.error,
           result: result,
-          errorMessage: 'Internal integrity check failed. '
+          errorMessage: 'Internal integrity check failed '
+              '(${failure.constraintId}). ${failure.description} '
               'Your previous schedule has not been modified.',
         );
         return;

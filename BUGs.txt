@@ -90,9 +90,9 @@ x	creazione account premium tra cui il mio
 x	fai screenshot per google e carica nuovo aab aggiornato
 x	nei vincoli compaiono anche i giorni che sono disattivati (sabato e domenica)
 x	quando editi a mano lo schedule, l'app deve aggiornare il check dei vincoli e dare i messaggi di violazione
+x	structural integrity -> aggiunti messaggi di diagnostica in quanto non in grado di replicare completamente il problema
 
 
 
 Open:
-O	structural integrity
 O	spam email
